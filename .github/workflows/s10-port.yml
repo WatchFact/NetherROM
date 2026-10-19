@@ -1,0 +1,158 @@
+name: Galaxy S10 (Exynos9820) experimental port
+on:
+  push:
+    branches: [port/exynos9820-s10]
+    paths:
+      - 'target/beyond*/**'
+      - 'platform/exynos9820/**'
+      - 'scripts/port_s10/**'
+      - 'scripts/internal/build_flashable_zip.sh'
+      - 'docs/s10-exynos9820-port.md'
+      - '.github/workflows/s10-port.yml'
+  workflow_dispatch:
+    inputs:
+      device:
+        description: 'Galaxy S10 Exynos target (never select a Snapdragon device)'
+        type: choice
+        required: true
+        default: beyond2lte
+        options: [beyond0lte, beyond1lte, beyond2lte, beyondx]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s10-port-${{ github.ref }}-${{ github.event.inputs.device || 'beyond2lte' }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check shell syntax, physical partition maps and target assertions
+        shell: bash
+        run: |
+          bash scripts/port_s10/validate.sh
+          for target in beyond0lte beyond1lte beyond2lte beyondx; do
+            bash -c 'set -e; source ./buildenv.sh "$1"; test "$TARGET_CODENAME" = "$1"; test "$TARGET_PLATFORM" = exynos9820; test "$TARGET_USE_DYNAMIC_PARTITIONS" = false' -- "$target"
+          done
+
+  build:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.device) || '["beyond2lte"]') }}
+    steps:
+      - name: Checkout NetherROM and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Reclaim runner disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          sudo docker builder prune -a
+
+      - uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+
+      - name: Exynos9820 compatibility patches (pinned)
+        run: bash ./scripts/port_s10/compat.sh
+
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y             attr bc bison build-essential ccache clang curl flex git git-lfs             libbrotli-dev libbz2-dev libgtest-dev libprotobuf-dev libunwind-dev             libpcre2-dev libzstd-dev lld protobuf-compiler python-is-python3             python3 rsync unzip wget zip p7zip-full             g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
+          sudo modprobe erofs || true
+          sudo modprobe f2fs || true
+          wget -q https://raw.githubusercontent.com/kdrag0n/kramflash/refs/heads/master/mkbootimg.py
+          chmod +x mkbootimg.py
+          sudo ln -sf "$PWD/mkbootimg.py" /usr/local/bin/mkbootimg
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build tools
+        shell: bash
+        run: |
+          source ./buildenv.sh "${{ matrix.target }}"
+          ./scripts/build_dependencies.sh
+
+      - name: Download target and donor firmware
+        shell: bash
+        run: |
+          source ./buildenv.sh "${{ matrix.target }}"
+          ./scripts/download_fw.sh
+
+      - name: Extract firmware
+        shell: bash
+        run: |
+          source ./buildenv.sh "${{ matrix.target }}"
+          ./scripts/extract_fw.sh
+
+      - name: Build NetherROM filesystem and patches
+        shell: bash
+        run: |
+          source ./buildenv.sh "${{ matrix.target }}"
+          ./scripts/make_rom.sh --no-rom-zip
+
+      - name: Compile and install S10-specific boot/dtbo images
+        shell: bash
+        run: |
+          bash ./scripts/port_s10/kernel.sh "${{ matrix.target }}"
+
+      - name: Package using physical partitions and recovery preflight
+        shell: bash
+        run: |
+          source ./buildenv.sh "${{ matrix.target }}"
+          ./scripts/internal/build_flashable_zip.sh
+
+      - name: Check safety and structure of flashable output
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          zips=(out/*_${{ matrix.target }}*.zip)
+          test "${#zips[@]}" -eq 1
+          zip="${zips[0]}"
+          unzip -Z -1 "$zip" | grep -qx 's10-preflight.sh'
+          unzip -Z -1 "$zip" | grep -qx 'boot.img'
+          unzip -Z -1 "$zip" | grep -qx 'dtbo.img'
+          if unzip -Z -1 "$zip" | grep -qx 'dynamic_partitions_op_list'; then
+            echo "ERROR: S10 ZIP contains S20 dynamic super update!" >&2
+            exit 1
+          fi
+          updater="$(unzip -p "$zip" META-INF/com/google/android/updater-script)"
+          grep -q 's10-preflight.sh' <<< "$updater"
+          grep -q 'block_image_update("/dev/block/by-name/system"' <<< "$updater"
+          echo "ZIP structure passed. NOTE: This is not a hardware boot test."
+
+      - name: Publish experimental GitHub prerelease on successful package validation
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          zips=(out/*_${{ matrix.target }}*.zip)
+          zip="${zips[0]}"
+          mkdir -p release_parts
+          # Keep each GitHub release asset below its 2GiB limit.
+          split -b 1800M -d -a 3 "$zip" "release_parts/$(basename "$zip").part-"
+          (cd release_parts && sha256sum ./* > SHA256SUMS.txt)
+          tag="s10-experimental-${GITHUB_SHA:0:12}-${{ matrix.target }}"
+          gh release create "$tag" release_parts/*             --target "$GITHUB_SHA" --prerelease             --title "S10 ${{ matrix.target }} experimental | hardware boot NOT verified"             --notes "Automatic build/ZIP validation only. NOT BOOT VERIFIED; do not flash on a daily driver. Requires validated S10 kernel, PIT/layout and recovery. Read docs/s10-exynos9820-port.md. Reassemble parts in filename order (cat *.part-* > rom.zip) and verify SHA256SUMS.txt before testing."

@@ -1,0 +1,12 @@
+# Legacy physical Exynos9820 (S10) partition map; not a super partition.
+/dev/block/by-name/system /system erofs ro recoveryonly
+/dev/block/by-name/vendor /vendor erofs ro recoveryonly
+/dev/block/by-name/product /product erofs ro recoveryonly
+/dev/block/by-name/odm /odm erofs ro recoveryonly
+/dev/block/by-name/boot /boot emmc ro recoveryonly
+/dev/block/by-name/recovery /recovery emmc ro recoveryonly
+/dev/block/by-name/dtbo /dtbo emmc ro recoveryonly
+/dev/block/by-name/vbmeta /vbmeta emmc ro recoveryonly
+/dev/block/by-name/cache /cache ext4 ro recoveryonly
+/dev/block/by-name/userdata /data f2fs ro recoveryonly
+/dev/block/by-name/efs /efs ext4 ro recoveryonly

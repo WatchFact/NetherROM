@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -euo pipefail
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$root"
+for target in beyond0lte beyond1lte beyond2lte beyondx; do
+    bash -n "target/$target/config.sh"
+    bash -n "target/$target/sff.sh"
+    grep -q 'TARGET_PLATFORM="exynos9820"' "target/$target/config.sh"
+    grep -q '^TARGET_USE_DYNAMIC_PARTITIONS=false' "target/$target/config.sh"
+    grep -q '^TARGET_LCD_CONFIG_HFR_DEFAULT_REFRESH_RATE="60"' "target/$target/config.sh"
+    for partition in system vendor product odm boot dtbo; do
+        grep -q "/dev/block/by-name/$partition " "target/$target/installer/recovery.fstab"
+    done
+    TARGET_MODEL="$(sed -n 's/^TARGET_FIRMWARE="\([^/]*\).*/\1/p' "target/$target/config.sh")"
+    test -n "$TARGET_MODEL" || exit 1
+    echo "Configuration OK: $target ($TARGET_MODEL)"
+done
+bash -n scripts/internal/build_flashable_zip.sh
+bash -n scripts/port_s10/compat.sh
+bash -n scripts/port_s10/kernel.sh
+grep -q 'if $TARGET_USE_DYNAMIC_PARTITIONS; then' scripts/internal/build_flashable_zip.sh
+grep -q 's10-preflight.sh' scripts/internal/build_flashable_zip.sh
+echo "S10 static-partition safety checks passed"
