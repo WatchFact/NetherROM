@@ -7,13 +7,13 @@ case "$target" in
     *) echo "Unsupported kernel target: $target" >&2; exit 1;;
 esac
 
-# Archived Exynos9820 M62 backport. Must be rebuilt with EROFS support; the
+# ArtisanROM Quant v3.1 Exynos9820 Android 16 kernel. Must be rebuilt with EROFS support; the
 # original Android 12 Samsung kernel must never be shipped for One UI 8.5.
-KERNEL_REV="e6e5dc977097c3eb3f924e4ab215ca29037c858d"
+KERNEL_REV="9a0a792d227c8ae6cddac0c9d68a8bb9782c44cb"
 dir="${RUNNER_TEMP:-/tmp}/netherrom-s10-kernel"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 rm -rf "$dir"
-git clone --recursive --depth 1 https://github.com/ExtremeXT/M62-backport.git "$dir"
+git clone --recursive --depth 1 https://github.com/Android-Artisan/android_kernel_samsung_exynos9820.git "$dir"
 git -C "$dir" checkout --detach "$KERNEL_REV"
 test "$(git -C "$dir" rev-parse HEAD)" = "$KERNEL_REV"
 (cd "$dir" && bash ./build.sh -m "$target" -k y -r n)
