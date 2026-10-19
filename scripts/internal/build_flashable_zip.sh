@@ -6,6 +6,11 @@
 source "$SRC_DIR/scripts/utils/build_utils.sh" || exit 1
 source "$SRC_DIR/scripts/utils/install_utils.sh" || exit 1
 
+# The S10 family uses physical ext4 PIT partitions, not Exynos990 super.
+if [[ "${TARGET_PLATFORM:-}" == exynos9820 ]]; then
+    exec bash "$SRC_DIR/scripts/port_s10/build_legacy_zip.sh"
+fi
+
 SOURCE_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$SOURCE_FIRMWARE")_$(cut -d "/" -f 2 -s <<< "$SOURCE_FIRMWARE")"
 TARGET_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$TARGET_FIRMWARE")_$(cut -d "/" -f 2 -s <<< "$TARGET_FIRMWARE")"
 

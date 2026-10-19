@@ -130,7 +130,7 @@ jobs:
         shell: bash
         run: |
           source ./buildenv.sh "${{ matrix.target }}"
-          ./scripts/internal/build_flashable_zip.sh
+          bash ./scripts/port_s10/build_legacy_zip.sh
 
       - name: Check safety and structure of flashable output
         shell: bash
@@ -149,6 +149,11 @@ jobs:
           fi
           updater="$(unzip -p "$zip" META-INF/com/google/android/updater-script)"
           grep -q 's10-preflight.sh' <<< "$updater"
+          grep -q 'legacy ext4 OTA' <<< "$updater"
+          if grep -Eq 'map_partition|update_dynamic_partitions' <<< "$updater"; then
+            echo "ERROR: dynamic installer code in S10 physical OTA" >&2
+            exit 1
+          fi
           grep -q 'block_image_update("/dev/block/by-name/system"' <<< "$updater"
           echo "ZIP structure passed. NOTE: This is not a hardware boot test."
 

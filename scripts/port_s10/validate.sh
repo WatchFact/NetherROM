@@ -18,7 +18,10 @@ for target in beyond0lte beyond1lte beyond2lte beyondx; do
 done
 bash -n scripts/internal/build_flashable_zip.sh
 bash -n scripts/port_s10/compat.sh
+bash -n scripts/port_s10/build_legacy_zip.sh
 bash -n scripts/port_s10/kernel.sh
-grep -q 'if $TARGET_USE_DYNAMIC_PARTITIONS; then' scripts/internal/build_flashable_zip.sh
-grep -q 's10-preflight.sh' scripts/internal/build_flashable_zip.sh
+grep -q 'exynos9820' scripts/internal/build_flashable_zip.sh
+grep -q 'block_image_update' scripts/port_s10/build_legacy_zip.sh
+grep -q 'GET_IMAGE_SIZE' scripts/port_s10/build_legacy_zip.sh
+grep -q 's10-preflight.sh' scripts/port_s10/build_legacy_zip.sh
 echo "S10 static-partition safety checks passed"

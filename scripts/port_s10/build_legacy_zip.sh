@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # S10 Exynos9820 legacy updater, based on ArtisanROM v3.1.0 physical OTA path.
 # There is deliberately no dynamic-partition or super-image support here.
-set -euo pipefail
+set -eo pipefail
 
 : "${SRC_DIR:?source buildenv.sh before invoking}"
 : "${WORK_DIR:?}"

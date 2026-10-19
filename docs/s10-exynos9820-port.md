@@ -33,3 +33,6 @@ Workflow: `.github/workflows/s10-port.yml`. Push to `port/exynos9820-s10` runs v
 - NetherROM S20+ `target/y2s` and Aether `sixteen-qpr2` donor.
 - ExtremeXT/ExtremeROM `fifteen` pinned commit `2056320784b7d1d88f9e7025f86f7bbd39945d6b` for Exynos9820 device data and port modules (GPL-3.0-or-later).
 - ExtremeXT/M62-backport pinned commit `e6e5dc977097c3eb3f924e4ab215ca29037c858d` for the Exynos9820 kernel (review kernel licences independently).
+
+## Legacy non-dynamic installer
+The original Galaxy S10 has **physical** `system`, `vendor`, `product` and `odm` PIT partitions. The S10-specific `scripts/port_s10/build_legacy_zip.sh` creates ext4 images and physical block OTAs: `*.transfer.list` with `*.new.dat.br`. Recovery writes directly to `/dev/block/by-name/<partition>`, as in original ArtisanROM v3.1.0, and performs no dynamic-super updates, `lpmake`, `map_partition` or automatic repartitioning. The recovery preflight checks **expanded sparse image sizes** against actual block device capacities before writing. This is a safety check, not proof of successful boot.

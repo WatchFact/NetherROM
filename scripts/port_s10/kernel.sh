@@ -7,7 +7,7 @@ case "$target" in
     *) echo "Unsupported kernel target: $target" >&2; exit 1;;
 esac
 
-# ArtisanROM Quant v3.1 Exynos9820 Android 16 kernel. Must be rebuilt with EROFS support; the
+# ArtisanROM Quant v3.1 Exynos9820 Android 16 kernel. Must be rebuilt for the legacy ext4 boot path; the
 # original Android 12 Samsung kernel must never be shipped for One UI 8.5.
 KERNEL_REV="9a0a792d227c8ae6cddac0c9d68a8bb9782c44cb"
 dir="${RUNNER_TEMP:-/tmp}/netherrom-s10-kernel"
