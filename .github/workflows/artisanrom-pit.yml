@@ -76,7 +76,7 @@ jobs:
                               hits = [f"{i}: {line}" for i, line in enumerate(lines, 1) if pattern.search(line)]
                               item["partition_commands"] = hits[:200]
                               print(f"\n--- SCRIPT {name} ({len(lines)} lines, {len(hits)} layout matches) ---")
-                              print("\n".join(hits[:100])[:18000] if hits else source[:2500])
+                              print(source[:20000] if entry.filename.lower().endswith("repartition.sh") else ("\n".join(hits[:100])[:18000] if hits else source[:2500]))
                       where = blob.find(magic)
                       if where != -1:
                           item["possible_pit_signature_offset"] = where
