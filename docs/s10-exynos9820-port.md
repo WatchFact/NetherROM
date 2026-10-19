@@ -44,3 +44,23 @@ The pinned S10 kernel's original updater (`build/updater-script`) writes **boot.
 Compared against [ExtremeXT/ExtremeROM @2056320784b](https://github.com/ExtremeXT/ExtremeROM/tree/2056320784b7d1d88f9e7025f86f7bbd39945d6b). Its beyond-series devices use **physical** partitions (`TARGET_SUPER_PARTITION_SIZE=0`) and a target-specific kernel; its earlier Android 15 Exynos9820 profile built **EROFS**, whereas ArtisanROM v3.1.0's Android 16 Exynos9820 profile uses **ext4**. The current NetherROM port follows the latter ext4 legacy path and must not conflate legacy PIT geometry with filesystem type.
 
 ExtremeROM's camera patch imports `a26xxx` Polarr SDK components. NetherROM lacks that donor; the three ELF libraries are byte-identical to existing `prebuilts/samsung/a73xqxx` libraries (verified by Git blob hashes). The `compat.sh` importer now checks these exact hashes, rewrites the pinned camera module to use the local donor, and removes two unnecessary names from the public-libraries allowlist. Stop building if the hashes differ. The Actions job also installs `webp` (for `cwebp`) and `ffmpeg`; these were missing and caused the first complete checkout/build-tool run to fail before Samsung firmware download. No hardware-boot claim is implied.
+
+## Verified ArtisanROM repartition-script geometry
+We downloaded and statically inspected the original [ArtisanROM v3.1.0 Exynos9820 repartitioner](https://pixeldrain.com/u/zFuXCEpb); ZIP SHA-256 `802cc8c10acbcd3c7f2b1b73f14fd8f7b26ca4ef9cb6dc12f76f958c030d4e45`. **There is no binary `.pit` in the archive**. The actual geometry is coded in `extreme/repartition.sh`, which uses `sgdisk` and `parted` on `/dev/block/sda` to resize the existing system partition, delete/recreate a set of later GPT partitions and give userdata the remaining free space. It preserves the original leading partition numbers/offsets; a portable binary PIT **cannot safely be synthesized** from its constants.
+
+| Physical partition | Target size (MiB) | Requirement |
+|---|---:|---|
+| system | 7000 | required |
+| vendor | 1500 | required |
+| product | 1500 | required |
+| odm | 4 | required |
+| prism | 600 | required |
+| optics | 30 | required |
+| cache | 600 | required |
+| omr | 50 | required |
+| cp_debug | 5 | required |
+| cp2_debug | 5 | only when present originally |
+| spu | 50 | only when present originally |
+| userdata | remaining space | required |
+
+These values are recorded in `scripts/port_s10/artisanrom_partition_layout.tsv` and used to reject oversized built ext4 images and physical OS partitions that are significantly smaller than the expected ArtisanROM layout. The recovery script checks the actual capacities before any flash and **never repartitions automatically**. The independent read-only inspection workflow `.github/workflows/artisanrom-pit.yml` publishes extracted scripts as a GitHub Actions artifact. The repartitioner itself is **destructive and data-wiping**: do not run it casually or on an unbacked-up device.

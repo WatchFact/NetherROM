@@ -32,4 +32,14 @@ grep -q 's10-preflight.sh' scripts/port_s10/build_legacy_zip.sh
 # provided by a vetted local donor or explicitly imported into the build.
 grep -q 'libBestComposition.polarr.so e36deee087bd650f35e06af1dc4136c71663d3ba' scripts/port_s10/compat.sh
 grep -q 'a73xqxx' scripts/port_s10/compat.sh
+# Pinned partition geometry extracted from official ArtisanROM Exynos9820_Repartition.zip.
+layout=scripts/port_s10/artisanrom_partition_layout.tsv
+test -s "$layout"
+for row in 'system 7000 required' 'vendor 1500 required' 'product 1500 required' 'odm 4 required' \
+           'prism 600 required' 'optics 30 required' 'cache 600 required' 'omr 50 required' \
+           'cp_debug 5 required' 'cp2_debug 5 optional' 'spu 50 optional' 'userdata remaining required'; do
+    grep -Fxq "$row" "$layout" || { echo "Missing pinned GPT row: $row" >&2; exit 1; }
+done
+grep -Fq '802cc8c10acbcd3c7f2b1b73f14fd8f7b26ca4ef9cb6dc12f76f958c030d4e45' "$layout"
+grep -q 'layout_minimum' scripts/port_s10/build_legacy_zip.sh
 echo "S10 static-partition safety checks passed"

@@ -25,6 +25,13 @@ rm -rf -- "$tmp"
 mkdir -p "$tmp/META-INF/com/google/android" "$tmp/META-INF/com/android"
 trap 'rm -rf -- "$tmp"' EXIT
 cp -a "$SRC_DIR/prebuilts/bootable/deprecated-ota/updater" "$tmp/META-INF/com/google/android/update-binary"
+# ArtisanROM's official repartitioner programs a physical GPT with sgdisk/parted.
+# It contains NO separate binary .pit; do not execute repartition.sh here.
+layout="$SRC_DIR/scripts/port_s10/artisanrom_partition_layout.tsv"
+[[ -s "$layout" ]] || { echo "Missing pinned ArtisanROM physical layout" >&2; exit 1; }
+layout_mib_for() {
+  awk -v name="$1" '$1 == name {print $2}' "$layout"
+}
 fstab="$SRC_DIR/target/$TARGET_CODENAME/installer/recovery.fstab"
 [[ -s "$fstab" ]] || { echo "Missing legacy recovery.fstab" >&2; exit 1; }
 
@@ -72,10 +79,29 @@ for partition in "${partitions[@]}"; do
   # GET_IMAGE_SIZE calculates the real expanded logical partition size.
   needed="$(GET_IMAGE_SIZE "$tmp/$partition.img")"
   [[ "$needed" =~ ^[0-9]+$ && "$needed" -gt 0 ]] || exit 1
-  printf 'device="%s"\nrequired="%s"\n' "$device" "$needed" >> "$tmp/s10-preflight.sh"
+  # Check against the precise ArtisanROM GPT recipe before packaging.
+  # Installation still verifies the actual physical partition from recovery.
+  planned_mib="$(layout_mib_for "$partition")"
+  [[ "$planned_mib" =~ ^[0-9]+$ && "$planned_mib" -gt 0 ]] || {
+    echo "Missing reference partition size for $partition" >&2; exit 1;
+  }
+  planned_bytes=$((planned_mib * 1048576))
+  if ((needed > planned_bytes)); then
+    echo "S10 $partition image requires $needed bytes; ArtisanROM layout budgets $planned_bytes bytes" >&2
+    exit 1
+  fi
+  # Allow up to 2MiB for GPT/alignment rounding while still rejecting stock
+  # or unrelated PIT layouts. For tiny odm partition require the full size.
+  alignment_mib=0
+  ((planned_mib > 8)) && alignment_mib=2
+  expected_min_bytes=$(((planned_mib - alignment_mib) * 1048576))
+  printf 'device="%s"\nrequired="%s"\nlayout_minimum="%s"\n'     "$device" "$needed" "$expected_min_bytes" >> "$tmp/s10-preflight.sh"
   cat >> "$tmp/s10-preflight.sh" <<'SH'
 [ -b "$device" ] || { echo "Missing physical block device $device"; exit 1; }
 capacity=$(blockdev --getsize64 "$device") || exit 1
+[ "$capacity" -ge "$layout_minimum" ] || {
+  echo "Expected the ArtisanROM Exynos9820 GPT layout for $device: $capacity < $layout_minimum"; exit 1;
+}
 [ "$capacity" -ge "$required" ] || {
   echo "Physical $device is too small: $capacity bytes, need $required"; exit 1;
 }

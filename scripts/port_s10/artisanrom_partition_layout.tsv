@@ -1,0 +1,21 @@
+# ArtisanROM Quant v3.1.0 Exynos9820 physical GPT layout (NOT a binary .pit)
+# Official source: https://github.com/ArtisanROM/ArtisanROM/releases/tag/v3.1.0
+# Archive: https://pixeldrain.com/u/zFuXCEpb
+# SHA-256: 802cc8c10acbcd3c7f2b1b73f14fd8f7b26ca4ef9cb6dc12f76f958c030d4e45
+# Internal source: extreme/repartition.sh (written by @Astrako, Exynos9820 adaptation by @ExtremeXT and @david42069)
+# Columns: physical_partition target_size_MiB required_or_optional
+# cp2_debug and spu are created only when present in the original GPT.
+# userdata takes all remaining free space after system and other partitions.
+# Partition numbers/offsets depend on original /dev/block/sda GPT; do not synthesize or flash a PIT.
+system 7000 required
+vendor 1500 required
+product 1500 required
+odm 4 required
+prism 600 required
+optics 30 required
+cache 600 required
+omr 50 required
+cp_debug 5 required
+cp2_debug 5 optional
+spu 50 optional
+userdata remaining required
