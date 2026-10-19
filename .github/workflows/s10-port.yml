@@ -30,6 +30,16 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The repo tracks very large proprietary binaries. Configuration
+          # smoke tests require only the build scripts and target metadata.
+          sparse-checkout: |
+            buildenv.sh
+            platform/exynos9820
+            target
+            scripts
+            unica/configs
+            security
       - name: Check shell syntax, physical partition maps and target assertions
         shell: bash
         run: |
