@@ -142,6 +142,7 @@ jobs:
           zip="${zips[0]}"
           unzip -Z -1 "$zip" | grep -qx 's10-preflight.sh'
           unzip -Z -1 "$zip" | grep -qx 'boot.img'
+          unzip -Z -1 "$zip" | grep -qx 'dtb.img'
           unzip -Z -1 "$zip" | grep -qx 'dtbo.img'
           if unzip -Z -1 "$zip" | grep -qx 'dynamic_partitions_op_list'; then
             echo "ERROR: S10 ZIP contains S20 dynamic super update!" >&2
@@ -150,6 +151,7 @@ jobs:
           updater="$(unzip -p "$zip" META-INF/com/google/android/updater-script)"
           grep -q 's10-preflight.sh' <<< "$updater"
           grep -q 'legacy ext4 OTA' <<< "$updater"
+          grep -q 'package_extract_file("dtb.img", "/dev/block/by-name/dtb")' <<< "$updater"
           if grep -Eq 'map_partition|update_dynamic_partitions' <<< "$updater"; then
             echo "ERROR: dynamic installer code in S10 physical OTA" >&2
             exit 1

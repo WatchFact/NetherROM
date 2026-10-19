@@ -22,6 +22,9 @@ concurrency:
 
 jobs:
   build:
+    # A dedicated workflow handles the S10 port. Do not waste five
+    # Exynos990 matrix builds for its pull request.
+    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'port/exynos9820-s10' }}
     runs-on: ubuntu-24.04
 
     strategy:

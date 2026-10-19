@@ -16,15 +16,15 @@ rm -rf "$dir"
 git clone --recursive --depth 1 https://github.com/Android-Artisan/android_kernel_samsung_exynos9820.git "$dir"
 git -C "$dir" checkout --detach "$KERNEL_REV"
 test "$(git -C "$dir" rev-parse HEAD)" = "$KERNEL_REV"
-(cd "$dir" && bash ./build.sh -m "$target" -k y -r n)
+(cd "$dir" && bash ./build.sh -m "$target" -k n -r n)
 
 out="$root/out/target/$target/work_dir/kernel"
 mkdir -p "$out"
-for img in boot dtbo; do
+for img in boot dtb dtbo; do
     test -s "$dir/build/out/$target/$img.img" || {
         echo "Kernel build did not produce $img.img - refusing to package the stock Android 12 kernel" >&2
         exit 1
     }
     cp -f "$dir/build/out/$target/$img.img" "$out/$img.img"
 done
-echo "Exynos9820 boot.img and dtbo.img installed for $target"
+echo "Exynos9820 boot.img, dtb.img and dtbo.img installed for $target"

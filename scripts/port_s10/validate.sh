@@ -9,7 +9,7 @@ for target in beyond0lte beyond1lte beyond2lte beyondx; do
     grep -q 'TARGET_PLATFORM="exynos9820"' "target/$target/config.sh"
     grep -q '^TARGET_USE_DYNAMIC_PARTITIONS=false' "target/$target/config.sh"
     grep -q '^TARGET_LCD_CONFIG_HFR_DEFAULT_REFRESH_RATE="60"' "target/$target/config.sh"
-    for partition in system vendor product odm boot dtbo; do
+    for partition in system vendor product odm boot dtb dtbo; do
         grep -q "/dev/block/by-name/$partition " "target/$target/installer/recovery.fstab"
     done
     TARGET_MODEL="$(sed -n 's/^TARGET_FIRMWARE="\([^/]*\).*/\1/p' "target/$target/config.sh")"
@@ -23,5 +23,9 @@ bash -n scripts/port_s10/kernel.sh
 grep -q 'exynos9820' scripts/internal/build_flashable_zip.sh
 grep -q 'block_image_update' scripts/port_s10/build_legacy_zip.sh
 grep -q 'GET_IMAGE_SIZE' scripts/port_s10/build_legacy_zip.sh
+grep -q 'dtb.img' scripts/port_s10/build_legacy_zip.sh
+grep -q 'for img in boot dtb dtbo' scripts/port_s10/kernel.sh
+# KernelSU requires an explicit decision and cannot be silently enabled.
+grep -q '\-k n -r n' scripts/port_s10/kernel.sh
 grep -q 's10-preflight.sh' scripts/port_s10/build_legacy_zip.sh
 echo "S10 static-partition safety checks passed"

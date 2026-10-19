@@ -5,6 +5,7 @@
 /dev/block/by-name/odm /odm ext4 ro recoveryonly
 /dev/block/by-name/boot /boot emmc ro recoveryonly
 /dev/block/by-name/recovery /recovery emmc ro recoveryonly
+/dev/block/by-name/dtb /dtb emmc ro recoveryonly
 /dev/block/by-name/dtbo /dtbo emmc ro recoveryonly
 /dev/block/by-name/vbmeta /vbmeta emmc ro recoveryonly
 /dev/block/by-name/cache /cache ext4 ro recoveryonly

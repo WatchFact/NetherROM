@@ -91,11 +91,22 @@ SH
 done
 
 # Only new target-specific boot/dtbo, never an S20 kernel or kernel from stock.
-for image in boot dtbo; do
+for image in boot dtb dtbo; do
   [[ -s "$WORK_DIR/kernel/$image.img" ]] || {
     echo "Missing rebuilt S10 kernel component $image.img" >&2; exit 1;
   }
   cp "$WORK_DIR/kernel/$image.img" "$tmp/$image.img"
+  # Physical kernel/DT partitions must also fit before touching system.
+  device="$(device_for "$image")"
+  required="$(stat -c%s "$tmp/$image.img")"
+  printf 'device="%s"\nrequired="%s"\n' "$device" "$required" >> "$tmp/s10-preflight.sh"
+  cat >> "$tmp/s10-preflight.sh" <<'SH'
+[ -b "$device" ] || { echo "Missing kernel block device $device"; exit 1; }
+capacity=$(blockdev --getsize64 "$device") || exit 1
+[ "$capacity" -ge "$required" ] || {
+  echo "Kernel/DT partition $device too small: $capacity < $required"; exit 1;
+}
+SH
 done
 
 chmod 755 "$tmp/s10-preflight.sh"
@@ -119,6 +130,7 @@ script="$tmp/META-INF/com/google/android/updater-script"
     printf 'assert(block_image_update("%s", package_extract_file("%s.transfer.list"), "%s.new.dat.br", "%s.patch.dat"));\n' "$device" "$partition" "$partition" "$partition"
   done
   echo 'assert(package_extract_file("boot.img", "/dev/block/by-name/boot"));'
+  echo 'assert(package_extract_file("dtb.img", "/dev/block/by-name/dtb"));'
   echo 'assert(package_extract_file("dtbo.img", "/dev/block/by-name/dtbo"));'
   echo 'set_progress(1.0);'
   echo 'ui_print("Installation finished; boot testing required.");'
