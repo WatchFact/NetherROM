@@ -20,7 +20,7 @@ jobs:
             'https://pixeldrain.com/api/file/zFuXCEpb'
             'https://downloads.sourceforge.net/project/pulse-free/s10e/ExrtemeXT%20ROM/Exynos9820_Repartition.zip'
           )
-          for url in "\${urls[@]}"; do
+          for url in "${urls[@]}"; do
             echo "Trying $url"
             if curl -fLsS --retry 2 --connect-timeout 20 --max-time 120 -A 'Mozilla/5.0' \
                  -o repartitioner.zip "$url" && \
