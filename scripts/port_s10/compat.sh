@@ -23,4 +23,15 @@ for module in vendor stock_blobs camera miscs bixbykey midas hrm; do
     rm -rf "$base/platform/exynos9820/patches/$module"
     cp -a "$from" "$base/platform/exynos9820/patches/$module"
 done
-echo "Loaded Exynos9820 HAL/camera patches from $REV"
+# The S24+ Android 16 donor is 64-bit-only, whereas Exynos9820 still starts
+# ARM32 vendor/OMX services. Reuse NetherROM's Android 16 multilib bridge,
+# which imports generic ARM32 runtime APEXes and libs, not Exynos990 HALs.
+for module in zzz_runtime32_compat storage_compat; do
+    source_module="$base/platform/exynos990/patches/$module"
+    test -d "$source_module" || { echo "Missing modern $module module" >&2; exit 1; }
+    cp -a "$source_module" "$base/platform/exynos9820/patches/$module"
+done
+# Storage rule references the legacy SoC-specific fstab.
+sed -i 's/fstab.exynos990/fstab.exynos9820/g' \
+  "$base/platform/exynos9820/patches/storage_compat/customize.sh"
+echo "Loaded pinned Exynos9820 HAL/camera patches and Android 16 multilib bridge"
