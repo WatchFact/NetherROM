@@ -28,4 +28,8 @@ grep -q 'for img in boot dtb dtbo' scripts/port_s10/kernel.sh
 # KernelSU requires an explicit decision and cannot be silently enabled.
 grep -q '\-k n -r n' scripts/port_s10/kernel.sh
 grep -q 's10-preflight.sh' scripts/port_s10/build_legacy_zip.sh
+# All source assets required by ExtremeROM's Exynos9820 camera must be
+# provided by a vetted local donor or explicitly imported into the build.
+grep -q 'libBestComposition.polarr.so e36deee087bd650f35e06af1dc4136c71663d3ba' scripts/port_s10/compat.sh
+grep -q 'a73xqxx' scripts/port_s10/compat.sh
 echo "S10 static-partition safety checks passed"

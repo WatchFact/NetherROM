@@ -39,3 +39,8 @@ The original Galaxy S10 has **physical** `system`, `vendor`, `product` and `odm`
 
 ### Boot image review
 The pinned S10 kernel's original updater (`build/updater-script`) writes **boot.img, dtb.img and dtbo.img**. NetherROM now requires all three, validates each physical partition's capacity and flashes them through their original by-name devices. The kernel build explicitly disables KernelSU by default (`-k n`). This does not substitute for physical boot verification.
+
+## ExtremeROM source audit (2026-10-19)
+Compared against [ExtremeXT/ExtremeROM @2056320784b](https://github.com/ExtremeXT/ExtremeROM/tree/2056320784b7d1d88f9e7025f86f7bbd39945d6b). Its beyond-series devices use **physical** partitions (`TARGET_SUPER_PARTITION_SIZE=0`) and a target-specific kernel; its earlier Android 15 Exynos9820 profile built **EROFS**, whereas ArtisanROM v3.1.0's Android 16 Exynos9820 profile uses **ext4**. The current NetherROM port follows the latter ext4 legacy path and must not conflate legacy PIT geometry with filesystem type.
+
+ExtremeROM's camera patch imports `a26xxx` Polarr SDK components. NetherROM lacks that donor; the three ELF libraries are byte-identical to existing `prebuilts/samsung/a73xqxx` libraries (verified by Git blob hashes). The `compat.sh` importer now checks these exact hashes, rewrites the pinned camera module to use the local donor, and removes two unnecessary names from the public-libraries allowlist. Stop building if the hashes differ. The Actions job also installs `webp` (for `cwebp`) and `ffmpeg`; these were missing and caused the first complete checkout/build-tool run to fail before Samsung firmware download. No hardware-boot claim is implied.
