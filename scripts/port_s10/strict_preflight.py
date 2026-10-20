@@ -125,9 +125,18 @@ def dependencies(source):
 def validate_32bit_runtime(stage, target_fw=None):
     """Check dynamically expanded ARM32 APEX/HIDL library lists too."""
     script = (ROOT / "platform/exynos9820/patches/zzz_runtime32_compat/customize.sh")
-    if not script.is_file():
+    if not script.is_file() and stage == "index":
+        # Actions' lightweight preflight intentionally does not check out
+        # Exynos990 modules. Inspect the tracked source from the Git tree.
+        data = subprocess.run(
+            ["git", "-C", str(ROOT), "show",
+             "HEAD:platform/exynos990/patches/zzz_runtime32_compat/customize.sh"],
+            check=True, capture_output=True, text=True,
+        ).stdout
+    elif script.is_file():
+        data = script.read_text()
+    else:
         fail("Missing the required ARM32 runtime compatibility module")
-    data = script.read_text()
     for variable, donor in (("RUNTIME_LIBS", "r11sxxx"), ("LEGACY_AUDIO_LIBS", "$TARGET_FIRMWARE")):
         matched = re.search(r'(?m)^' + variable + r'="\s*\n(.*?)\n"', data, re.S)
         if not matched:
