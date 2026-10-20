@@ -115,6 +115,33 @@ sed -i -e '/^libPolarrSnap\.polarr\.so$/d' \
 unset POLARR_PUBLIC_LIBS
 POLARR_ALLOWLIST
 
+# The Exynos9820 camera script was pinned from ArtisanROM v3.1.0, whose
+# S21 FE donor had more blobs than this newer NetherROM r9sxxx subset.
+# Use original v3.1.0 byte-identical p3sxxx libraries, not fake placeholders.
+python3 - "$camera" "$base/platform/exynos9820/patches/midas/customize.sh" <<'PY'
+from pathlib import Path
+import sys
+camera, midas = map(Path, sys.argv[1:])
+src = camera.read_text()
+# Two camera BLOBS_LIST loops are system-library imports; a third loop
+# imports SingleTake APK/assets and MUST remain on the real r9 donor.
+needle = 'ADD_TO_WORK_DIR "r9sxxx" "system" "$blob" 0 0 644 "u:object_r:system_lib_file:s0"'
+if src.count(needle) != 2:
+    raise SystemExit("Unexpected camera donor import structure; aborting")
+src = src.replace(needle, needle.replace('"r9sxxx"', '"p3sxxx"'))
+camera.write_text(src)
+src = midas.read_text()
+for name in (
+    "libmidas_core.camera.samsung.so",
+    "libmidas_DNNInterface.camera.samsung.so",
+):
+    needle = f'ADD_TO_WORK_DIR "r9sxxx" "system" "system/lib64/{name}"'
+    if src.count(needle) != 1:
+        raise SystemExit(f"Unexpected MIDAS donor import: {name}")
+    src = src.replace(needle, needle.replace('"r9sxxx"', '"p3sxxx"'))
+midas.write_text(src)
+PY
+
 # Storage rule references the legacy SoC-specific fstab.
 sed -i 's/fstab.exynos990/fstab.exynos9820/g' \
   "$base/platform/exynos9820/patches/storage_compat/customize.sh"

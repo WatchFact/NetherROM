@@ -77,6 +77,11 @@ jobs:
       - name: Exynos9820 compatibility patches (pinned)
         run: bash ./scripts/port_s10/compat.sh
 
+      - name: Strict Exynos9820 donor preflight before firmware/build tools
+        shell: bash
+        run: |
+          python3 scripts/port_s10/strict_preflight.py --stage donors
+
       - name: Install build dependencies
         shell: bash
         run: |
@@ -116,6 +121,15 @@ jobs:
         run: |
           source ./buildenv.sh "${{ matrix.target }}"
           ./scripts/extract_fw.sh
+
+      - name: Strict stock firmware and donor-import preflight
+        shell: bash
+        run: |
+          source ./buildenv.sh "${{ matrix.target }}"
+          model="${TARGET_FIRMWARE%%/*}"
+          csc="${TARGET_FIRMWARE#*/}"
+          csc="${csc%%/*}"
+          python3 scripts/port_s10/strict_preflight.py --stage firmware             --target-fw "$FW_DIR/${model}_${csc}"
 
       - name: Build NetherROM filesystem and patches
         shell: bash

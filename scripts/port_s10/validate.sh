@@ -69,4 +69,6 @@ with tempfile.TemporaryDirectory() as d:
             raise AssertionError(f"{feature}: ambiguous patch did not fail")
 print("Optional binary patch unit tests passed")
 PY
+python3 -m py_compile scripts/port_s10/strict_preflight.py
+python3 scripts/port_s10/strict_preflight.py --stage index
 echo "S10 static-partition safety checks passed"

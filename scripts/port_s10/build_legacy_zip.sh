@@ -140,8 +140,8 @@ script="$tmp/META-INF/com/google/android/updater-script"
 {
   printf 'ui_print("NetherROM S10 legacy ext4 OTA: %s");\n' "$TARGET_CODENAME"
   printf 'assert(getprop("ro.product.device") == "%s"' "$TARGET_CODENAME"
-  IFS=':' read -r -a models <<< "$TARGET_ASSERT_MODEL"
-  for model in "${models[@]}"; do
+  # TARGET_ASSERT_MODEL is an array, not colon-separated text.
+  for model in "${TARGET_ASSERT_MODEL[@]}"; do
     [[ "$model" =~ ^SM-[A-Za-z0-9]+$ ]] || exit 1
     printf ' || getprop("ro.boot.em.model") == "%s"' "$model"
   done
