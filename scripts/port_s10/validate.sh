@@ -115,9 +115,13 @@ echo "Tracked camera patch -> ROM work tree -> final ext4 image linked"
 # so sourcing under "set -u" fails before any build/tool verification starts.
 # Catch that workflow error during the inexpensive preflight job.
 python3 - <<'PY'
-from pathlib import Path
 import re
-workflow = Path(".github/workflows/s10-port.yml").read_text()
+import subprocess
+# The preflight job uses sparse checkout and excludes .github/. Read the
+# committed workflow directly instead of assuming the YAML is checked out.
+workflow = subprocess.check_output(
+    ["git", "show", "HEAD:.github/workflows/s10-port.yml"], text=True
+)
 blocks = re.split(r'(?m)^      - (?:name:|uses:)', workflow)
 for block in blocks:
     if "source ./buildenv.sh" not in block:
