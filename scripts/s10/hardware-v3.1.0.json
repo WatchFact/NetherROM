@@ -1,0 +1,1155 @@
+{
+  "repository": "ArtisanROM/ArtisanROM",
+  "hardware_commit": "4d30365b4452a651cc87af8e91733ec1c862f716",
+  "base_commit": "098409868245506be45824a793b41df69ccf15b6",
+  "files": {
+    "platform/exynos9820/debloat.sh": {
+      "mode": "100644",
+      "sha": "5c86d6ea0cf12b83a6697a11895d0a9cf3d2d14d"
+    },
+    "platform/exynos9820/patches/audio/customize.sh": {
+      "mode": "100644",
+      "sha": "db8e6ebbf2dc85636a2dd6880a890866e46a192a"
+    },
+    "platform/exynos9820/patches/audio/file_context-vendor": {
+      "mode": "100644",
+      "sha": "34d2ffe7b02504ed35d8ba090323101669fbc9cd"
+    },
+    "platform/exynos9820/patches/audio/fs_config-vendor": {
+      "mode": "100644",
+      "sha": "abaa1dd0b28a2631cea714507f008ae5fe35f35b"
+    },
+    "platform/exynos9820/patches/audio/module.prop": {
+      "mode": "100644",
+      "sha": "3374c1b4cc5e062298edeb52c047002a9d3f4464"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib/android.hardware.audio.common-util.so": {
+      "mode": "100644",
+      "sha": "dbbffeed64c72148f65a88371b66c4efbbaca16d"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib/android.hardware.audio.common@2.0-util.so": {
+      "mode": "100644",
+      "sha": "be04355b78a3a70e523e11eff98372b1b92edb84"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib/android.hardware.audio.common@6.0-util.so": {
+      "mode": "100644",
+      "sha": "8e9786dfb038bde115856b26845b2340dc1bc236"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib/android.hardware.audio.common@6.0.so": {
+      "mode": "100644",
+      "sha": "85f9e6281f830ee516813edc09c2c712c7e59bb8"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib/android.hardware.audio.effect@6.0-util.so": {
+      "mode": "100644",
+      "sha": "d541b8c6fce1a78ce050b7853ad5cd6370d5e97f"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib/android.hardware.audio.effect@6.0.so": {
+      "mode": "100644",
+      "sha": "9165ad82c5f3588a6bb63af99f38357ecdb010fb"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib/android.hardware.audio@6.0-util.so": {
+      "mode": "100644",
+      "sha": "f14b2608d9f7ec2a43efde15814e68d55b40353f"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib/android.hardware.audio@6.0.so": {
+      "mode": "100644",
+      "sha": "33c0fd19f68509b6d17422b1929e2107ffb2275c"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib/hw/android.hardware.audio.effect@2.0-impl.so": {
+      "mode": "100644",
+      "sha": "1929d05550cd92c86a3f815a77bc240f0bc49326"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib/hw/android.hardware.audio.effect@6.0-impl.so": {
+      "mode": "100644",
+      "sha": "7f9086ea7719a80cef38b02783a9a463e024ccc7"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib/hw/android.hardware.audio@2.0-impl.so": {
+      "mode": "100644",
+      "sha": "32aed6dd68956eaff12edaeb6d90b2fe93a46ae8"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib/hw/android.hardware.audio@6.0-impl.so": {
+      "mode": "100644",
+      "sha": "16e42ac3e9eaea72b30130e8f1e95bb7b229bd76"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib64/android.hardware.audio.common-util.so": {
+      "mode": "100644",
+      "sha": "d8ab368a0522f5e0b238b2ce505a3a0723eb5ed6"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib64/android.hardware.audio.common@2.0-util.so": {
+      "mode": "100644",
+      "sha": "cb91c6e37afbbbbae799a20155484d11e5b52d0b"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib64/android.hardware.audio.common@6.0-util.so": {
+      "mode": "100644",
+      "sha": "638d2489dacba82405bf3bfdbb4470dfd2c558cc"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib64/android.hardware.audio.common@6.0.so": {
+      "mode": "100644",
+      "sha": "573288e2820937c9d37c169057f47f4ced3cdd8d"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib64/android.hardware.audio.effect@6.0-util.so": {
+      "mode": "100644",
+      "sha": "240859f1ed72432a18222a06b14ef98dbcefe05f"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib64/android.hardware.audio.effect@6.0.so": {
+      "mode": "100644",
+      "sha": "79b85e24030c89814f2856a9d7e378945f7683a2"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib64/android.hardware.audio@6.0-util.so": {
+      "mode": "100644",
+      "sha": "815d21304bbb319601cddb43a5d8755e07b84cfe"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib64/android.hardware.audio@6.0.so": {
+      "mode": "100644",
+      "sha": "defdca5b86a4336a36c71eceac8c811c40d9ab92"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib64/hw/android.hardware.audio.effect@2.0-impl.so": {
+      "mode": "100644",
+      "sha": "500a624fec5d04570e018d732850117b442541f6"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib64/hw/android.hardware.audio.effect@6.0-impl.so": {
+      "mode": "100644",
+      "sha": "c4067bd15d469e4d878415ff006de142fb17b118"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib64/hw/android.hardware.audio@2.0-impl.so": {
+      "mode": "100644",
+      "sha": "9a69043015e774bc860df368a03d7f66221db28c"
+    },
+    "platform/exynos9820/patches/audio/vendor/lib64/hw/android.hardware.audio@6.0-impl.so": {
+      "mode": "100644",
+      "sha": "572296e418e5634a9938de5a43e2113b7e3b75f1"
+    },
+    "platform/exynos9820/patches/bixbykey/customize.sh": {
+      "mode": "100644",
+      "sha": "ba884da381258cda022dc7c7bf01dafe1fb71aff"
+    },
+    "platform/exynos9820/patches/bixbykey/module.prop": {
+      "mode": "100644",
+      "sha": "bf109fdd29266bac8a026978f13e2f7b65e64b1c"
+    },
+    "platform/exynos9820/patches/camera/assets/face_unlocking_cutout_ic_b2.json": {
+      "mode": "100644",
+      "sha": "3cf459a42a3e3a24819433e9093352261b784c62"
+    },
+    "platform/exynos9820/patches/camera/assets/face_unlocking_cutout_ic_bx.json": {
+      "mode": "100644",
+      "sha": "22708169cf5cff6e6588a89bf434acb9b9d15709"
+    },
+    "platform/exynos9820/patches/camera/assets/lottie_camera_punchcut_timer_b2.json": {
+      "mode": "100644",
+      "sha": "ca42ea06b688351a2e245ef39783d04351b2bfa2"
+    },
+    "platform/exynos9820/patches/camera/assets/lottie_camera_punchcut_timer_bx.json": {
+      "mode": "100644",
+      "sha": "3bd0781cdbbf3a74bef4ebf30dd4946aba1b56ac"
+    },
+    "platform/exynos9820/patches/camera/customize.sh": {
+      "mode": "100644",
+      "sha": "df18f3732ab2d9bce1fa2afee4a4d71703d7e258"
+    },
+    "platform/exynos9820/patches/camera/module.prop": {
+      "mode": "100644",
+      "sha": "67e890d8f3c99a57fa153005bd6c6eaa03996a15"
+    },
+    "platform/exynos9820/patches/camera/system/app/FilterProvider/FilterProvider.apk": {
+      "mode": "100644",
+      "sha": "fe580bee6617c35fd1eb07b06d49ca2532597931"
+    },
+    "platform/exynos9820/patches/camera/system/lib64/libImageTagger.camera.samsung.so": {
+      "mode": "100644",
+      "sha": "8e39123e03704af8b19017e30111db6993e1d443"
+    },
+    "platform/exynos9820/patches/camera/system/lib64/libMultiFrameProcessing30.snapwrapper.camera.samsung.so": {
+      "mode": "100644",
+      "sha": "6821bcecbbe0138b1b3a9ce0cde8a78c57bacf78"
+    },
+    "platform/exynos9820/patches/camera/system/lib64/libSmartScan.camera.samsung.so": {
+      "mode": "100644",
+      "sha": "b8cfe11f4c4dbd853d992898d7f0c53cafe129f1"
+    },
+    "platform/exynos9820/patches/camera/system/lib64/libVideoClassifier.camera.samsung.so": {
+      "mode": "100644",
+      "sha": "e2252999ada7e903c0cc7eefa1ee8c8a0506215b"
+    },
+    "platform/exynos9820/patches/camera/system/lib64/libobjectcapture.arcsoft.so": {
+      "mode": "100644",
+      "sha": "b61a44dc365155f2a17800846013f418e45f6857"
+    },
+    "platform/exynos9820/patches/camera/system/lib64/libobjectcapture_jni.arcsoft.so": {
+      "mode": "100644",
+      "sha": "2baace6acf4496e8cfefb5c3fbcd6bdfb484d6cf"
+    },
+    "platform/exynos9820/patches/camera/system/priv-app/SamsungCamera/SamsungCamera.apk": {
+      "mode": "100644",
+      "sha": "c03527307a4d57cc0674cab800f47c07c5ec7f63"
+    },
+    "platform/exynos9820/patches/extradim/module.prop": {
+      "mode": "100644",
+      "sha": "7121bc19dbf204d4cb895b0ce83abaa8dd56e4b9"
+    },
+    "platform/exynos9820/patches/extradim/smali/system/priv-app/SecSettings/SecSettings.apk/0001-Remove-device-specific-checks.patch": {
+      "mode": "100644",
+      "sha": "21f9677dd364afb66e36fb55da9ae1a323c485bd"
+    },
+    "platform/exynos9820/patches/extradim/smali/system_ext/priv-app/SystemUI/SystemUI.apk/0001-Remove-device-specific-checks.patch": {
+      "mode": "100644",
+      "sha": "194b4a6a4b19db66354ac7a279878db9c4025dbd"
+    },
+    "platform/exynos9820/patches/extremekrnl/customize.sh": {
+      "mode": "100644",
+      "sha": "6423a685d10635effb188ec9af4f838d19408ff1"
+    },
+    "platform/exynos9820/patches/extremekrnl/module.prop": {
+      "mode": "100644",
+      "sha": "5d607c35cbfccf580cafad06bbfe4a88907f95f5"
+    },
+    "platform/exynos9820/patches/hrm/customize.sh": {
+      "mode": "100644",
+      "sha": "7d31dccd94b6bfca4542f6b179dfbe8cb25b95c1"
+    },
+    "platform/exynos9820/patches/hrm/file_context-system": {
+      "mode": "100644",
+      "sha": "7096461db439b45c69db47c9f2e0c6569aba9b45"
+    },
+    "platform/exynos9820/patches/hrm/fs_config-system": {
+      "mode": "100644",
+      "sha": "dbde3f8f48894686cbe0c804c7d8063c1ac0ee32"
+    },
+    "platform/exynos9820/patches/hrm/module.prop": {
+      "mode": "100644",
+      "sha": "b110433dec6a590ef6ac61ca287b28cbff0f46cc"
+    },
+    "platform/exynos9820/patches/hrm/system/priv-app/HealthServicePAR/HealthServicePAR.apk": {
+      "mode": "100644",
+      "sha": "4f56f25f15254818335064a80afb15ca353294c5"
+    },
+    "platform/exynos9820/patches/midas/customize.sh": {
+      "mode": "100644",
+      "sha": "131ee7e3704f210c4e9b5a6598bfc33535258eeb"
+    },
+    "platform/exynos9820/patches/midas/module.prop": {
+      "mode": "100644",
+      "sha": "e3f6b8e8b68b8d2650711def0cea47652eb832c7"
+    },
+    "platform/exynos9820/patches/miscs/customize.sh": {
+      "mode": "100644",
+      "sha": "e9beeb54036e14756b90724f197f7d00bb901d6a"
+    },
+    "platform/exynos9820/patches/miscs/module.prop": {
+      "mode": "100644",
+      "sha": "d405d471dd90a533aea32c2b0ed0264922719a9f"
+    },
+    "platform/exynos9820/patches/stock_blobs/assets/punch_hole_ic_b1.json": {
+      "mode": "100644",
+      "sha": "ad58e678fe81e5d3151877a28686ea66d5cce925"
+    },
+    "platform/exynos9820/patches/stock_blobs/assets/punch_hole_ic_b1_whitebg.json": {
+      "mode": "100644",
+      "sha": "a217a0dca908d9a9f82ef137a692cc7ac23fb578"
+    },
+    "platform/exynos9820/patches/stock_blobs/assets/punch_hole_ic_b2.json": {
+      "mode": "100644",
+      "sha": "3cf459a42a3e3a24819433e9093352261b784c62"
+    },
+    "platform/exynos9820/patches/stock_blobs/assets/punch_hole_ic_b2_whitebg.json": {
+      "mode": "100644",
+      "sha": "0908293d137cd745543dd627ff50429a37fe9492"
+    },
+    "platform/exynos9820/patches/stock_blobs/assets/punch_hole_ic_bx.json": {
+      "mode": "100644",
+      "sha": "22708169cf5cff6e6588a89bf434acb9b9d15709"
+    },
+    "platform/exynos9820/patches/stock_blobs/assets/punch_hole_ic_bx_whitebg.json": {
+      "mode": "100644",
+      "sha": "a43ec39a41a4000ad6af37d25648adfe18e888da"
+    },
+    "platform/exynos9820/patches/stock_blobs/customize.sh": {
+      "mode": "100644",
+      "sha": "5e990083c6bb89fc7065cd5c4f5a39c852433c04"
+    },
+    "platform/exynos9820/patches/stock_blobs/module.prop": {
+      "mode": "100644",
+      "sha": "1bef1e7005ae0d6565099c335221922f65d1643d"
+    },
+    "platform/exynos9820/patches/vendor/customize.sh": {
+      "mode": "100644",
+      "sha": "47b5a9dd1ce7aaaad4acadee2874c6202a27a5d2"
+    },
+    "platform/exynos9820/patches/vendor/file_context-vendor": {
+      "mode": "100644",
+      "sha": "1d4ec68abb07c4dae775987bf5affeb1c337a9dd"
+    },
+    "platform/exynos9820/patches/vendor/fs_config-vendor": {
+      "mode": "100644",
+      "sha": "d71163488776674e9122763766341c2785e0d451"
+    },
+    "platform/exynos9820/patches/vendor/module.prop": {
+      "mode": "100644",
+      "sha": "5cd4ae6462220a16dbe02336dd3aaed8ad23f80f"
+    },
+    "platform/exynos9820/patches/vendor/vendor/bin/hw/android.hardware.audio.service": {
+      "mode": "100644",
+      "sha": "55ef2647e1624aaf943b123a2b868d6ea29244d8"
+    },
+    "platform/exynos9820/patches/vendor/vendor/bin/hw/android.hardware.graphics.allocator@2.0-service": {
+      "mode": "100644",
+      "sha": "a7cc1fde041075140c55e5fdd71aa54c3ec2f19b"
+    },
+    "platform/exynos9820/patches/vendor/vendor/bin/hw/android.hardware.graphics.composer@2.2-service": {
+      "mode": "100644",
+      "sha": "384926cfbe0608acca6c6d2a741b30babdaa62c5"
+    },
+    "platform/exynos9820/patches/vendor/vendor/bin/hw/rild": {
+      "mode": "100644",
+      "sha": "e26c803313fa19adec93b8149b4dbdbcc0743133"
+    },
+    "platform/exynos9820/patches/vendor/vendor/bin/hw/vendor.samsung.hardware.snap-service": {
+      "mode": "100644",
+      "sha": "373de13481270691de35b0d9f4601389373ff3c0"
+    },
+    "platform/exynos9820/patches/vendor/vendor/bin/hw/vendor.samsung.hardware.sysinput@1.3-service": {
+      "mode": "100644",
+      "sha": "1a27d8243555aef983e2cbc30be21bf66e74a688"
+    },
+    "platform/exynos9820/patches/vendor/vendor/bin/hw/vendor.samsung.hardware.vibrator-service": {
+      "mode": "100644",
+      "sha": "aa6db55fc2a06ee47e845ef2c30fee3573f21e9f"
+    },
+    "platform/exynos9820/patches/vendor/vendor/bin/hw/vendor.samsung_slsi.hardware.ExynosHWCServiceTW@1.0-service": {
+      "mode": "100644",
+      "sha": "d98bb1549f004bad8ac9b09133139aec6ab6a8d4"
+    },
+    "platform/exynos9820/patches/vendor/vendor/bin/hw/wpa_supplicant": {
+      "mode": "100644",
+      "sha": "ebfc80aecf5158cb48eb7af42b333867e3facd27"
+    },
+    "platform/exynos9820/patches/vendor/vendor/bin/snap_utility_64": {
+      "mode": "100644",
+      "sha": "ee7eb06418ad23316384e7aa0b5250bd384c7c2d"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/audio_effects_spatializer.xml": {
+      "mode": "100644",
+      "sha": "9a92f875299f7857493b34bad3dfeb520fe42847"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/audio_policy_configuration_base.xml": {
+      "mode": "100644",
+      "sha": "4e6a61d7403be629bcc2f1d7bb4bdf00168c1250"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/bluetooth_audio_policy_configuration.xml": {
+      "mode": "100644",
+      "sha": "ce78eb00319d2f68587b8b52887111ea648c5900"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/fstab.exynos9820": {
+      "mode": "100644",
+      "sha": "5a364f1d47163c4e7ae10872935476c6f5b4b85d"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/init/android.hardware.wifi.supplicant-service.rc": {
+      "mode": "100644",
+      "sha": "0f36c9e1d2bac3177f9b1c1b601409343c4ed788"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/init/init.vendor.rilchip.rc": {
+      "mode": "100644",
+      "sha": "a1e957edd54c43937e57e6aacac6212dacd41763"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/init/init.vendor.rilcommon.rc": {
+      "mode": "100644",
+      "sha": "b20286a0c4aafa6835b82b6afc1890036e6a249d"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/init/vendor.samsung.hardware.snap-lazy.rc": {
+      "mode": "100644",
+      "sha": "c0389f0405cf54154d64c6dbb449881e68aae9e1"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/init/vendor.samsung.hardware.sysinput@1.3-service.rc": {
+      "mode": "100644",
+      "sha": "7687f267986c48fe563a205f6fbd2d889b0aec49"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/init/vendor.samsung.hardware.vibrator-default.rc": {
+      "mode": "100644",
+      "sha": "8553283fd163cc5a4d3de82f4ce6f1e11b60754b"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/mtu-conf.xml": {
+      "mode": "100644",
+      "sha": "b54340d5facb767d4c9ef726b3a9a3fa91c0ff69"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/playback_record_audio_policy_configuration.xml": {
+      "mode": "100644",
+      "sha": "1f81ad7c0ab7ecdabe48e61db1c040f5a74c7d41"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/vintf/manifest.xml": {
+      "mode": "100644",
+      "sha": "22a1963f1952e6c21a0891db5098551e11e36996"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/vintf/manifest/android.hardware.wifi.supplicant.xml": {
+      "mode": "100644",
+      "sha": "772096c12ae4b7296182b231f0f70ad9200ba456"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/vintf/manifest/vendor.samsung.hardware.radio.exclude.slsi.xml": {
+      "mode": "100644",
+      "sha": "1d78efe5a07aa0077fae35aab5cc9f13ab48837d"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/vintf/manifest/vendor.samsung.hardware.radio_manifest_2_31.xml": {
+      "mode": "100644",
+      "sha": "6b557fb1c36eb886d6e3d758a08897b72d0ea543"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/vintf/manifest/vendor.samsung.hardware.sehradio_manifest_2_31.xml": {
+      "mode": "100644",
+      "sha": "fbdb1f743e1f37c527acba87e1d9a06a2f6e5d50"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/vintf/manifest/vendor.samsung.hardware.snap-default.xml": {
+      "mode": "100644",
+      "sha": "650413a668019199cac123c6ac45079e26eb33d7"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/vintf/manifest/vendor.samsung.hardware.vibrator-default.xml": {
+      "mode": "100644",
+      "sha": "4db8f8c511c77de290b1595f9fe7b9ce70314668"
+    },
+    "platform/exynos9820/patches/vendor/vendor/etc/wifi/wpa_supplicant_overlay.conf": {
+      "mode": "100644",
+      "sha": "6ef5b1fd4a921327e7517cc2496a7ff760bc11f8"
+    },
+    "platform/exynos9820/patches/vendor/vendor/firmware/a2dpcom.bin": {
+      "mode": "100644",
+      "sha": "37a92b292d6a2b1c1658e2af3a9e589f36a80cda"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/android.hardware.common-V2-ndk.so": {
+      "mode": "100644",
+      "sha": "e75726bc036d0f7ebfd0c62044f21d9e8522fa8c"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/android.hardware.graphics.allocator-V1-ndk.so": {
+      "mode": "100644",
+      "sha": "fe9b88a8de85b5c6d3345b3b57f162d238a015c0"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/android.hardware.graphics.common-V3-ndk.so": {
+      "mode": "100644",
+      "sha": "b8f782a753f9766a73e1c871328f99fb4e851b03"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/arm.graphics-V1-ndk.so": {
+      "mode": "100644",
+      "sha": "4009cc98957edf63dae1c9be3d3d83eb5f666ee4"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/hw/android.hardware.graphics.allocator@2.0-impl.so": {
+      "mode": "100644",
+      "sha": "efa8e310831bc018e281fe2edd4bff287aa93282"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/hw/android.hardware.graphics.mapper@2.0-impl-2.1.so": {
+      "mode": "100644",
+      "sha": "169c596ab72c9c21d9d846402d5a4ea58438c1cc"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/hw/android.hardware.renderscript@1.0-impl.so": {
+      "mode": "100644",
+      "sha": "6db4f508649a8952030b0eeee2f3e0509b966749"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/hw/audio.a2dpsink.default.so": {
+      "mode": "100644",
+      "sha": "876e58a48e95ffaf32241f413431a4ed0dcb6188"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/hw/audio.bluetooth.default.so": {
+      "mode": "100644",
+      "sha": "e3f65128bd589d6af0346feb5f6547617ed2a3b1"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/hw/gralloc.default.so": {
+      "mode": "100644",
+      "sha": "de09f3cecac326b0624ba07f2f7965b4fd1f827e"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/hw/gralloc.exynos9820.so": {
+      "mode": "100644",
+      "sha": "c03acb5387a2693bdc191008103239de080860fb"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/hw/hwcomposer.exynos9820.so": {
+      "mode": "100644",
+      "sha": "3de144f773fa203325be54759712dec840311700"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/hw/vendor.samsung.hardware.bluetooth.a2dp@1.0-impl.so": {
+      "mode": "100644",
+      "sha": "8af9575244ac1230d6edbe720d0e6cb072622e41"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/hw/vendor.samsung.hardware.bluetooth.a2dpsink@1.0-impl.so": {
+      "mode": "100644",
+      "sha": "7c5bd1bf4f291ee99f8ec657cd39ea21849248c4"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/hw/vendor.samsung.hardware.bluetooth.audio@2.1-impl.so": {
+      "mode": "100644",
+      "sha": "4bcf749e4ebdeb9fceb8ab332472da9b74a12596"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/hw/vendor.samsung_slsi.hardware.ExynosA2DPOffload@3.0-impl.so": {
+      "mode": "100644",
+      "sha": "f46294746d3842b0c469cf6317a5c382314ff7c6"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/hw/vulkan.mali.so": {
+      "mode": "100644",
+      "sha": "e85679841e26161a66b0ee53be0949f023eb4e3d"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libExynosHWCService.so": {
+      "mode": "100644",
+      "sha": "ab5b8361a6aa4a9e4c548626817428ba388b9f0d"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libaboxpcmdump.so": {
+      "mode": "100644",
+      "sha": "137c198ee9d5ad5c808d864f8142db8512a68318"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libacryl.so": {
+      "mode": "100644",
+      "sha": "58408d3944c1cd3e1c39f36880c90b85235180e2"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libaudioparamupdate.so": {
+      "mode": "100644",
+      "sha": "49aebc5ffee9584d4ac7112a35044a30a149dcc7"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libaudioproxy2.so": {
+      "mode": "100644",
+      "sha": "6210b40cfc9bf42f5f4d370043c87c26e02d24b0"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libbluetooth_a2dpsink_session.so": {
+      "mode": "100644",
+      "sha": "60b471fff33296ab0e25bd562a0eee2f3a13a5ef"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libdatamod.so": {
+      "mode": "100644",
+      "sha": "b32012339617de8145968793894aea7fc7211cbe"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libdrmresource-v33.so": {
+      "mode": "100644",
+      "sha": "5c2b1348fe5bb06b713b4370f1256d416d92e184"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libexynosdisplay.so": {
+      "mode": "100644",
+      "sha": "f51bcff84dc5e506db14745f7bd4b0496dd3d38f"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libexynosutils.so": {
+      "mode": "100644",
+      "sha": "b37fb3b4a776491a199ae17dd8931d473b6de73e"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libexynosv4l2.so": {
+      "mode": "100644",
+      "sha": "de83edd07edc554e4a5fe0cde5dedc8aa316ba80"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libfmq-v33.so": {
+      "mode": "100644",
+      "sha": "df8d13fbd6db3370cce933254b3aacea789fe430"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libgui_vendor.so": {
+      "mode": "100644",
+      "sha": "ea6ef56e5926bfa08e853e6e1c619df34be459a3"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libion_exynos.so": {
+      "mode": "100644",
+      "sha": "3778ba32886be1db40e06d3bb00f9ccf32de4bcf"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/liblastaboxmsg.so": {
+      "mode": "100644",
+      "sha": "e3398824e46b03fdf549a92e73c1e1fe19672eef"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libsec_semRil.so": {
+      "mode": "100644",
+      "sha": "d4c8c7a5d8ff855cea79dbbe4729b773dffc7213"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libsecnativefeature.so": {
+      "mode": "100644",
+      "sha": "677eb3c4496d5590654cb19e1e7d710937dab227"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libsecril-client.so": {
+      "mode": "100644",
+      "sha": "fea04bef6eb8741c9da27cec0c0d7e23840e02ac"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libsehbluetooth_audio_session.so": {
+      "mode": "100644",
+      "sha": "febe3125e714bfc3f7f918f3c0b905ec57a4b071"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libsemnativecarrierfeature.so": {
+      "mode": "100644",
+      "sha": "6272abdf46130ecec3f849497a15536b6438e2ed"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/libspatializerparamstorage.so": {
+      "mode": "100644",
+      "sha": "e10801c8743a77d47946603ad07a16f06f7de6b6"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/vendor.samsung.hardware.bluetooth.a2dp@1.0.so": {
+      "mode": "100644",
+      "sha": "8693231cff302afbfdbbc864d1a9ecdb1b910813"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/vendor.samsung.hardware.bluetooth.a2dpsink@1.0.so": {
+      "mode": "100644",
+      "sha": "4b240a149f50b63ba7124d7cc13d4e2c20c4db3f"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/vendor.samsung.hardware.bluetooth.audio@2.0.so": {
+      "mode": "100644",
+      "sha": "d6f20226d6dda7a0c162b86e15488588f2f8f260"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/vendor.samsung.hardware.bluetooth.audio@2.1.so": {
+      "mode": "100644",
+      "sha": "fbe6462762635cd5ecaf08bf69ff8d1e8a3a13bb"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/vendor.samsung_slsi.hardware.ExynosA2DPOffload@3.0.so": {
+      "mode": "100644",
+      "sha": "b895961622e5d3c12905b6ffd771734aa08fef44"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/vintf-codecsolution-V2-ndk.so": {
+      "mode": "100644",
+      "sha": "12d4b2cb3c1869473cb6a73908c2216af14302e7"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/vndk/libaudioroute.so": {
+      "mode": "100644",
+      "sha": "2ae11c05ae639716dc61f07b1108d2c02b0f2088"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib/vndk/libtinyalsa.so": {
+      "mode": "100644",
+      "sha": "1a00d3cb9bf2c0ea02f3ed14399818fd1ca5371d"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.common-V2-ndk.so": {
+      "mode": "100644",
+      "sha": "8e53b668af8eb40f0cab4c331ae3af68366c06d8"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.graphics.allocator-V1-ndk.so": {
+      "mode": "100644",
+      "sha": "524d55eb253df5164aba83b6e7a23cf565c50e53"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.graphics.common-V3-ndk.so": {
+      "mode": "100644",
+      "sha": "6e6f840b097c1e54ef84d0a5d9035a18563e65dc"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.graphics.composer@2.1-resources.so": {
+      "mode": "100644",
+      "sha": "f8b2ff5a4aa167247ef393fe3c42839ef3760d99"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.graphics.composer@2.1.so": {
+      "mode": "100644",
+      "sha": "d1bf82d12142a013828d5fff3da24e886a96f486"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.graphics.composer@2.2-resources.so": {
+      "mode": "100644",
+      "sha": "469e6c8aa34c1a009fb30fc5aa9c742d9d763639"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.graphics.composer@2.2.so": {
+      "mode": "100644",
+      "sha": "8548c3831ea98274961ce36db29fb639250268a1"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.radio.config@1.0.so": {
+      "mode": "100644",
+      "sha": "dbb963888c6cab21894e9043dae0baa14926fd1d"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.radio.config@1.1.so": {
+      "mode": "100644",
+      "sha": "ab271bc3e8d2a2561ccde0167a4313f78fc6071a"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.radio.config@1.2.so": {
+      "mode": "100644",
+      "sha": "d32b2745466efb77edde470f4707229495ba946f"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.radio.config@1.3.so": {
+      "mode": "100644",
+      "sha": "44efa46702273458e15c2c2d2755c22f3d3cf333"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.radio.deprecated@1.0.so": {
+      "mode": "100644",
+      "sha": "3d7c685c1b9f96bddd34d99b941a8bc4756bc7f8"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.radio@1.0.so": {
+      "mode": "100644",
+      "sha": "8f7eaff039f5dd44506ea1b48887a4f68c835307"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.radio@1.1.so": {
+      "mode": "100644",
+      "sha": "388d0ba16764badc1f115232d6dc046c11d507e3"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.radio@1.2.so": {
+      "mode": "100644",
+      "sha": "49d18877efa962c3d98ce3e143f9a6d06b3ad79f"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.radio@1.3.so": {
+      "mode": "100644",
+      "sha": "816d973c6690b5f55559495c20a7acc0e4e6a55a"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.radio@1.4.so": {
+      "mode": "100644",
+      "sha": "657240e915b3f2d4ca48bf20ee6ecc87572cfd12"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.radio@1.5.so": {
+      "mode": "100644",
+      "sha": "79fede42856bd085613a6ab7fec23d386f12eda3"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.radio@1.6.so": {
+      "mode": "100644",
+      "sha": "ac8f851650b5af8030ad87c0008aea4496a5d988"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.wifi.supplicant@1.0.so": {
+      "mode": "100644",
+      "sha": "d79b985637bf54e329427f27966ab62b5d980c05"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.wifi.supplicant@1.1.so": {
+      "mode": "100644",
+      "sha": "d192634adb4850134fa4a5f31bcc11e39fe22628"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.wifi.supplicant@1.2.so": {
+      "mode": "100644",
+      "sha": "bfcf61bd5adccbb889a96b5f5cbfc2bc55214d07"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.wifi.supplicant@1.3.so": {
+      "mode": "100644",
+      "sha": "03b5ab08b0efafdfe472d2f26df95c4a2701ea28"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/android.hardware.wifi.supplicant@1.4.so": {
+      "mode": "100644",
+      "sha": "c06d53bef13266cb69202e3961fa6a9c8dc6e6f4"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/arm.graphics-V1-ndk.so": {
+      "mode": "100644",
+      "sha": "799282f03c7dd782e8cd194abfa0c3a3a8a036c8"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/hw/android.hardware.graphics.allocator@2.0-impl.so": {
+      "mode": "100644",
+      "sha": "ba46995a80fb777c6f83d22e021e41c3f935b8a5"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/hw/android.hardware.graphics.mapper@2.0-impl-2.1.so": {
+      "mode": "100644",
+      "sha": "6ae99c80e24f51a1edb775ee05ea8564bf9c7f7f"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/hw/android.hardware.renderscript@1.0-impl.so": {
+      "mode": "100644",
+      "sha": "686b410330eafcfd52ae11bd0af31423faeed86e"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/hw/audio.a2dpsink.default.so": {
+      "mode": "100644",
+      "sha": "9f336fb593879d2ba0e328d8a004470c67d76f21"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/hw/audio.bluetooth.default.so": {
+      "mode": "100644",
+      "sha": "3bc23ddda5307acec9e6eaf17a0adec96cfabca8"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/hw/gralloc.default.so": {
+      "mode": "100644",
+      "sha": "3d25293d269d62859888d6caebdf703ff4f50402"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/hw/gralloc.exynos9820.so": {
+      "mode": "100644",
+      "sha": "8e7df7844006ca6df760380853538d11e6609343"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/hw/hwcomposer.exynos9820.so": {
+      "mode": "100644",
+      "sha": "9272aa5a32f29ec79c14d5e79ad9d3f9a0d4c894"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/hw/vendor.samsung.hardware.bluetooth.a2dp@1.0-impl.so": {
+      "mode": "100644",
+      "sha": "ec9c8ca4f2e1bd54836ac778ef6884d567db60f5"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/hw/vendor.samsung.hardware.bluetooth.a2dpsink@1.0-impl.so": {
+      "mode": "100644",
+      "sha": "e5f83e1c4190ffe5dbee7cdf6e94239ced0fd8de"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/hw/vendor.samsung.hardware.bluetooth.audio@2.1-impl.so": {
+      "mode": "100644",
+      "sha": "1c85dfc543bda16b0625faeed9ddcebc93a3404e"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/hw/vulkan.mali.so": {
+      "mode": "100644",
+      "sha": "3938cac28201d167fb32d5481dd4ac1fe805fdc8"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libExynosHWCService.so": {
+      "mode": "100644",
+      "sha": "c0512c938be9f879b6735aa23502b0f4845fc8c5"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libSemDataProps.so": {
+      "mode": "100644",
+      "sha": "7b87a36da8aeae8aa4f73151e78dd04c0ec8a0ec"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libSemTelephonyProps.so": {
+      "mode": "100644",
+      "sha": "52a4c2a5f8cafce5a59704c5132f9557eb247bb6"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libacryl.so": {
+      "mode": "100644",
+      "sha": "8775a20887957454dcf3e4b354a7e1a7d237033a"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libbluetooth_a2dpsink_session.so": {
+      "mode": "100644",
+      "sha": "4526da95b5d37df879b4538256aaea38f7e4a7c8"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libdrmresource-v33.so": {
+      "mode": "100644",
+      "sha": "736a16fb40d857489413a08274ee33a8ad381aa9"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libengmode15.so": {
+      "mode": "100644",
+      "sha": "d98179ae657eebabae9afb097d458e6b8bd5e8e5"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libengmode_client.so": {
+      "mode": "100644",
+      "sha": "37f8dc9bf12b9fe5096f3f6c6654e7959f307a01"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libengmode_server.so": {
+      "mode": "100644",
+      "sha": "df554a0540d587ac2ae809742ea46ac5368daaff"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libengmode_tlc.so": {
+      "mode": "100644",
+      "sha": "07090fc8229e305a4e08b307b7d20211ea2563a3"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libexynosdisplay.so": {
+      "mode": "100644",
+      "sha": "33200f57c5e09ea26c1d21ff89b8c974b2863ead"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libexynosutils.so": {
+      "mode": "100644",
+      "sha": "aad89214924bb1a7be80b03bff62f7cff8391723"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libexynosv4l2.so": {
+      "mode": "100644",
+      "sha": "c0747c2dc832df0407fb7eb15eefa473fa2bcecd"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libfmq-v33.so": {
+      "mode": "100644",
+      "sha": "ca7134826ac422e68a49eef2230e7f2ea6e15355"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libhdr10p_meta_plugin_default.so": {
+      "mode": "100644",
+      "sha": "6bd064e0088eb5d719a7550e97cfae907f8d95e5"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libhdr_plugin_exynos9820.so": {
+      "mode": "100644",
+      "sha": "43763ff63f177b5fc47e345916fbee0d570f8073"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libhwc2on1adapter.so": {
+      "mode": "100644",
+      "sha": "94f13689c2cffc78b198c414e6695ce71f4bf22b"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libhwc2onfbadapter.so": {
+      "mode": "100644",
+      "sha": "1e98ba10f85a25f2a243160dc3158c0bf9156767"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libion_exynos.so": {
+      "mode": "100644",
+      "sha": "2f8559ddfdddc0032edf640a6ff60248e264f125"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libril_sem.so": {
+      "mode": "100644",
+      "sha": "9c9c070dcc2b776f8683c145c549bde6d0d10273"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/librilutils.so": {
+      "mode": "100644",
+      "sha": "c40e07003da4c3150a24152416caf876fc81791d"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libsec-ril.so": {
+      "mode": "100644",
+      "sha": "0be301e71e04b578902d56a9b9f60fe012b0326f"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libsec_semRil.so": {
+      "mode": "100644",
+      "sha": "87ca2555eaafa5bc28cfceb0e05d8e52869ba815"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libsecnativefeature.so": {
+      "mode": "100644",
+      "sha": "dc320a247b626db711c6a16468d4d856cb4f52cd"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libsecril-client.so": {
+      "mode": "100644",
+      "sha": "c7b8b9d61f2e26b506bc24daa65b34b4b1dedc04"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libsehbluetooth_audio_session.so": {
+      "mode": "100644",
+      "sha": "0d36ae1b089ae476e624d61c0af81d0212c7f48a"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libsemnativecarrierfeature.so": {
+      "mode": "100644",
+      "sha": "713593135ea70bca78c899df890d2229ff49f28a"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libsnap_compute.so": {
+      "mode": "100644",
+      "sha": "bd9534ef4fd89db28d113543ac4f289312ce649d"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libsnap_compute_wrapper.so": {
+      "mode": "100644",
+      "sha": "f9698fea93d900713633526fc027791db518827b"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libsnap_vndk.so": {
+      "mode": "100644",
+      "sha": "1409180eabe09b9501743948f95116ce47cbdfc9"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libsnaplite_native.so": {
+      "mode": "100644",
+      "sha": "f987952686850e5bd2baf4a40f954619fba753b0"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libsnaplite_wrapper.so": {
+      "mode": "100644",
+      "sha": "706632a4ec790aee61df32bf1e7c7923bf5a63ea"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/libspatializerparamstorage.so": {
+      "mode": "100644",
+      "sha": "6df8183cf5a9a98fe670e6822994b733a7d3717b"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.bluetooth.a2dp@1.0.so": {
+      "mode": "100644",
+      "sha": "e251550f26f40a631546684c36578df353c74a94"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.bluetooth.a2dpsink@1.0.so": {
+      "mode": "100644",
+      "sha": "cf3e8a7a85fbdea63756907edb34101199661fb7"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.bluetooth.audio@2.0.so": {
+      "mode": "100644",
+      "sha": "07a97abc53e9d76a0dae2c9c9f4df77e70f519a3"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.bluetooth.audio@2.1.so": {
+      "mode": "100644",
+      "sha": "60474bff10ca22f80d2e136ddecb6ae61ade892e"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.hyper-V2-ndk.so": {
+      "mode": "100644",
+      "sha": "66439cd16108decd4d1dabab10b94480cf3dcdb5"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.radio.bridge@2.0.so": {
+      "mode": "100644",
+      "sha": "76a66fcc0453f512581aaa986cceb36156b66df5"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.radio.bridge@2.1.so": {
+      "mode": "100644",
+      "sha": "9ec9089aef08d5a6415340dae35e31a3ac881cc8"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.radio.channel@2.0.so": {
+      "mode": "100644",
+      "sha": "7123f594bc5b7c856abb128daf039751a948c3cf"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.radio@2.0.so": {
+      "mode": "100644",
+      "sha": "0356e5b81636246e70ba2e1c1fbf17bd82b2e3f7"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.radio@2.1.so": {
+      "mode": "100644",
+      "sha": "5355058359d52dbc98fb7b94878df11ae14aa118"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.radio@2.2.so": {
+      "mode": "100644",
+      "sha": "21735328380ba73099ac483f893938aced2fdb78"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.snap-V1-ndk.so": {
+      "mode": "100644",
+      "sha": "4e3efcf97d76696f5cf06c0fbaf64f98802dfdf8"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.sysinput@1.0.so": {
+      "mode": "100644",
+      "sha": "cdc19badc69b3d3c027764917af845ad0b513d4c"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.sysinput@1.1.so": {
+      "mode": "100644",
+      "sha": "e1657ed512a15c244decc27ece11f27182c0a8a5"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.sysinput@1.2.so": {
+      "mode": "100644",
+      "sha": "293c9bbb38c1cf78b5b76cbea3d0e27fe1c5bb47"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.sysinput@1.3.so": {
+      "mode": "100644",
+      "sha": "1758b4a2c8f97446d310fb01572fd7ad6a832766"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.vibrator-V5-ndk_platform.so": {
+      "mode": "100644",
+      "sha": "5547a64e6da19b3158b5376f1c74204f12e95cde"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.wifi.supplicant@3.0.so": {
+      "mode": "100644",
+      "sha": "281cad97fed5012c532d7cd1ceb0fab420803d9e"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung.hardware.wifi.supplicant@3.1.so": {
+      "mode": "100644",
+      "sha": "a89e646ddd9cd1ef95fd2118b5ccb1603c4296a3"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung_slsi.hardware.ExynosA2DPOffload@3.0.so": {
+      "mode": "100644",
+      "sha": "c0db04736478f100bef6ab47a4b6f49d11974dbb"
+    },
+    "platform/exynos9820/patches/vendor/vendor/lib64/vendor.samsung_slsi.hardware.ExynosHWCServiceTW@1.0.so": {
+      "mode": "100644",
+      "sha": "9ed430b8498dfbaff430311f62e1b3f0930dad74"
+    },
+    "target/beyond0lte/config.sh": {
+      "mode": "100644",
+      "sha": "d3b9a74334abfb34eb8bad40358fc8f60600900d"
+    },
+    "target/beyond0lte/overlay/values/arrays.xml": {
+      "mode": "100644",
+      "sha": "cf8be2e2c41861de7c4a2d491a09ecfca895a338"
+    },
+    "target/beyond0lte/overlay/values/bools.xml": {
+      "mode": "100644",
+      "sha": "774ff9b58d829d4e3b761b142606645d2a2b134c"
+    },
+    "target/beyond0lte/overlay/values/dimens.xml": {
+      "mode": "100644",
+      "sha": "0348186a3fd771233f8c86af454c4b986f0c6dc9"
+    },
+    "target/beyond0lte/overlay/values/integers.xml": {
+      "mode": "100644",
+      "sha": "cb1e06f1679d9091ac8b00421996e9e6d73d23ca"
+    },
+    "target/beyond0lte/overlay/values/strings.xml": {
+      "mode": "100644",
+      "sha": "d01dbc5e31222bf537cdb44e9be6a11a4f45bf1e"
+    },
+    "target/beyond0lte/patches/camera/module.prop": {
+      "mode": "100644",
+      "sha": "67e890d8f3c99a57fa153005bd6c6eaa03996a15"
+    },
+    "target/beyond0lte/patches/camera/system/cameradata/camera-feature.xml": {
+      "mode": "100644",
+      "sha": "b13d85d56ac2ab8ddddd5ee48ff23fa3c01275e0"
+    },
+    "target/beyond0lte/patches/edge_lighting/module.prop": {
+      "mode": "100644",
+      "sha": "cbb5e3b08107de5f08a8a5279de7ffe7b38e871c"
+    },
+    "target/beyond0lte/patches/edge_lighting/system.prop": {
+      "mode": "100644",
+      "sha": "06d6317e95ef58801b948ee02988a047d8d33232"
+    },
+    "target/beyond0lte/postinstall.edify": {
+      "mode": "100644",
+      "sha": "06a48f1121d66273ea9f01b6571349cfdeb06042"
+    },
+    "target/beyond0lte/sff.sh": {
+      "mode": "100644",
+      "sha": "b7911d403926befeda648f78c392af50384244dc"
+    },
+    "target/beyond1lte/config.sh": {
+      "mode": "100644",
+      "sha": "f32c43f52c1cef62a07b751fafd8701b55a684e5"
+    },
+    "target/beyond1lte/overlay/values/arrays.xml": {
+      "mode": "100644",
+      "sha": "cf8be2e2c41861de7c4a2d491a09ecfca895a338"
+    },
+    "target/beyond1lte/overlay/values/bools.xml": {
+      "mode": "100644",
+      "sha": "774ff9b58d829d4e3b761b142606645d2a2b134c"
+    },
+    "target/beyond1lte/overlay/values/dimens.xml": {
+      "mode": "100644",
+      "sha": "904c82e58a10414e2f038f71addc0eb8166aee28"
+    },
+    "target/beyond1lte/overlay/values/integers.xml": {
+      "mode": "100644",
+      "sha": "cb1e06f1679d9091ac8b00421996e9e6d73d23ca"
+    },
+    "target/beyond1lte/overlay/values/strings.xml": {
+      "mode": "100644",
+      "sha": "4c4d706414be054640552f6f98bdec98a6e6da80"
+    },
+    "target/beyond1lte/patches/camera/module.prop": {
+      "mode": "100644",
+      "sha": "67e890d8f3c99a57fa153005bd6c6eaa03996a15"
+    },
+    "target/beyond1lte/patches/camera/system/cameradata/camera-feature.xml": {
+      "mode": "100644",
+      "sha": "4f49a834829c25472ec3d3600b6237ed3999d7cb"
+    },
+    "target/beyond1lte/patches/edge_lighting/module.prop": {
+      "mode": "100644",
+      "sha": "cbb5e3b08107de5f08a8a5279de7ffe7b38e871c"
+    },
+    "target/beyond1lte/patches/edge_lighting/system.prop": {
+      "mode": "100644",
+      "sha": "558f8b22b057f4c0bcef9799c4256e8036ca0aa5"
+    },
+    "target/beyond1lte/postinstall.edify": {
+      "mode": "100644",
+      "sha": "b1861f8b74fc7023c4fc9335d8614ac60b29d7eb"
+    },
+    "target/beyond1lte/sff.sh": {
+      "mode": "100644",
+      "sha": "b793a636ed7ba64ee1828c4779535e8c6d0b346f"
+    },
+    "target/beyond2lte/config.sh": {
+      "mode": "100644",
+      "sha": "6440364e3fd25a69c19068acb262c8045b3919f4"
+    },
+    "target/beyond2lte/overlay/values/arrays.xml": {
+      "mode": "100644",
+      "sha": "cf8be2e2c41861de7c4a2d491a09ecfca895a338"
+    },
+    "target/beyond2lte/overlay/values/bools.xml": {
+      "mode": "100644",
+      "sha": "774ff9b58d829d4e3b761b142606645d2a2b134c"
+    },
+    "target/beyond2lte/overlay/values/dimens.xml": {
+      "mode": "100644",
+      "sha": "17ae81582de321763fe4b326b2f99075bce37dbd"
+    },
+    "target/beyond2lte/overlay/values/integers.xml": {
+      "mode": "100644",
+      "sha": "cb1e06f1679d9091ac8b00421996e9e6d73d23ca"
+    },
+    "target/beyond2lte/overlay/values/strings.xml": {
+      "mode": "100644",
+      "sha": "f559a6a1b7fd6349f38ae243a13a958d8014a7a1"
+    },
+    "target/beyond2lte/patches/camera/module.prop": {
+      "mode": "100644",
+      "sha": "67e890d8f3c99a57fa153005bd6c6eaa03996a15"
+    },
+    "target/beyond2lte/patches/camera/system/cameradata/camera-feature.xml": {
+      "mode": "100644",
+      "sha": "2e7bff149db93a31da6771d6820f7220ceec1812"
+    },
+    "target/beyond2lte/patches/edge_lighting/module.prop": {
+      "mode": "100644",
+      "sha": "cbb5e3b08107de5f08a8a5279de7ffe7b38e871c"
+    },
+    "target/beyond2lte/patches/edge_lighting/system.prop": {
+      "mode": "100644",
+      "sha": "015ef349a497a6f914031129a2e043c0618b20c6"
+    },
+    "target/beyond2lte/postinstall.edify": {
+      "mode": "100644",
+      "sha": "28e3013ab093c174d5346482be2af2e51b637f9c"
+    },
+    "target/beyond2lte/sff.sh": {
+      "mode": "100644",
+      "sha": "24d7d16a4cefdffcd5527dd6714aff4689a25eca"
+    },
+    "target/beyondx/config.sh": {
+      "mode": "100644",
+      "sha": "faa392a99e4f7e0921de90755407466ab3b346ab"
+    },
+    "target/beyondx/overlay/values/arrays.xml": {
+      "mode": "100644",
+      "sha": "cf8be2e2c41861de7c4a2d491a09ecfca895a338"
+    },
+    "target/beyondx/overlay/values/bools.xml": {
+      "mode": "100644",
+      "sha": "774ff9b58d829d4e3b761b142606645d2a2b134c"
+    },
+    "target/beyondx/overlay/values/dimens.xml": {
+      "mode": "100644",
+      "sha": "325dd7b132b65982c6cd7db7b50e04f435c9cca1"
+    },
+    "target/beyondx/overlay/values/integers.xml": {
+      "mode": "100644",
+      "sha": "cb1e06f1679d9091ac8b00421996e9e6d73d23ca"
+    },
+    "target/beyondx/overlay/values/strings.xml": {
+      "mode": "100644",
+      "sha": "effa3002cf7ba9362170f2535fdb00a8e0cc7e21"
+    },
+    "target/beyondx/patches/camera/module.prop": {
+      "mode": "100644",
+      "sha": "67e890d8f3c99a57fa153005bd6c6eaa03996a15"
+    },
+    "target/beyondx/patches/camera/system/cameradata/camera-feature.xml": {
+      "mode": "100644",
+      "sha": "2e7bff149db93a31da6771d6820f7220ceec1812"
+    },
+    "target/beyondx/patches/edge_lighting/module.prop": {
+      "mode": "100644",
+      "sha": "cbb5e3b08107de5f08a8a5279de7ffe7b38e871c"
+    },
+    "target/beyondx/patches/edge_lighting/system.prop": {
+      "mode": "100644",
+      "sha": "9d907aefc4b0b8e1f87122ad806b3cb951991af0"
+    },
+    "target/beyondx/postinstall.edify": {
+      "mode": "100644",
+      "sha": "639f22070a350977987bf7339cb4aaf93c48f1d3"
+    },
+    "target/beyondx/sff.sh": {
+      "mode": "100644",
+      "sha": "6c513e5a9ff831326beccfdd5af999691e9f7b2a"
+    }
+  }
+}

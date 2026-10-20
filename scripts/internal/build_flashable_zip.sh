@@ -2,6 +2,11 @@
 # Copyright (c) 2023 Salvo Giangreco
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# Galaxy S10 has physical partitions. Never enter the S20 dynamic packager.
+if [[ "${TARGET_PLATFORM:-}" == "exynos9820" ]]; then
+    exec bash "$SRC_DIR/scripts/s10/package.sh" "$@"
+fi
+
 # [
 source "$SRC_DIR/scripts/utils/build_utils.sh" || exit 1
 source "$SRC_DIR/scripts/utils/install_utils.sh" || exit 1

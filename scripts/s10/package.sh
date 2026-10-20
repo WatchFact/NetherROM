@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -eo pipefail
+: "${SRC_DIR:?Source buildenv.sh first}"
+: "${WORK_DIR:?}"
+[[ "$TARGET_PLATFORM" == exynos9820 && "$TARGET_USE_DYNAMIC_PARTITIONS" == false ]]
+[[ "$TARGET_OS_FILE_SYSTEM_TYPE" == ext4 && "$ROM_VERSION" == 4.0.1 ]]
+source "$SRC_DIR/scripts/utils/build_utils.sh"
+tmp="$OUT_DIR/s10-package-$TARGET_CODENAME"
+test ! -e "$tmp"
+mkdir -p "$tmp/META-INF/com/google/android" "$tmp/META-INF/com/android"
+cp "$SRC_DIR/prebuilts/bootable/deprecated-ota/updater" "$tmp/META-INF/com/google/android/update-binary"
+chmod 755 "$tmp/META-INF/com/google/android/update-binary"
+python3 "$SRC_DIR/scripts/s10/audit_output.py" "$WORK_DIR" "$TARGET_CODENAME"
+for part in system_ext vendor_dlkm odm_dlkm system_dlkm super; do
+  test ! -e "$WORK_DIR/$part"
+done
+printf '{}\n' > "$tmp/sizes.json"
+for part in system vendor product odm; do
+  "$SRC_DIR/scripts/build_fs_image.sh" ext4 --no-avb --sparse --generate-map \
+    --output "$tmp/$part.img" "$WORK_DIR/$part" \
+    "$WORK_DIR/configs/file_context-$part" "$WORK_DIR/configs/fs_config-$part"
+  size="$(GET_IMAGE_SIZE "$tmp/$part.img")"
+  python3 - "$tmp/sizes.json" "$part" "$size" <<'PY'
+import json,sys
+from pathlib import Path
+p=Path(sys.argv[1]); d=json.loads(p.read_text()); d[sys.argv[2]]=int(sys.argv[3]); p.write_text(json.dumps(d))
+PY
+  # Check the actual sparse ext4 contents before encoding the block OTA.
+  bash "$SRC_DIR/scripts/s10/verify_image.sh" "$part" "$tmp/$part.img"
+  img2sdat -o "$tmp" -B "$tmp/$part.map" "$tmp/$part.img"
+  test -s "$tmp/$part.transfer.list" && test -s "$tmp/$part.new.dat"
+  brotli --quality=4 --output="$tmp/$part.new.dat.br" "$tmp/$part.new.dat"
+  python3 - "$tmp" "$part" <<'PY'
+from pathlib import Path
+import sys
+p=Path(sys.argv[1]); part=sys.argv[2]
+for ext in ('.img','.map','.new.dat'): (p/(part+ext)).unlink(missing_ok=True)
+(p/(part+'.patch.dat')).touch(exist_ok=True)
+PY
+done
+for part in boot dtb dtbo; do
+  cp "$WORK_DIR/kernel/$part.img" "$tmp/$part.img"
+  python3 - "$tmp/sizes.json" "$part" "$tmp/$part.img" <<'PY'
+import json,sys
+from pathlib import Path
+p=Path(sys.argv[1]); d=json.loads(p.read_text()); d[sys.argv[2]]=Path(sys.argv[3]).stat().st_size; p.write_text(json.dumps(d))
+PY
+done
+python3 "$SRC_DIR/scripts/s10/installer.py" "$tmp" "$TARGET_CODENAME"
+cp "$WORK_DIR/kernel/kernel.json" "$tmp/kernel.json"
+cp "$SRC_DIR/scripts/s10/hardware-v3.1.0.json" "$tmp/hardware-provenance.json"
+printf 'ota-type=BLOCK\npre-device=%s\npost-timestamp=%s\n' "$TARGET_CODENAME" "$(date +%s)" > "$tmp/META-INF/com/android/metadata"
+printf 'device=%s\nversion=%s\nlayout=physical-ext4\n' "$TARGET_CODENAME" "$ROM_VERSION" > "$tmp/build_info.txt"
+unsigned="$OUT_DIR/s10-unsigned-$TARGET_CODENAME.zip"
+(cd "$tmp" && 7z a -tzip -mx=0 "$unsigned" .) >/dev/null
+name="$OUT_DIR/NetherROM_4.0.1_${TARGET_CODENAME}_EXPERIMENTAL.zip"
+signapk -w "$SRC_DIR/security/aosp_testkey.x509.pem" "$SRC_DIR/security/aosp_testkey.pk8" "$unsigned" "$name"
+python3 "$SRC_DIR/scripts/s10/verify_zip.py" "$name" "$TARGET_CODENAME"
+(cd "$OUT_DIR" && sha256sum "$(basename "$name")" > "$(basename "$name").sha256")
+echo "Validated physical S10 package: $name"
