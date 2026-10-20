@@ -111,4 +111,22 @@ test -s platform/exynos9820/patches/midas/module.prop
 grep -Fq '"$SRC_DIR/scripts/internal/apply_modules.sh" "$SRC_DIR/platform/$TARGET_PLATFORM/patches"' scripts/make_rom.sh
 grep -Fq 'verify_camera_partition.sh' scripts/port_s10/build_legacy_zip.sh
 echo "Tracked camera patch -> ROM work tree -> final ext4 image linked"
+# Regression guard: legacy buildenv.sh dereferences SRC_DIR before assigning it,
+# so sourcing under "set -u" fails before any build/tool verification starts.
+# Catch that workflow error during the inexpensive preflight job.
+python3 - <<'PY'
+from pathlib import Path
+import re
+workflow = Path(".github/workflows/s10-port.yml").read_text()
+blocks = re.split(r'(?m)^      - (?:name:|uses:)', workflow)
+for block in blocks:
+    if "source ./buildenv.sh" not in block:
+        continue
+    for match in re.finditer(r'(?m)^\s+source ./buildenv\.sh\b', block):
+        prefix = block[:match.start()]
+        set_options = re.findall(r'(?m)^\s*set\s+(-[^\n]+)', prefix)
+        if set_options and "-u" in set_options[-1].split()[0]:
+            raise SystemExit("S10 workflow sources legacy buildenv under Bash nounset")
+print("S10 legacy environment sourcing check passed")
+PY
 echo "S10 static-partition safety checks passed"
