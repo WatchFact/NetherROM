@@ -129,15 +129,32 @@ needle = 'ADD_TO_WORK_DIR "r9sxxx" "system" "$blob" 0 0 644 "u:object_r:system_l
 if src.count(needle) != 2:
     raise SystemExit("Unexpected camera donor import structure; aborting")
 src = src.replace(needle, needle.replace('"r9sxxx"', '"p3sxxx"'))
+# Additional imports used to pass on upstream's full r9, but this branch
+# only tracks its WFD subset. All these files exist in the reviewed p3 donor.
+camera_imports = (
+    ('vendor', 'saiv/swisp_1.0'),
+)
+for partition, name in camera_imports:
+    needle = f'ADD_TO_WORK_DIR "r9sxxx" "{partition}" "{name}"'
+    if src.count(needle) != 1:
+        raise SystemExit(f"Unexpected S10 SWISP import: {needle}")
+    src = src.replace(needle, needle.replace('"r9sxxx"', '"p3sxxx"'))
+needle = 'ADD_TO_WORK_DIR "r9sxxx" "system" "$blob" 0 0 644 "u:object_r:system_file:s0"'
+if src.count(needle) != 1:
+    raise SystemExit("Unexpected SingleTake source list")
+src = src.replace(needle, needle.replace('"r9sxxx"', '"p3sxxx"'))
 camera.write_text(src)
 src = midas.read_text()
-for name in (
-    "libmidas_core.camera.samsung.so",
-    "libmidas_DNNInterface.camera.samsung.so",
+for partition, name in (
+    ("vendor", "etc/midas"),
+    ("vendor", "etc/VslMesDetector"),
+    ("system", "system/priv-app/PhotoRemasterService/PhotoRemasterService.apk"),
+    ("system", "system/lib64/libmidas_core.camera.samsung.so"),
+    ("system", "system/lib64/libmidas_DNNInterface.camera.samsung.so"),
 ):
-    needle = f'ADD_TO_WORK_DIR "r9sxxx" "system" "system/lib64/{name}"'
+    needle = f'ADD_TO_WORK_DIR "r9sxxx" "{partition}" "{name}"'
     if src.count(needle) != 1:
-        raise SystemExit(f"Unexpected MIDAS donor import: {name}")
+        raise SystemExit(f"Unexpected MIDAS source import: {needle}")
     src = src.replace(needle, needle.replace('"r9sxxx"', '"p3sxxx"'))
 midas.write_text(src)
 PY
