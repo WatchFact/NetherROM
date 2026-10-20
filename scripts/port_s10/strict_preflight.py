@@ -122,6 +122,41 @@ def dependencies(source):
                 for file in bloblist.split():
                     yield donor, partition, file
 
+def validate_32bit_runtime(stage, target_fw=None):
+    """Check dynamically expanded ARM32 APEX/HIDL library lists too."""
+    script = (ROOT / "platform/exynos9820/patches/zzz_runtime32_compat/customize.sh")
+    if not script.is_file():
+        fail("Missing the required ARM32 runtime compatibility module")
+    data = script.read_text()
+    for variable, donor in (("RUNTIME_LIBS", "r11sxxx"), ("LEGACY_AUDIO_LIBS", "$TARGET_FIRMWARE")):
+        matched = re.search(r'(?m)^' + variable + r'="\s*\n(.*?)\n"', data, re.S)
+        if not matched:
+            fail(f"Runtime module's {variable} layout changed: review required")
+        values = matched.group(1).split()
+        if len(values) < (55 if variable == "RUNTIME_LIBS" else 6):
+            fail(f"Runtime list truncated: {variable}")
+        for name in values:
+            if not re.fullmatch(r'[A-Za-z0-9_.@+-]+\.so', name):
+                fail(f"Unexpected runtime library name: {variable}: {name}")
+            path = f"system/lib/{name}"
+            if stage == "index":
+                if donor == "$TARGET_FIRMWARE":
+                    continue
+                found = subprocess.run(
+                    ["git", "-C", str(ROOT), "ls-tree", "HEAD", "--",
+                     f"prebuilts/samsung/{donor}/{path}"],
+                    check=True, text=True, capture_output=True,
+                ).stdout
+                if not found:
+                    fail(f"Missing indexed 32-bit runtime {donor}/{path}")
+            elif stage == "donors" and donor != "$TARGET_FIRMWARE":
+                if not exists_or_split(known_source(donor, "system", path, None)):
+                    fail(f"Missing 32-bit runtime {donor}/{path}")
+            elif stage == "firmware" and donor == "$TARGET_FIRMWARE":
+                if not exists_or_split(known_source(donor, "system", path, target_fw)):
+                    fail(f"Missing target HIDL/ARM32 library {path}")
+        print(f"Runtime {variable}: {len(values)} libraries audited ({stage})")
+
 def audit_sources(stage, target_fw=None):
     if not PLATFORM.is_dir():
         fail("Exynos9820 patches are absent. Run compat.sh before donor audit.")
@@ -182,6 +217,7 @@ def main():
             git_index_check()
         else:
             audit_sources(args.stage, args.target_fw)
+        validate_32bit_runtime(args.stage, args.target_fw)
     except (ValueError, OSError, subprocess.CalledProcessError) as exc:
         print(f"S10 STRICT PREFLIGHT FAILED: {exc}", file=sys.stderr)
         sys.exit(1)
