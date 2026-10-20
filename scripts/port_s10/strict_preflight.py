@@ -28,6 +28,14 @@ PINNED = {
     "prebuilts/samsung/p3sxxx/system/lib64/libSwIsp_wrapper_v1.camera.samsung.so": "6fc0d09b4b41ef58f9f63e393834929b18e0b826",
     "prebuilts/samsung/p3sxxx/system/lib64/libmidas_core.camera.samsung.so": "0d041be0f5a46f0e4d6b253f15400ce4a9705866",
     "prebuilts/samsung/p3sxxx/system/lib64/libmidas_DNNInterface.camera.samsung.so": "17056a01c9a58334d9e650fbd1801b3014d2e21d",
+    "prebuilts/samsung/p3sxxx/system/priv-app/SingleTakeService/SingleTakeService.apk": "d0d244a1c145e9cc50196235b94aaa0626e0c7f6",
+    "prebuilts/samsung/p3sxxx/system/priv-app/PhotoRemasterService/PhotoRemasterService.apk.00": "1abf97268aa6b7fb7aed9b1ce7bb450759e2a7bb",
+    "prebuilts/samsung/p3sxxx/system/priv-app/PhotoRemasterService/PhotoRemasterService.apk.01": "64f61695044c0d5f049d611cbb03991be6bdd4dd",
+    "prebuilts/samsung/p3sxxx/system/priv-app/PhotoRemasterService/PhotoRemasterService.apk.02": "4b8d24d21bc02558d49aa18bb659f1f20b4aabb9",
+    "prebuilts/samsung/p3sxxx/system/cameradata/singletake/service-feature.xml": "435644f28f631c3c702847a66ec5f3218128d07e",
+    "prebuilts/samsung/a73xqxx/system/lib64/libBestComposition.polarr.so": "e36deee087bd650f35e06af1dc4136c71663d3ba",
+    "prebuilts/samsung/a73xqxx/system/lib64/libFeature.polarr.so": "d436d1e0b7927c20e1acf94d4f0f17cd581eb087",
+    "prebuilts/samsung/a73xqxx/system/lib64/libTracking.polarr.so": "7c5e2509c2ad69d2dd1a26bb8d73e16bc2b0d181",
 }
 DIRECT = re.compile(r'ADD_TO_WORK_DIR\s+"([^"]+)"\s+"([^"]+)"\s+"([^"]+)"')
 LOOPS = re.compile(
@@ -42,8 +50,13 @@ CAMERA_CRITICAL = (
     "system/lib64/libSwIsp_core.camera.samsung.so",
     "system/lib64/libSwIsp_wrapper_v1.camera.samsung.so",
 )
-TARGET_EXTRA = (
+SOURCE_CAMERA_EXTRA = (
     "system/system/lib64/libstagefright.so",
+    "system/system/lib64/libPortraitSolution.camera.samsung.so",
+    "system/system/cameradata/portrait_data/single_bokeh_feature.json",
+)
+TARGET_EXTRA = (
+
     "system/system/priv-app/HotwordEnrollmentOKGoogleExCORTEXM4/HotwordEnrollmentOKGoogleExCORTEXM4.apk",
     "system/system/priv-app/HotwordEnrollmentXGoogleExCORTEXM4/HotwordEnrollmentXGoogleExCORTEXM4.apk",
     "vendor/etc/fstab.exynos9820",
@@ -54,6 +67,29 @@ TARGET_EXTRA = (
 
 def fail(message):
     raise ValueError(message)
+
+def camera_feature_check():
+    import xml.etree.ElementTree as ET
+    for device in ("beyond0lte", "beyond1lte", "beyond2lte", "beyondx"):
+        path = ROOT / "target" / device / "patches/camera/system/cameradata/camera-feature.xml"
+        root = ET.parse(path).getroot()
+        if root.tag != "resources":
+            fail(f"{device}: bad camera XML root")
+        names = [node.get("name") for node in root if node.get("name", "").startswith("SHOOTING_MODE_")]
+        if any(names.count(name) != 1 for name in ("SHOOTING_MODE_PHOTO", "SHOOTING_MODE_VIDEO")):
+            fail(f"{device}: missing or duplicated base camera mode")
+        if len(names) != len(set(names)):
+            fail(f"{device}: duplicate camera mode")
+        print(f"Camera XML valid: {device} ({len(names)} modes)")
+
+def validate_source_camera(source_fw):
+    if not source_fw or not source_fw.is_dir():
+        fail("Missing source One UI firmware directory")
+    for relative in SOURCE_CAMERA_EXTRA:
+        path = source_fw / relative
+        if not exists_or_split(path):
+            fail(f"Missing source camera framework file: {path}")
+    print(f"Source camera framework OK ({len(SOURCE_CAMERA_EXTRA)} files)")
 
 def git_index_check(root=ROOT):
     for path, sha in PINNED.items():
@@ -166,7 +202,7 @@ def validate_32bit_runtime(stage, target_fw=None):
                     fail(f"Missing target HIDL/ARM32 library {path}")
         print(f"Runtime {variable}: {len(values)} libraries audited ({stage})")
 
-def audit_sources(stage, target_fw=None):
+def audit_sources(stage, target_fw=None, source_fw=None):
     if not PLATFORM.is_dir():
         fail("Exynos9820 patches are absent. Run compat.sh before donor audit.")
     paths = sorted(PLATFORM.glob("*/customize.sh"))
@@ -208,6 +244,7 @@ def audit_sources(stage, target_fw=None):
             if found != sha:
                 fail(f"Donor hash changed: {path}: {found} != {sha}")
     if stage == "firmware":
+        validate_source_camera(source_fw)
         if not target_fw or not target_fw.is_dir():
             fail("Target firmware must be extracted before firmware preflight")
         for relative in TARGET_EXTRA:
@@ -220,12 +257,14 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--stage", required=True, choices=("index", "donors", "firmware"))
     p.add_argument("--target-fw", type=Path)
+    p.add_argument("--source-fw", type=Path)
     args = p.parse_args()
     try:
         if args.stage == "index":
             git_index_check()
+            camera_feature_check()
         else:
-            audit_sources(args.stage, args.target_fw)
+            audit_sources(args.stage, args.target_fw, args.source_fw)
         validate_32bit_runtime(args.stage, args.target_fw)
     except (ValueError, OSError, subprocess.CalledProcessError) as exc:
         print(f"S10 STRICT PREFLIGHT FAILED: {exc}", file=sys.stderr)

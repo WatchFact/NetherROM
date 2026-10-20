@@ -129,13 +129,24 @@ jobs:
           model="${TARGET_FIRMWARE%%/*}"
           csc="${TARGET_FIRMWARE#*/}"
           csc="${csc%%/*}"
-          python3 scripts/port_s10/strict_preflight.py --stage firmware             --target-fw "$FW_DIR/${model}_${csc}"
+          source_model="${SOURCE_FIRMWARE%%/*}"
+          source_region="${SOURCE_FIRMWARE#*/}"
+          source_region="${source_region%%/*}"
+          python3 scripts/port_s10/strict_preflight.py --stage firmware \
+            --target-fw "$FW_DIR/${model}_${csc}" \
+            --source-fw "$FW_DIR/${source_model}_${source_region}"
 
       - name: Build NetherROM filesystem and patches
         shell: bash
         run: |
           source ./buildenv.sh "${{ matrix.target }}"
           ./scripts/make_rom.sh --no-rom-zip
+
+      - name: Audit completed S10 camera libraries, APKs and configurations
+        shell: bash
+        run: |
+          source ./buildenv.sh "${{ matrix.target }}"
+          python3 scripts/port_s10/camera_output_audit.py "$WORK_DIR"
 
       - name: Compile and install S10-specific boot/dtbo images
         shell: bash

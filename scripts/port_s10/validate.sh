@@ -71,4 +71,30 @@ print("Optional binary patch unit tests passed")
 PY
 python3 -m py_compile scripts/port_s10/strict_preflight.py
 python3 scripts/port_s10/strict_preflight.py --stage index
+python3 -m py_compile scripts/port_s10/camera_path_patch.py scripts/port_s10/camera_output_audit.py
+python3 - <<'PY'
+import importlib.util
+from pathlib import Path
+import tempfile
+path = "scripts/port_s10/camera_path_patch.py"
+spec = importlib.util.spec_from_file_location("camerapath", path)
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+with tempfile.TemporaryDirectory() as d:
+    f = Path(d) / "camera.so"
+    f.write_bytes(b"\x7fELF" + m.OLD + b"tail")
+    assert m.apply(f) == "patched"
+    assert m.apply(f) == "already-patched"
+    assert f.read_bytes() == b"\x7fELF" + m.NEW + b"tail"
+    f.write_bytes(b"\x7fELF" + b"\x00" * 128)
+    assert m.apply(f) == "unsupported-donor"
+    f.write_bytes(b"\x7fELF" + m.OLD * 2)
+    try:
+        m.apply(f)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Ambiguous binary rewrite not rejected")
+print("Camera photo editor binary path tests passed")
+PY
 echo "S10 static-partition safety checks passed"
