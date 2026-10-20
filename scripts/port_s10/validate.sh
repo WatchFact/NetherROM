@@ -31,9 +31,9 @@ grep -q 's10-preflight.sh' scripts/port_s10/build_legacy_zip.sh
 # All source assets required by ExtremeROM's Exynos9820 camera must be
 # provided by a vetted local donor or explicitly imported into the build.
 # Check the committed implementation, not obsolete generated compat text.
-grep -Fq 'ADD_TO_WORK_DIR "a73xqxx" "system" "system/lib64/libBestComposition.polarr.so"' scripts/port_s10/camera_customize.sh
-grep -Fq 'ADD_TO_WORK_DIR "p3sxxx" "vendor" "etc/singletake"' scripts/port_s10/camera_customize.sh
-grep -Fq 'ADD_TO_WORK_DIR "p3sxxx" "system" "system/lib64/libmidas_core.camera.samsung.so"' scripts/port_s10/midas_customize.sh
+grep -Fq 'ADD_TO_WORK_DIR "a73xqxx" "system" "system/lib64/libBestComposition.polarr.so"' platform/exynos9820/patches/camera/customize.sh
+grep -Fq 'ADD_TO_WORK_DIR "p3sxxx" "vendor" "etc/singletake"' platform/exynos9820/patches/camera/customize.sh
+grep -Fq 'ADD_TO_WORK_DIR "p3sxxx" "system" "system/lib64/libmidas_core.camera.samsung.so"' platform/exynos9820/patches/midas/customize.sh
 # Pinned partition geometry extracted from official ArtisanROM Exynos9820_Repartition.zip.
 layout=scripts/port_s10/artisanrom_partition_layout.tsv
 test -s "$layout"
@@ -101,11 +101,13 @@ print("Camera photo editor binary path tests passed")
 PY
 # Assert that the tracked camera code, not a temporary CI-generated rewrite,
 # is installed and called during ROM construction.
-bash -n scripts/port_s10/camera_customize.sh
-bash -n scripts/port_s10/midas_customize.sh
+bash -n platform/exynos9820/patches/camera/customize.sh
+bash -n platform/exynos9820/patches/midas/customize.sh
 bash -n scripts/port_s10/verify_camera_partition.sh
-grep -Fq 'install -m 644 "$base/scripts/port_s10/camera_customize.sh" "$camera"' scripts/port_s10/compat.sh
-grep -Fq 'install -m 644 "$base/scripts/port_s10/midas_customize.sh" "$midas"' scripts/port_s10/compat.sh
+grep -Fq "for module in camera midas; do" scripts/port_s10/compat.sh
+grep -Fq "tar --exclude='./customize.sh'" scripts/port_s10/compat.sh
+test -s platform/exynos9820/patches/camera/module.prop
+test -s platform/exynos9820/patches/midas/module.prop
 grep -Fq '"$SRC_DIR/scripts/internal/apply_modules.sh" "$SRC_DIR/platform/$TARGET_PLATFORM/patches"' scripts/make_rom.sh
 grep -Fq 'verify_camera_partition.sh' scripts/port_s10/build_legacy_zip.sh
 echo "Tracked camera patch -> ROM work tree -> final ext4 image linked"

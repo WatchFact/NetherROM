@@ -16,12 +16,27 @@ test "$(git -C "$reference" rev-parse HEAD)" = "$REV"
 
 # The archived port is an input, not a guaranteed modern-Android implementation.
 # Copy only the known Exynos9820 modules; never port ExtremeROM's build system.
-for module in audio vendor stock_blobs camera miscs bixbykey midas hrm; do
+# Reviewable camera and MIDAS ROM modifications are committed directly
+# under platform/exynos9820/patches. NEVER clobber their tracked customize.sh.
+for module in audio vendor stock_blobs miscs bixbykey hrm; do
     from="$reference/platform/exynos9820/patches/$module"
     test -d "$from" || { echo "Missing $module in pinned donor" >&2; exit 1; }
     mkdir -p "$base/platform/exynos9820/patches"
     rm -rf "$base/platform/exynos9820/patches/$module"
     cp -a "$from" "$base/platform/exynos9820/patches/$module"
+done
+for module in camera midas; do
+    from="$reference/platform/exynos9820/patches/$module"
+    to="$base/platform/exynos9820/patches/$module"
+    test -d "$from" && test -s "$to/customize.sh" || {
+        echo "Missing checked-in Exynos9820 $module code or source binary assets" >&2; exit 1;
+    }
+    # Pull the pinned proprietary module's binary APKs/assets and module.prop,
+    # but never replace or modify the version-controlled ROM patch logic.
+    (cd "$from" && tar --exclude='./customize.sh' -cf - .) |
+        (cd "$to" && tar -xf -)
+    test -s "$to/module.prop" || exit 1
+    echo "Imported vetted $module assets; using version-controlled ROM patch code"
 done
 # The S24+ Android 16 donor is 64-bit-only, whereas Exynos9820 still starts
 # ARM32 vendor/OMX services. Reuse NetherROM's Android 16 multilib bridge,
@@ -49,15 +64,11 @@ if source.count(old)!=1:
 path.write_text(source.replace(old,new))
 PY
 
-# Replace downloaded *code* with reviewed, tracked implementation. Upstream
-# binary APK assets are retained, but only these scripts can mutate the ROM.
-camera="$base/platform/exynos9820/patches/camera/customize.sh"
-midas="$base/platform/exynos9820/patches/midas/customize.sh"
-install -m 644 "$base/scripts/port_s10/camera_customize.sh" "$camera"
-install -m 644 "$base/scripts/port_s10/midas_customize.sh" "$midas"
-cmp -s "$camera" "$base/scripts/port_s10/camera_customize.sh"
-cmp -s "$midas" "$base/scripts/port_s10/midas_customize.sh"
-echo "Installed tracked Exynos9820 camera and MIDAS modules (applied by make_rom.sh)"
+# Actual ROM camera/MIDAS modules are source-controlled in platform/ itself.
+for module in camera midas; do
+    test -s "$base/platform/exynos9820/patches/$module/customize.sh" || exit 1
+done
+echo "Camera/MIDAS ROM patches: tracked platform/exynos9820/patches modules"
 
 # Storage rule references the legacy SoC-specific fstab.
 sed -i 's/fstab.exynos990/fstab.exynos9820/g' \
