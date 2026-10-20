@@ -133,6 +133,7 @@ src = src.replace(needle, needle.replace('"r9sxxx"', '"p3sxxx"'))
 # only tracks its WFD subset. All these files exist in the reviewed p3 donor.
 camera_imports = (
     ('vendor', 'saiv/swisp_1.0'),
+    ('vendor', 'etc/singletake'),
 )
 for partition, name in camera_imports:
     needle = f'ADD_TO_WORK_DIR "r9sxxx" "{partition}" "{name}"'
@@ -143,6 +144,23 @@ needle = 'ADD_TO_WORK_DIR "r9sxxx" "system" "$blob" 0 0 644 "u:object_r:system_f
 if src.count(needle) != 1:
     raise SystemExit("Unexpected SingleTake source list")
 src = src.replace(needle, needle.replace('"r9sxxx"', '"p3sxxx"'))
+# The stock script mutates a binary via unbounded sed; bind it to a verified
+# ELF string match, preserving binary length and failing ambiguous matches.
+lines = src.splitlines(keepends=True)
+candidates = [
+    i for i, line in enumerate(lines)
+    if line.strip() == "sed -i \\" and i + 2 < len(lines)
+    and "single_bokeh_feature.json/system" in lines[i + 1]
+    and "libPortraitSolution.camera.samsung.so" in lines[i + 2]
+]
+if len(candidates) != 1:
+    raise SystemExit("Unknown PortraitSolution binary patch sequence")
+i = candidates[0]
+lines[i:i + 3] = [
+    'python3 "$SRC_DIR/scripts/port_s10/camera_path_patch.py" \\\n',
+    '    "$WORK_DIR/system/system/lib64/libPortraitSolution.camera.samsung.so"\n',
+]
+src = "".join(lines)
 camera.write_text(src)
 src = midas.read_text()
 for partition, name in (
