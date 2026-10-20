@@ -20,6 +20,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 # An S10 build is expensive: new commits may start newer independent runs,
 # but MUST NEVER cancel an older running or queued build.
@@ -51,89 +52,8 @@ jobs:
             bash -c 'set -e; source ./buildenv.sh "$1"; test "$TARGET_CODENAME" = "$1"; test "$TARGET_PLATFORM" = exynos9820; test "$TARGET_USE_DYNAMIC_PARTITIONS" = false' -- "$target"
           done
 
-  tools:
-    name: Build Android tools (independent runner)
-    needs: preflight
-    runs-on: ubuntu-24.04
-    timeout-minutes: 180
-    steps:
-      - name: Checkout only the sources needed for Android tools
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          submodules: false
-          sparse-checkout: |
-            buildenv.sh
-            external
-            platform
-            scripts
-            target
-            unica
-
-      - name: Fetch pinned tool dependencies through GitHub mirrors
-        shell: bash
-        run: bash ./scripts/port_s10/checkout_alt_mirrors.sh
-
-      - name: Free tool-build runner disk space
-        shell: bash
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          sudo docker image prune --all --force
-
-      - name: Install toolchain compiler requirements
-        shell: bash
-        run: |
-          sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            attr bc bison build-essential ccache clang cmake curl flex git git-lfs \
-            libbrotli-dev libbz2-dev libgtest-dev libprotobuf-dev libunwind-dev \
-            libpcre2-dev libzstd-dev lld protobuf-compiler python-is-python3 \
-            python3 rsync unzip wget zip p7zip-full
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: dtolnay/rust-toolchain@stable
-
-      - name: Compile and verify tools on alternate build runner
-        shell: bash
-        run: |
-          # buildenv.sh is an older Bash envsetup script which reads unset
-          # variables; Bash nounset must remain off while sourcing it.
-          set -eo pipefail
-          # android-tools/vendor/CMakeLists.txt applies source patches with
-          # git am. The independent tools runner has no default author identity;
-          # configure both values before CMake, not only on the ROM runner.
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          export GIT_AUTHOR_NAME="github-actions[bot]"
-          export GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com"
-          export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME"
-          export GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
-          test -n "$(git config --get user.name)"
-          test -n "$(git config --get user.email)"
-          source ./buildenv.sh beyond2lte
-          ./scripts/build_dependencies.sh
-          ./scripts/build_dependencies.sh --check-tools
-          # Preserve executable modes and symlinks (artifact uploads alone
-          # do not retain POSIX metadata).
-          tar -C out/tools -czf s10-tools.tar.gz bin
-          sha256sum s10-tools.tar.gz > s10-tools.tar.gz.sha256
-
-      - name: Send verified tools to ROM assembler runner
-        uses: actions/upload-artifact@v4
-        with:
-          name: s10-build-tools-${{ github.sha }}
-          path: |
-            s10-tools.tar.gz
-            s10-tools.tar.gz.sha256
-          compression-level: 0
-          if-no-files-found: error
-          retention-days: 7
-
   build:
-    needs: [preflight, tools]
+    needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 350
     strategy:
@@ -147,10 +67,12 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      - name: Checkout pinned submodules through GitHub mirrors
+      # Use precompiled tools from an independent runner, not Android submodules.
+      - name: Restore verified tools from independent runner
         shell: bash
-        run: bash ./scripts/port_s10/checkout_alt_mirrors.sh
-
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash ./scripts/port_s10/restore_tools.sh
       - name: Reclaim runner disk
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
@@ -188,25 +110,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-
-      - name: Retrieve compiled tools from alternate runner
-        uses: actions/download-artifact@v4
-        with:
-          name: s10-build-tools-${{ github.sha }}
-          path: precompiled-tools
-
-      - name: Verify and restore tools with original executable permissions
-        shell: bash
-        run: |
-          # buildenv.sh predates Bash nounset and reads SRC_DIR before
-          # initialising it. Use errexit+pipefail only in every step that
-          # sources the legacy envsetup script (same as the tools runner).
-          set -eo pipefail
-          (cd precompiled-tools && sha256sum --check s10-tools.tar.gz.sha256)
-          mkdir -p out/tools
-          tar -C out/tools -xzf precompiled-tools/s10-tools.tar.gz
-          source ./buildenv.sh "${{ matrix.target }}"
-          ./scripts/build_dependencies.sh --check-tools
 
       - name: Download target and donor firmware
         shell: bash
