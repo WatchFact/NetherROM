@@ -134,4 +134,34 @@ for block in blocks:
             raise SystemExit("S10 workflow sources legacy buildenv under Bash nounset")
 print("S10 legacy environment sourcing check passed")
 PY
+# Prevent regressions of the undefined SOURCE_CODENAME MIDAS sed failure.
+python3 -m py_compile scripts/port_s10/validate_midas.py
+python3 - <<'PY'
+import importlib.util, json, tempfile
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("midas", "scripts/port_s10/validate_midas.py")
+midas = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(midas)
+with tempfile.TemporaryDirectory() as temp:
+    config = Path(temp) / "midas.json"
+    prop = Path(temp) / "build.prop"
+    config.write_text(json.dumps({
+        "device_property": "ro.product.device",
+        "midasSR_devices": ["e1s", "e2s", "r9s"],
+    }))
+    prop.write_text("ro.product.device=e2s\n")
+    before = config.read_bytes()
+    assert midas.verify(config, prop) == "e2s"
+    assert config.read_bytes() == before
+    for payload in ("", "ro.product.device=wrong_device\n",
+                    "ro.product.device=e2s\nro.product.device=r9s\n"):
+        prop.write_text(payload)
+        try:
+            midas.verify(config, prop)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("MIDAS check accepted unsupported/ambiguous build.prop")
+print("MIDAS donor validation and no-rewrite tests passed")
+PY
 echo "S10 static-partition safety checks passed"

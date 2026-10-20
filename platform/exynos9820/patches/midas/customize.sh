@@ -7,9 +7,10 @@ ADD_TO_WORK_DIR "p3sxxx" "vendor" "etc/midas"
 ADD_TO_WORK_DIR "p3sxxx" "vendor" "etc/VslMesDetector"
 LOG_STEP_OUT
 
-LOG "- Fixing MIDAS model detection"
-sed -i "s/$SOURCE_CODENAME/dummy/g" "$WORK_DIR/vendor/etc/midas/midas_config.json"
-sed -i "s/r9s/$SOURCE_CODENAME/g" "$WORK_DIR/vendor/etc/midas/midas_config.json"
+LOG "- Validating MIDAS model detection against real donor identity"
+python3 "$SRC_DIR/scripts/port_s10/validate_midas.py" \
+    "$WORK_DIR/vendor/etc/midas/midas_config.json" \
+    "$WORK_DIR/system/system/build.prop"
 
 LOG_STEP_IN "- Adding S21 FE (r9sxxx) Photo Remaster Service"
 DELETE_FROM_WORK_DIR "system" "system/priv-app/PhotoRemasterService/oat"
