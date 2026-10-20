@@ -30,8 +30,10 @@ grep -q '\-k n -r n' scripts/port_s10/kernel.sh
 grep -q 's10-preflight.sh' scripts/port_s10/build_legacy_zip.sh
 # All source assets required by ExtremeROM's Exynos9820 camera must be
 # provided by a vetted local donor or explicitly imported into the build.
-grep -q 'libBestComposition.polarr.so e36deee087bd650f35e06af1dc4136c71663d3ba' scripts/port_s10/compat.sh
-grep -q 'a73xqxx' scripts/port_s10/compat.sh
+# Check the committed implementation, not obsolete generated compat text.
+grep -Fq 'ADD_TO_WORK_DIR "a73xqxx" "system" "system/lib64/libBestComposition.polarr.so"' scripts/port_s10/camera_customize.sh
+grep -Fq 'ADD_TO_WORK_DIR "p3sxxx" "vendor" "etc/singletake"' scripts/port_s10/camera_customize.sh
+grep -Fq 'ADD_TO_WORK_DIR "p3sxxx" "system" "system/lib64/libmidas_core.camera.samsung.so"' scripts/port_s10/midas_customize.sh
 # Pinned partition geometry extracted from official ArtisanROM Exynos9820_Repartition.zip.
 layout=scripts/port_s10/artisanrom_partition_layout.tsv
 test -s "$layout"
