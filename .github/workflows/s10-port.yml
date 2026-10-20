@@ -21,9 +21,11 @@ on:
 permissions:
   contents: write
 
+# An S10 build is expensive: new commits may start newer independent runs,
+# but MUST NEVER cancel an older running or queued build.
 concurrency:
-  group: s10-port-${{ github.ref }}-${{ github.event.inputs.device || 'beyond2lte' }}
-  cancel-in-progress: true
+  group: s10-port-${{ github.run_id }}-${{ github.run_attempt }}
+  cancel-in-progress: false
 
 jobs:
   preflight:
@@ -97,7 +99,9 @@ jobs:
       - name: Compile and verify tools on alternate build runner
         shell: bash
         run: |
-          set -euo pipefail
+          # buildenv.sh is an older Bash envsetup script which reads unset
+          # variables; Bash nounset must remain off while sourcing it.
+          set -eo pipefail
           source ./buildenv.sh beyond2lte
           ./scripts/build_dependencies.sh
           ./scripts/build_dependencies.sh --check-tools
