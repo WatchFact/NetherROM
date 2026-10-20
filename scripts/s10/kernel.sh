@@ -12,7 +12,16 @@ git -C "$dir" remote add origin https://github.com/Android-Artisan/android_kerne
 git -C "$dir" fetch --depth=1 origin "$rev"
 git -C "$dir" checkout --detach FETCH_HEAD
 test "$(git -C "$dir" rev-parse HEAD)" = "$rev"
-# KernelSU is disabled. Its submodule is unnecessary and is never executed.
+# Kconfig unconditionally sources drivers/kernelsu/Kconfig even with KSU off.
+# Populate the kernel's pinned gitlink; never follow the submodule's branch.
+ksu_rev=fc33995cedc5e0ebf719745c71fe15e78694260f
+test "$(git -C "$dir" rev-parse HEAD:KernelSU-Next)" = "$ksu_rev"
+git -C "$dir" submodule update --init --depth=1 KernelSU-Next
+test "$(git -C "$dir/KernelSU-Next" rev-parse HEAD)" = "$ksu_rev"
+test -s "$dir/drivers/kernelsu/Kconfig"
+# Upstream Kconfig defaults KSU to y; build.sh -k n only skips its fragment.
+bash "$dir/scripts/config" --file "$dir/arch/arm64/configs/exynos9820_defconfig" --disable KSU
+grep -qx '# CONFIG_KSU is not set' "$dir/arch/arm64/configs/exynos9820_defconfig"
 # The exact AOSP Clang revision is available from Microsoft's AOSP mirror.
 clang_rev=70a12c4fe88940ab2b0e6d763492dffa2f07e15a
 clang_dir="${RUNNER_TEMP:-/tmp}/s10-clang-$target"
@@ -30,7 +39,7 @@ test -x "$dir/toolchain/clang-r547379/bin/clang-20"
 (cd "$dir" && bash build.sh -m "$target" -k n -r n)
 grep -qx 'CONFIG_EXT4_FS=y' "$dir/out/.config"
 grep -qx 'CONFIG_F2FS_FS=y' "$dir/out/.config"
-if grep -qx 'CONFIG_KSU=y' "$dir/out/.config"; then echo 'Unexpected KernelSU' >&2; exit 1; fi
+grep -qx '# CONFIG_KSU is not set' "$dir/out/.config"
 mkdir -p "$root/kernel-artifacts/$target"
 cp "$dir/build/out/$target/"{boot,dtb,dtbo}.img "$root/kernel-artifacts/$target/"
 cp "$dir/out/.config" "$root/kernel-artifacts/$target/kernel.config"
