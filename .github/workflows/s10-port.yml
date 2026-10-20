@@ -198,7 +198,10 @@ jobs:
       - name: Verify and restore tools with original executable permissions
         shell: bash
         run: |
-          set -euo pipefail
+          # buildenv.sh predates Bash nounset and reads SRC_DIR before
+          # initialising it. Use errexit+pipefail only in every step that
+          # sources the legacy envsetup script (same as the tools runner).
+          set -eo pipefail
           (cd precompiled-tools && sha256sum --check s10-tools.tar.gz.sha256)
           mkdir -p out/tools
           tar -C out/tools -xzf precompiled-tools/s10-tools.tar.gz
