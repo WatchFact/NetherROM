@@ -7,8 +7,12 @@ on:
       - 'target/beyond*/**'
       - 'prebuilts/samsung/a26xxx/**'
       - 'prebuilts/samsung/r9sxxx/**'
+      - 'prebuilts/samsung/p3sxxx/**'
+      - 'prebuilts/samsung/a73xqxx/**'
       - 'scripts/s10/**'
+      - 'scripts/utils/common_utils.sh'
       - 'scripts/internal/build_flashable_zip.sh'
+      - 'unica/configs/essi.sh'
       - '.github/workflows/s10-clean.yml'
   workflow_dispatch:
     inputs:
@@ -134,6 +138,18 @@ jobs:
         run: |
           set -eo pipefail
           source ./buildenv.sh '${{ matrix.target }}'
+          # Record firmware identities and reclaim extraction space before packaging.
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,shutil
+          root=Path('out').resolve(); identities={}
+          for p in (root/'fw').glob('*/.extracted'):
+              identities[p.parent.name]=p.read_text()
+          (root/'target/${{ matrix.target }}/firmware-inputs.json').write_text(json.dumps(identities,indent=2)+'\n')
+          for name in ('fw','odin'):
+              p=root/name
+              if p.is_dir(): shutil.rmtree(p)
+          PY
           bash scripts/s10/package.sh
       - name: Publish validated ROM prerelease
         env:
@@ -164,6 +180,7 @@ jobs:
           path: |
             out/config.sh
             out/target/${{ matrix.target }}/*.log
+            out/target/${{ matrix.target }}/firmware-inputs.json
             kernel-artifacts/${{ matrix.target }}/kernel.json
             kernel-artifacts/${{ matrix.target }}/kernel.config
             kernel-artifacts/${{ matrix.target }}/clang-version.txt

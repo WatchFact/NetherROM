@@ -1,3 +1,5 @@
+# Reviewed NetherROM Exynos9820 camera patch (derived from ArtisanROM v3.1.0)
+# This module runs INSIDE make_rom.sh against WORK_DIR; source-controlled, not generated.
 LOG_STEP_IN "- Replacing camera blobs"
 BLOBS_LIST="
 system/lib64/libenn_wrapper_system.so
@@ -52,13 +54,13 @@ system/lib64/libsnap_aidl.snap.samsung.so
 "
 for blob in $BLOBS_LIST
 do
-    ADD_TO_WORK_DIR "r9sxxx" "system" "$blob" 0 0 644 "u:object_r:system_lib_file:s0"
+    ADD_TO_WORK_DIR "p3sxxx" "system" "$blob" 0 0 644 "u:object_r:system_lib_file:s0"
 done
 LOG_STEP_OUT
 
 LOG_STEP_IN "- Adding S21 FE (r9sxxx) SWISP models"
 DELETE_FROM_WORK_DIR "vendor" "saiv/swisp_1.0"
-ADD_TO_WORK_DIR "r9sxxx" "vendor" "saiv/swisp_1.0"
+ADD_TO_WORK_DIR "p3sxxx" "vendor" "saiv/swisp_1.0"
 
 BLOBS_LIST="
 system/lib64/libSwIsp_core.camera.samsung.so
@@ -66,15 +68,15 @@ system/lib64/libSwIsp_wrapper_v1.camera.samsung.so
 "
 for blob in $BLOBS_LIST
 do
-    ADD_TO_WORK_DIR "r9sxxx" "system" "$blob" 0 0 644 "u:object_r:system_lib_file:s0"
+    ADD_TO_WORK_DIR "p3sxxx" "system" "$blob" 0 0 644 "u:object_r:system_lib_file:s0"
 done
 LOG_STEP_OUT
 
 LOG_STEP_IN "- Adding A26 (a26xxx) Polarr SDK blobs"
-ADD_TO_WORK_DIR "a26xxx" "system" "system/etc/public.libraries-polarr.txt" 0 0 644 "u:object_r:system_file:s0"
-ADD_TO_WORK_DIR "a26xxx" "system" "system/lib64/libBestComposition.polarr.so" 0 0 644 "u:object_r:system_lib_file:s0"
-ADD_TO_WORK_DIR "a26xxx" "system" "system/lib64/libFeature.polarr.so" 0 0 644 "u:object_r:system_lib_file:s0"
-ADD_TO_WORK_DIR "a26xxx" "system" "system/lib64/libTracking.polarr.so" 0 0 644 "u:object_r:system_lib_file:s0"
+ADD_TO_WORK_DIR "a73xqxx" "system" "system/etc/public.libraries-polarr.txt" 0 0 644 "u:object_r:system_file:s0"
+ADD_TO_WORK_DIR "a73xqxx" "system" "system/lib64/libBestComposition.polarr.so" 0 0 644 "u:object_r:system_lib_file:s0"
+ADD_TO_WORK_DIR "a73xqxx" "system" "system/lib64/libFeature.polarr.so" 0 0 644 "u:object_r:system_lib_file:s0"
+ADD_TO_WORK_DIR "a73xqxx" "system" "system/lib64/libTracking.polarr.so" 0 0 644 "u:object_r:system_lib_file:s0"
 LOG_STEP_OUT
 
 LOG_STEP_IN "- Cleaning SamsungCamera OAT"
@@ -90,12 +92,13 @@ cp -a --preserve=all \
 SET_METADATA "system" "system/cameradata/portrait_data/nexus_bokeh_feature.json" 0 0 644 "u:object_r:system_file:s0"
 sed -i "s/MODEL_TYPE_INSTANCE_CAPTURE/MODEL_TYPE_OBJ_INSTANCE_CAPTURE/g" \
     "$WORK_DIR/system/system/cameradata/portrait_data/single_bokeh_feature.json"
-python3 "$SRC_DIR/scripts/s10/camera_path_patch.py" "$WORK_DIR/system/system/lib64/libPortraitSolution.camera.samsung.so"
+python3 "$SRC_DIR/scripts/s10/camera_path_patch.py" \
+    "$WORK_DIR/system/system/lib64/libPortraitSolution.camera.samsung.so"
 LOG_STEP_OUT
 
 LOG_STEP_IN "- Adding S21 FE (r9sxxx) SingleTake models"
 DELETE_FROM_WORK_DIR "vendor" "etc/singletake"
-ADD_TO_WORK_DIR "r9sxxx" "vendor" "etc/singletake"
+ADD_TO_WORK_DIR "p3sxxx" "vendor" "etc/singletake"
 
 BLOBS_LIST="
 system/priv-app/SingleTakeService/SingleTakeService.apk
@@ -103,7 +106,7 @@ system/cameradata/singletake/service-feature.xml
 "
 for blob in $BLOBS_LIST
 do
-    ADD_TO_WORK_DIR "r9sxxx" "system" "$blob" 0 0 644 "u:object_r:system_file:s0"
+    ADD_TO_WORK_DIR "p3sxxx" "system" "$blob" 0 0 644 "u:object_r:system_file:s0"
 done
 
 
@@ -123,3 +126,13 @@ if [[ "$TARGET_CODENAME" == "beyondx" ]]; then
 fi
 
 LOG_STEP_OUT
+
+# S10 camera compatibility: vetted Polarr public library list.
+POLARR_PUBLIC_LIBS="$WORK_DIR/system/system/etc/public.libraries-polarr.txt"
+test -f "$POLARR_PUBLIC_LIBS" || {
+    ABORT "Missing Exynos9820 Polarr public-libraries list"
+    return 1
+}
+sed -i -e '/^libPolarrSnap\.polarr\.so$/d' \
+       -e '/^libYuv\.polarr\.so$/d' "$POLARR_PUBLIC_LIBS"
+unset POLARR_PUBLIC_LIBS

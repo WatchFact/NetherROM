@@ -12,6 +12,14 @@ import argparse
 from pathlib import Path
 
 PATCHES = {
+    "display-ddiscaler-64": (
+        "8a010034940000370b2540f96b554539",
+        "8a010034040000140b2540f96b554539",
+    ),
+    "display-ddiscaler-32": (
+        "92b11db98b6b93f86d30",
+        "92b103e08b6b93f86d30",
+    ),
     "stagefright-video-svc": (
         "da4a0594e0031a2a22feff17",
         "da4a0594e0031a2a19000014",

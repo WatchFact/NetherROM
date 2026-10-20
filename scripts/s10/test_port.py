@@ -8,11 +8,43 @@ import unittest
 from pathlib import Path
 from installer import BUDGET, DEVICES, generate
 from kernel_artifacts import KERNEL_REV, install
-from midas_config import adapt
+from validate_midas import verify
 from optional_binary_patch import PATCHES, patch
 
 
 class PortTests(unittest.TestCase):
+    def test_import_preserves_modes_labels_and_merged_system_ext(self):
+        repo=Path(__file__).resolve().parents[2]
+        for part in ('system', 'system_ext'):
+            with self.subTest(part=part), tempfile.TemporaryDirectory() as td:
+                root=Path(td); donor=root/'donor'; work=root/'work'
+                original=donor/part/'lib/old'; original.mkdir(parents=True)
+                (original/'driver.so').write_bytes(b'archived-hardware-driver')
+                (donor/('fs_config-'+part)).write_text(
+                    f'{part}/lib/old 0 1000 750 capabilities=0x0\n'
+                    f'{part}/lib/old/driver.so 0 2000 640 capabilities=0x0\n')
+                (donor/('file_context-'+part)).write_text(
+                    f'/{part}/lib/old u:object_r:system_file:s0\n'
+                    f'/{part}/lib/old/driver\\.so u:object_r:system_lib_file:s0\n')
+                (work/'configs').mkdir(parents=True)
+                (work/'configs/fs_config-system').touch()
+                (work/'configs/file_context-system').touch()
+                source='system/lib/old' if part=='system' else 'lib/old'
+                dest='system/lib/new' if part=='system' else 'lib/new'
+                subprocess.run(['bash','-c',
+                    'set -e; SRC_DIR="$1"; WORK_DIR="$2"; TARGET_OS_BUILD_SYSTEM_EXT_PARTITION=false; '
+                    'source "$SRC_DIR/scripts/utils/common_utils.sh"; ADD_TO_WORK_DIR "$3" "$4" "$5" "$6"',
+                    '--',str(repo),str(work),str(donor),part,source,dest],check=True,capture_output=True,text=True)
+                relative='system/lib/new' if part=='system' else 'system/system_ext/lib/new'
+                payload=work/'system'/relative/'driver.so'
+                self.assertEqual(payload.read_bytes(),b'archived-hardware-driver')
+                fs=(work/'configs/fs_config-system').read_text()
+                self.assertIn(relative+' 0 1000 750',fs)
+                self.assertIn(relative+'/driver.so 0 2000 640',fs)
+                contexts=(work/'configs/file_context-system').read_text()
+                self.assertIn('/'+relative+'/driver\\.so u:object_r:system_lib_file:s0',contexts)
+                self.assertNotIn('system/system/system_ext/',fs+contexts)
+
     def test_capacity_and_device_guards(self):
         sizes = {p: min(m*1048576, 5000000) for p,m in BUDGET.items()}
         sizes.update(boot=16000000, dtb=800000, dtbo=800000)
@@ -25,20 +57,18 @@ class PortTests(unittest.TestCase):
         with self.assertRaises(ValueError): generate('beyond2lte',dict(sizes,odm=5*1048576))
         with self.assertRaises(ValueError): generate('beyond2lte',dict(sizes,super=1))
 
-    def test_midas_preserves_legacy_capabilities(self):
+    def test_midas_preserves_reviewed_model_selectors(self):
         with tempfile.TemporaryDirectory() as td:
             config, prop = Path(td)/'midas.json', Path(td)/'build.prop'
-            config.write_text(json.dumps({'device_property':'ro.soc.model',
-                'midasSR_devices':['r9s','e2s','p3s'], 'new_feature_devices':['e2s']}))
+            config.write_text(json.dumps({'device_property':'ro.product.device',
+                'midasSR_devices':['r9s','e2s','p3s']}))
             prop.write_text('ro.product.device=e2s\n')
-            self.assertEqual(adapt(config, prop),'e2s')
-            data=json.loads(config.read_text())
-            self.assertEqual(data['device_property'],'ro.product.device')
-            self.assertEqual(data['midasSR_devices'],['e2s','p3s'])
-            self.assertEqual(data['new_feature_devices'],[])
-            before=config.read_bytes(); adapt(config,prop); self.assertEqual(config.read_bytes(),before)
-            prop.write_text('ro.product.device=e2s\nro.product.device=e1s\n')
-            with self.assertRaises(ValueError): adapt(config,prop)
+            before=config.read_bytes()
+            self.assertEqual(verify(config,prop),'e2s')
+            self.assertEqual(config.read_bytes(),before)
+            for text in ('ro.product.device=unsupported\n', 'ro.product.device=e2s\nro.product.device=e1s\n'):
+                prop.write_text(text)
+                with self.assertRaises(ValueError): verify(config,prop)
 
     def test_kernel_target_and_digest(self):
         with tempfile.TemporaryDirectory() as td:

@@ -8,9 +8,14 @@ from pathlib import Path
 
 SYSTEM_FILES = (
     'system/priv-app/SamsungCamera/SamsungCamera.apk',
+    'system/priv-app/SingleTakeService/SingleTakeService.apk',
+    'system/priv-app/PhotoRemasterService/PhotoRemasterService.apk',
     'system/app/FilterProvider/FilterProvider.apk',
     'system/cameradata/camera-feature.xml',
     'system/lib64/libSwIsp_core.camera.samsung.so',
+    'system/lib64/libeden_wrapper_system.so',
+    'system/lib64/libBestComposition.polarr.so',
+    'system/etc/public.libraries-polarr.txt',
     'system/lib64/libmidas_core.camera.samsung.so',
     'system/lib64/libImageTagger.camera.samsung.so',
     'system/apex/com.android.runtime.apex',
@@ -21,6 +26,8 @@ VENDOR_FILES = (
     'etc/fstab.exynos9820',
     'etc/vintf/manifest.xml',
     'etc/midas/midas_config.json',
+    'etc/singletake/ClarityScorer/ClarityScorer.tflite',
+    'saiv/swisp_1.0/db/denoise_model_832x1072x4_0818.pb',
     'lib64/hw/gralloc.exynos9820.so',
     'lib64/hw/hwcomposer.exynos9820.so',
     'bin/hw/android.hardware.audio.service',
@@ -31,6 +38,8 @@ VENDOR_FILES = (
 
 
 def audit(work, device):
+    from camera_output_audit import check
+    check(work)
     for part in ('system', 'vendor', 'product', 'odm'):
         if not (work / part).is_dir():
             raise ValueError('Missing partition: ' + part)
