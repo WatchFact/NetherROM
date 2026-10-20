@@ -102,6 +102,17 @@ jobs:
           # buildenv.sh is an older Bash envsetup script which reads unset
           # variables; Bash nounset must remain off while sourcing it.
           set -eo pipefail
+          # android-tools/vendor/CMakeLists.txt applies source patches with
+          # git am. The independent tools runner has no default author identity;
+          # configure both values before CMake, not only on the ROM runner.
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          export GIT_AUTHOR_NAME="github-actions[bot]"
+          export GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com"
+          export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME"
+          export GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
+          test -n "$(git config --get user.name)"
+          test -n "$(git config --get user.email)"
           source ./buildenv.sh beyond2lte
           ./scripts/build_dependencies.sh
           ./scripts/build_dependencies.sh --check-tools
