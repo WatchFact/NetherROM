@@ -42,4 +42,31 @@ for row in 'system 7000 required' 'vendor 1500 required' 'product 1500 required'
 done
 grep -Fq '802cc8c10acbcd3c7f2b1b73f14fd8f7b26ca4ef9cb6dc12f76f958c030d4e45' "$layout"
 grep -q 'layout_minimum' scripts/port_s10/build_legacy_zip.sh
+# Unit-test every legacy firmware patch without shipping an unreviewed donor.
+python3 - <<'PY'
+import importlib.util, tempfile
+from pathlib import Path
+spec = importlib.util.spec_from_file_location(
+    "optional_patch", "scripts/port_s10/optional_binary_patch.py")
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+with tempfile.TemporaryDirectory() as d:
+    f = Path(d) / "firmware.so"
+    for feature, (old, new) in mod.PATCHES.items():
+        f.write_bytes(b"\x7fELF" + bytes.fromhex(old) + b"TEST")
+        assert mod.patch(f, feature) == "patched"
+        assert mod.patch(f, feature) == "already-patched"
+        assert f.read_bytes() == b"\x7fELF" + bytes.fromhex(new) + b"TEST"
+        f.write_bytes(b"\x7fELF" + b"\x00" * 128)
+        assert mod.patch(f, feature) == "unsupported-donor"
+        assert f.read_bytes() == b"\x7fELF" + b"\x00" * 128
+        f.write_bytes(bytes.fromhex(old) * 2)
+        try:
+            mod.patch(f, feature)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"{feature}: ambiguous patch did not fail")
+print("Optional binary patch unit tests passed")
+PY
 echo "S10 static-partition safety checks passed"

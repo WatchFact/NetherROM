@@ -60,6 +60,47 @@ grep -q '"a26xxx"' "$camera" || {
     exit 1
 }
 sed -i 's/"a26xxx"/"a73xqxx"/g' "$camera"
+
+# This module's original libstagefright.so offsets are from a different S25
+# FE One UI 8 donor. The Aether S24+ One UI 8.5 binary demonstrably lacks the
+# first hard-coded instruction pattern. Never write an unchecked ARM64 branch
+# at an unrelated offset. Apply only if each exact original sequence exists.
+python3 - "$camera" <<'PY'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+code = path.read_text()
+replacements = {
+    'HEX_PATCH "$WORK_DIR/system/system/lib64/libstagefright.so" "da4a0594e0031a2a22feff17" "da4a0594e0031a2a19000014"':
+        'python3 "$SRC_DIR/scripts/port_s10/optional_binary_patch.py" stagefright-video-svc "$WORK_DIR/system/system/lib64/libstagefright.so"',
+    'HEX_PATCH "$WORK_DIR/system/system/lib64/libstagefright.so" "010140f90a4d0594604d0034" "010140f90a4d05941f2003d5"':
+        'python3 "$SRC_DIR/scripts/port_s10/optional_binary_patch.py" stagefright-hdr10 "$WORK_DIR/system/system/lib64/libstagefright.so"',
+}
+for original, replacement in replacements.items():
+    if code.count(original) != 1:
+        raise SystemExit(f"Unknown pinned S10 camera source for: {original}")
+    code = code.replace(original, replacement)
+path.write_text(code)
+PY
+
+# The pinned miscellaneous patch also contains an invalid JNI instruction
+# replacement: old/new hex lengths differ. Use the reviewed equal-length
+# ExtremeROM Bluetooth patch only on an exact match; otherwise leave intact.
+misc="$base/platform/exynos9820/patches/miscs/customize.sh"
+python3 - "$misc" <<'PY'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+text = path.read_text()
+original = ('HEX_PATCH "$WORK_DIR/system/system/lib64/libbluetooth_jni.so" \\\n'
+            '    "00122a0140395f01086bde030014" "2a00001428008052"')
+replacement = ('python3 "$SRC_DIR/scripts/port_s10/optional_binary_patch.py" '
+               'bluetooth-jni-legacy "$WORK_DIR/system/system/lib64/libbluetooth_jni.so"')
+if text.count(original) != 1:
+    raise SystemExit("Unexpected pinned Exynos9820 Bluetooth patch; review required")
+path.write_text(text.replace(original, replacement))
+PY
+
 # The local A73 public-libraries list has two extra entries not required by
 # the S10 camera. Match the original three-entry A26 allowlist.
 cat >> "$camera" <<'POLARR_ALLOWLIST'
