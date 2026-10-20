@@ -49,8 +49,76 @@ jobs:
             bash -c 'set -e; source ./buildenv.sh "$1"; test "$TARGET_CODENAME" = "$1"; test "$TARGET_PLATFORM" = exynos9820; test "$TARGET_USE_DYNAMIC_PARTITIONS" = false' -- "$target"
           done
 
-  build:
+  tools:
+    name: Build Android tools (independent runner)
     needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Checkout only the sources needed for Android tools
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: false
+          sparse-checkout: |
+            buildenv.sh
+            external
+            platform
+            scripts
+            target
+            unica
+
+      - name: Fetch pinned tool dependencies through GitHub mirrors
+        shell: bash
+        run: bash ./scripts/port_s10/checkout_alt_mirrors.sh
+
+      - name: Free tool-build runner disk space
+        shell: bash
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+
+      - name: Install toolchain compiler requirements
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            attr bc bison build-essential ccache clang cmake curl flex git git-lfs \
+            libbrotli-dev libbz2-dev libgtest-dev libprotobuf-dev libunwind-dev \
+            libpcre2-dev libzstd-dev lld protobuf-compiler python-is-python3 \
+            python3 rsync unzip wget zip p7zip-full
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Compile and verify tools on alternate build runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          source ./buildenv.sh beyond2lte
+          ./scripts/build_dependencies.sh
+          ./scripts/build_dependencies.sh --check-tools
+          # Preserve executable modes and symlinks (artifact uploads alone
+          # do not retain POSIX metadata).
+          tar -C out/tools -czf s10-tools.tar.gz bin
+          sha256sum s10-tools.tar.gz > s10-tools.tar.gz.sha256
+
+      - name: Send verified tools to ROM assembler runner
+        uses: actions/upload-artifact@v4
+        with:
+          name: s10-build-tools-${{ github.sha }}
+          path: |
+            s10-tools.tar.gz
+            s10-tools.tar.gz.sha256
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+
+  build:
+    needs: [preflight, tools]
     runs-on: ubuntu-24.04
     timeout-minutes: 350
     strategy:
@@ -64,68 +132,9 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      - name: Use alternate GitHub server for ADB submodule and retry transient fetch errors
+      - name: Checkout pinned submodules through GitHub mirrors
         shell: bash
-        run: |
-          set -euo pipefail
-          # This exact pinned git SHA is present at LineageOS' AOSP mirror.
-          # Use an insteadOf rewrite rather than altering the repo's pinned SHAs.
-          git config --global url."https://github.com/LineageOS/android_packages_modules_adb.git".insteadOf \
-            "https://android.googlesource.com/platform/packages/modules/adb.git"
-          # Every mirror/commit pair was verified using the GitHub commit API.
-          # Do not rewrite other repositories without confirming their pinned SHA.
-          # c92ce4cb9a1b6d20a1bc11b7e5864af9f78615bb
-          git config --global url."https://github.com/LineageOS/android_external_avb.git".insteadOf \
-            "https://android.googlesource.com/platform/external/avb"
-          # b815dded1eafbf06191a6ae306956bb6ed6fb415
-          git config --global url."https://github.com/LineageOS/android_build.git".insteadOf \
-            "https://android.googlesource.com/platform/build.git"
-          # e9d1fa3705d7fbd0ac1c942bc4c276161bfbfed1
-          git config --global url."https://github.com/LineageOS/android_system_core.git".insteadOf \
-            "https://android.googlesource.com/platform/system/core.git"
-          # 3f52a5ab49ba53bc463de658db1d112e001c0280
-          git config --global url."https://github.com/LineageOS/android_system_extras.git".insteadOf \
-            "https://android.googlesource.com/platform/system/extras.git"
-          # 10c6b5f81069d6d78c7ef3833458f4d51d02e2a6
-          git config --global url."https://github.com/LineageOS/android_system_libufdt.git".insteadOf \
-            "https://android.googlesource.com/platform/system/libufdt.git"
-          # 94db64a81930e4cc8bacca4010bf935f664c97e1
-          git config --global url."https://github.com/LineageOS/android_system_libziparchive.git".insteadOf \
-            "https://android.googlesource.com/platform/system/libziparchive"
-          # 58dac317ea08b8f275ebd01ce864acab2de30b93
-          git config --global url."https://github.com/LineageOS/android_system_logging.git".insteadOf \
-            "https://android.googlesource.com/platform/system/logging.git"
-          # 954bc3ead5e679005fddf3484d247f2557b3c2c9
-          git config --global url."https://github.com/LineageOS/android_system_tools_mkbootimg.git".insteadOf \
-            "https://android.googlesource.com/platform/system/tools/mkbootimg"
-          # 40e035a9e5d721b3b7c15c46259d782ffe7d9e96
-          git config --global url."https://github.com/google/boringssl.git".insteadOf \
-            "https://boringssl.googlesource.com/boringssl.git"
-          git config --global http.version HTTP/1.1
-          git config --global http.lowSpeedLimit 1000
-          git config --global http.lowSpeedTime 180
-          for attempt in 1 2 3 4; do
-            if git -c submodule.fetchJobs=4 submodule update --init --recursive --jobs 4; then
-              break
-            fi
-            if (( attempt == 4 )); then
-              echo "Submodule checkout failed even with alternate ADB mirror" >&2
-              exit 1
-            fi
-            echo "Retrying submodule checkout, attempt $((attempt + 1))"
-            sleep $((attempt * 10))
-          done
-          test "$(git -C external/android-tools/vendor/adb rev-parse HEAD)" = \
-            "78f769e0904c21771cccf6e4e7b239b21800e189"
-          test "$(git -C external/android-tools/vendor/avb rev-parse HEAD)" = "c92ce4cb9a1b6d20a1bc11b7e5864af9f78615bb"
-          test "$(git -C external/android-tools/vendor/build rev-parse HEAD)" = "b815dded1eafbf06191a6ae306956bb6ed6fb415"
-          test "$(git -C external/android-tools/vendor/core rev-parse HEAD)" = "e9d1fa3705d7fbd0ac1c942bc4c276161bfbfed1"
-          test "$(git -C external/android-tools/vendor/extras rev-parse HEAD)" = "3f52a5ab49ba53bc463de658db1d112e001c0280"
-          test "$(git -C external/android-tools/vendor/libufdt rev-parse HEAD)" = "10c6b5f81069d6d78c7ef3833458f4d51d02e2a6"
-          test "$(git -C external/android-tools/vendor/libziparchive rev-parse HEAD)" = "94db64a81930e4cc8bacca4010bf935f664c97e1"
-          test "$(git -C external/android-tools/vendor/logging rev-parse HEAD)" = "58dac317ea08b8f275ebd01ce864acab2de30b93"
-          test "$(git -C external/android-tools/vendor/mkbootimg rev-parse HEAD)" = "954bc3ead5e679005fddf3484d247f2557b3c2c9"
-          test "$(git -C external/android-tools/vendor/boringssl rev-parse HEAD)" = "40e035a9e5d721b3b7c15c46259d782ffe7d9e96"
+        run: bash ./scripts/port_s10/checkout_alt_mirrors.sh
 
       - name: Reclaim runner disk
         run: |
@@ -165,13 +174,21 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Retrieve compiled tools from alternate runner
+        uses: actions/download-artifact@v4
+        with:
+          name: s10-build-tools-${{ github.sha }}
+          path: precompiled-tools
 
-      - name: Build tools
+      - name: Verify and restore tools with original executable permissions
         shell: bash
         run: |
+          set -euo pipefail
+          (cd precompiled-tools && sha256sum --check s10-tools.tar.gz.sha256)
+          mkdir -p out/tools
+          tar -C out/tools -xzf precompiled-tools/s10-tools.tar.gz
           source ./buildenv.sh "${{ matrix.target }}"
-          ./scripts/build_dependencies.sh
+          ./scripts/build_dependencies.sh --check-tools
 
       - name: Download target and donor firmware
         shell: bash
