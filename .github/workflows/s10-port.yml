@@ -58,11 +58,36 @@ jobs:
       matrix:
         target: ${{ fromJSON(github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.device) || '["beyond2lte"]') }}
     steps:
-      - name: Checkout NetherROM and submodules
+      - name: Checkout NetherROM without fetching Googlesource directly
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
           fetch-depth: 1
+
+      - name: Use alternate GitHub server for ADB submodule and retry transient fetch errors
+        shell: bash
+        run: |
+          set -euo pipefail
+          # This exact pinned git SHA is present at LineageOS' AOSP mirror.
+          # Use an insteadOf rewrite rather than altering the repo's pinned SHAs.
+          git config --global url."https://github.com/LineageOS/android_packages_modules_adb.git".insteadOf \
+            "https://android.googlesource.com/platform/packages/modules/adb.git"
+          git config --global http.version HTTP/1.1
+          git config --global http.lowSpeedLimit 1000
+          git config --global http.lowSpeedTime 180
+          for attempt in 1 2 3 4; do
+            if git -c submodule.fetchJobs=4 submodule update --init --recursive --jobs 4; then
+              break
+            fi
+            if (( attempt == 4 )); then
+              echo "Submodule checkout failed even with alternate ADB mirror" >&2
+              exit 1
+            fi
+            echo "Retrying submodule checkout, attempt $((attempt + 1))"
+            sleep $((attempt * 10))
+          done
+          test "$(git -C external/android-tools/vendor/adb rev-parse HEAD)" = \
+            "78f769e0904c21771cccf6e4e7b239b21800e189"
 
       - name: Reclaim runner disk
         run: |
