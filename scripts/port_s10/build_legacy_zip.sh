@@ -107,6 +107,11 @@ capacity=$(blockdev --getsize64 "$device") || exit 1
 }
 SH
 
+  # Verify byte-for-byte that camera updates reached the REAL ext4 image.
+  # Run before img2sdat; missing files abort the release.
+  if [[ "$partition" == system || "$partition" == vendor ]]; then
+    bash "$SRC_DIR/scripts/port_s10/verify_camera_partition.sh" "$partition" "$tmp/$partition.img"
+  fi
   # The original non-dynamic update format: ext4 -> transfer.list/new.dat.br.
   img2sdat -o "$tmp" "$tmp/$partition.img"
   [[ -s "$tmp/$partition.transfer.list" && -s "$tmp/$partition.new.dat" ]] || exit 1

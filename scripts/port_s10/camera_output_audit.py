@@ -63,6 +63,21 @@ def check(root: Path) -> None:
         if not p.is_dir() or not any(f.is_file() and f.stat().st_size for f in p.rglob("*")):
             raise ValueError(f"Missing/empty camera model directory: {p}")
         print(f"Camera model directory: {path}")
+    # Verify actual changed camera bytes, not just names or ELF signatures.
+    import hashlib
+    for donor, name in (
+        ("p3sxxx", "libeden_wrapper_system.so"),
+        ("p3sxxx", "libSwIsp_core.camera.samsung.so"),
+        ("p3sxxx", "libmidas_core.camera.samsung.so"),
+        ("a73xqxx", "libBestComposition.polarr.so"),
+    ):
+        source = Path(__file__).resolve().parents[2] / "prebuilts/samsung" / donor / "system/lib64" / name
+        assembled = root / "system/system/lib64" / name
+        if not source.is_file() or not assembled.is_file():
+            raise ValueError(f"Missing original or assembled S10 camera file: {name}")
+        if hashlib.sha256(source.read_bytes()).digest() != hashlib.sha256(assembled.read_bytes()).digest():
+            raise ValueError(f"Camera donor blob NOT present in assembled ROM: {name}")
+        print(f"Verified modified ROM uses {donor} camera blob: {name}")
     libs = root / "system/system/etc/public.libraries-polarr.txt"
     if not libs.is_file():
         raise ValueError("Camera Polarr allowlist missing")

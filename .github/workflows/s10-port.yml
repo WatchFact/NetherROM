@@ -162,7 +162,7 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y             attr bc bison build-essential ccache clang curl flex git git-lfs ffmpeg webp             libbrotli-dev libbz2-dev libgtest-dev libprotobuf-dev libunwind-dev             libpcre2-dev libzstd-dev lld protobuf-compiler python-is-python3             python3 rsync unzip wget zip p7zip-full             g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y             e2fsprogs attr bc bison build-essential ccache clang curl flex git git-lfs ffmpeg webp             libbrotli-dev libbz2-dev libgtest-dev libprotobuf-dev libunwind-dev             libpcre2-dev libzstd-dev lld protobuf-compiler python-is-python3             python3 rsync unzip wget zip p7zip-full             g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
           sudo modprobe erofs || true
           sudo modprobe f2fs || true
           wget -q https://raw.githubusercontent.com/kdrag0n/kramflash/refs/heads/master/mkbootimg.py

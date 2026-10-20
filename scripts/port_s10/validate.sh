@@ -97,4 +97,14 @@ with tempfile.TemporaryDirectory() as d:
         raise AssertionError("Ambiguous binary rewrite not rejected")
 print("Camera photo editor binary path tests passed")
 PY
+# Assert that the tracked camera code, not a temporary CI-generated rewrite,
+# is installed and called during ROM construction.
+bash -n scripts/port_s10/camera_customize.sh
+bash -n scripts/port_s10/midas_customize.sh
+bash -n scripts/port_s10/verify_camera_partition.sh
+grep -Fq 'install -m 644 "$base/scripts/port_s10/camera_customize.sh" "$camera"' scripts/port_s10/compat.sh
+grep -Fq 'install -m 644 "$base/scripts/port_s10/midas_customize.sh" "$midas"' scripts/port_s10/compat.sh
+grep -Fq '"$SRC_DIR/scripts/internal/apply_modules.sh" "$SRC_DIR/platform/$TARGET_PLATFORM/patches"' scripts/make_rom.sh
+grep -Fq 'verify_camera_partition.sh' scripts/port_s10/build_legacy_zip.sh
+echo "Tracked camera patch -> ROM work tree -> final ext4 image linked"
 echo "S10 static-partition safety checks passed"
