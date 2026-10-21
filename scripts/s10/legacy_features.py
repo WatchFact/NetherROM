@@ -6,7 +6,11 @@ import re
 import sys
 import zipfile
 from pathlib import Path
-from installer import DEVICES
+from installer import DEVICES as BUILD_DEVICES
+
+# Validation-only reference for legacy S10e fingerprint migration fixtures.
+# This does not enable S10e as a build or install target.
+DEVICES = {**BUILD_DEVICES, 'beyond0lte': ('SM-G970F', 'SM-G970N')}
 
 
 def digest(data):

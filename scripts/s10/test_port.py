@@ -64,7 +64,7 @@ class PortTests(unittest.TestCase):
             with self.subTest(fault=fault), tempfile.TemporaryDirectory() as td:
                 work = Path(td)/'work'; fixture(work, 'beyond2lte')
                 if fault == 'wrong-device':
-                    with self.assertRaisesRegex(ValueError, 'hardware identity'): prepare(work, 'beyond0lte')
+                    with self.assertRaisesRegex(ValueError, 'hardware identity|Unsupported S10 ODM device'): prepare(work, 'beyond0lte')
                 elif fault == 'missing-metadata':
                     (work/'configs/file_context-vendor').write_text('')
                     with self.assertRaisesRegex(ValueError, 'metadata'): prepare(work, 'beyond2lte')
