@@ -62,6 +62,17 @@ jobs:
           apktool d --no-res --no-debug-info -o framework-review/decoded framework-review/services.jar
           test -s framework-review/decoded/smali/com/android/server/biometrics/sensors/face/hidl/TestHal.smali
           test -s framework-review/decoded/smali/com/android/server/biometrics/sensors/face/hidl/HidlToAidlCallbackConverter.smali
+          # Review the settings and framework migrations together against the
+          # same pristine firmware. These inputs never replace clean ROM builds.
+          for relative in framework/framework.jar framework/framework-res.apk \
+            priv-app/SecSettings/SecSettings.apk priv-app/SettingsProvider/SettingsProvider.apk; do
+            name="$(basename "$relative")"
+            cp "$source_dir/system/system/$relative" "framework-review/$name"
+            sha256sum "framework-review/$name" >> framework-review/SHA256.txt
+            if [ "$name" != framework-res.apk ]; then
+              apktool d --no-res --no-debug-info -o "framework-review/decoded-$name" "framework-review/$name"
+            fi
+          done
       - name: Publish exact framework review inputs
         env:
           GH_TOKEN: ${{ github.token }}
@@ -73,7 +84,7 @@ jobs:
           tag="s10-framework-review-${GITHUB_SHA:0:12}"
           gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
             --title 'S10 framework port review inputs - not installable' \
-            --notes 'Read-only framework inputs from pinned S926BXXSHDZI1/S926BOXMHDZI1/S926BXXSHDZI1 source firmware, decoded with the verified S10 build toolchain. These diagnostics are for correcting the HIDL 2.0 backport. This is not a flashable ROM or a successful ROM build.' \
+            --notes 'Read-only framework and Settings inputs from pinned S926BXXSHDZI1/S926BOXMHDZI1/S926BXXSHDZI1 source firmware, decoded with the verified S10 build toolchain. These diagnostics support reviewing the legacy framework migrations together. This is not a flashable ROM or a successful ROM build.' \
             s10-framework-review.tar.gz s10-framework-review.tar.gz.sha256
       - name: Preserve review diagnostics
         if: always()
