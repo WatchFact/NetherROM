@@ -60,6 +60,8 @@ def audit(work, device, apktool):
     policy_output(Path(__file__).resolve().parents[2], work, device)
     from camera_output_audit import check
     check(work)
+    from camera_portrait import verify as portrait_output
+    portrait_output(work, device)
     for part in ('system', 'vendor', 'product', 'odm'):
         if not (work / part).is_dir():
             raise ValueError('Missing partition: ' + part)

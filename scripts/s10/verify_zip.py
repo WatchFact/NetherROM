@@ -43,6 +43,8 @@ def verify(path, device):
             if hashlib.sha256(z.read(name)).hexdigest() != info['sha256'][name]:
                 raise ValueError('Kernel image changed during packaging: '+name)
         from legacy_features import manifest as legacy_manifest
+        from camera_portrait import RECORD, validate_record
+        validate_record(json.loads(z.read(RECORD)), device)
         legacy = legacy_manifest(Path(__file__).resolve().parents[2])
         for mode in ('wifi', 'fingerprint') if device == 'beyond0lte' else ('wifi',):
             expected = dict(legacy['migrations'][mode], device=device,

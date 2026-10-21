@@ -94,6 +94,8 @@ sed -i "s/MODEL_TYPE_INSTANCE_CAPTURE/MODEL_TYPE_OBJ_INSTANCE_CAPTURE/g" \
     "$WORK_DIR/system/system/cameradata/portrait_data/single_bokeh_feature.json"
 python3 "$SRC_DIR/scripts/s10/camera_path_patch.py" \
     "$WORK_DIR/system/system/lib64/libPortraitSolution.camera.samsung.so"
+python3 "$SRC_DIR/scripts/s10/camera_portrait.py" record "$WORK_DIR" "$TARGET_CODENAME" \
+    "$FW_DIR/$(cut -d / -f 1 <<< "$SOURCE_FIRMWARE")_$(cut -d / -f 2 <<< "$SOURCE_FIRMWARE")"
 LOG_STEP_OUT
 
 LOG_STEP_IN "- Adding S21 FE (r9sxxx) SingleTake models"

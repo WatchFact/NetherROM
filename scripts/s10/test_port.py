@@ -21,6 +21,73 @@ from virtual_vibration import check_backend, digest, FIELD, HELPER, MANAGER, BOO
 
 
 class PortTests(unittest.TestCase):
+    def test_portrait_models_survive_actual_platform_and_generic_camera_stages(self):
+        import shutil
+        from camera_portrait import PORTRAIT, LIBRARY, NEXUS, SINGLE, RECORD, SOURCE, verify as portrait_verify
+        from camera_path_patch import OLD, NEW
+        repo = Path(__file__).resolve().parents[2]
+        platform = (repo/'platform/exynos9820/patches/camera/customize.sh').read_text()
+        platform = platform[platform.index('LOG_STEP_IN "- Fixing AI Photo Editor"'):
+                            platform.index('LOG_STEP_IN "- Adding S21 FE', platform.index('LOG_STEP_IN "- Fixing AI Photo Editor"'))]
+        generic = (repo/'unica/patches/camera/customize.sh').read_text()
+        generic = generic[generic.index('if [[ "$TARGET_PLATFORM" == exynos9820 ]]; then'):
+                          generic.index('if [ -f "$SRC_DIR/target/$TARGET_CODENAME/camera/singletake/')]
+        for device in DEVICES:
+            with self.subTest(device=device), tempfile.TemporaryDirectory() as td:
+                root = Path(td); work = root/'work'; fw = root/'fw'
+                source = fw/'SM-S926B_EUX'
+                (source/PORTRAIT).mkdir(parents=True)
+                (source/'.extracted').write_text(SOURCE)
+                model = {'capture_segmentation': {
+                    'Weightfile': '/system/cameradata/portrait_data/donor.snf',
+                    'ModelType': 'MODEL_TYPE_INSTANCE_CAPTURE'}}
+                (source/SINGLE).write_text(json.dumps(model))
+                (source/PORTRAIT/'donor.snf').write_bytes(b'original donor model weights')
+                (source/LIBRARY).parent.mkdir(parents=True)
+                (source/LIBRARY).write_bytes(b'\x7fELF'+b'\0'*64+OLD+b'\0unrelated native code')
+                shutil.copytree(source, work)
+                script = '''set -eo pipefail
+SRC_DIR="$1"; WORK_DIR="$2"; FW_DIR="$3"; TARGET_CODENAME="$4"
+SOURCE_FIRMWARE=SM-S926B/EUX/350330051234562; TARGET_PLATFORM=exynos9820
+LOG_STEP_IN(){ :; }; LOG_STEP_OUT(){ :; }
+SET_METADATA(){ printf '%s\\n' "$*" > "$WORK_DIR/metadata"; }
+DELETE_FROM_WORK_DIR(){ echo 'generic camera deleted S10 models' >&2; exit 90; }
+ADD_TO_WORK_DIR(){ echo 'generic camera replaced S10 models' >&2; exit 91; }
+'''+platform+generic
+                subprocess.run(['bash', '-c', script, '--', str(repo), str(work), str(fw), device],
+                               check=True, capture_output=True, text=True)
+                portrait_verify(work, device)
+                self.assertEqual((work/NEXUS).read_bytes(), (source/SINGLE).read_bytes())
+                self.assertIn('system/cameradata/portrait_data/nexus_bokeh_feature.json 0 0 644',
+                              (work/'metadata').read_text())
+                self.assertEqual((work/LIBRARY).read_bytes(), (source/LIBRARY).read_bytes().replace(OLD, NEW, 1))
+                for path in (NEXUS, PORTRAIT+'/donor.snf', LIBRARY, SINGLE):
+                    saved = (work/path).read_bytes()
+                    (work/path).unlink()
+                    with self.assertRaises((ValueError, FileNotFoundError)):
+                        portrait_verify(work, device)
+                    (work/path).write_bytes(saved+b'changed')
+                    with self.assertRaises((ValueError, json.JSONDecodeError)):
+                        portrait_verify(work, device)
+                    (work/path).write_bytes(saved)
+                info = json.loads((work/RECORD).read_text())
+                info['device'] = 'wrong-device'
+                (work/RECORD).write_text(json.dumps(info))
+                with self.assertRaisesRegex(ValueError, 'identity'):
+                    portrait_verify(work, device)
+                # Other platforms still execute the original stock import.
+                stock = root/'stock'; stock.mkdir()
+                (stock/'single_bokeh_feature.json').write_bytes(b'stock target camera data')
+                other = '''set -e
+SRC_DIR="$1"; WORK_DIR="$2"; TARGET_PLATFORM=exynos990; STOCK="$3"
+DELETE_FROM_WORK_DIR(){ rm -rf "$WORK_DIR/$1/$2"; }
+ADD_TO_WORK_DIR(){ cp -a "$STOCK" "$WORK_DIR/$2/$3"; }
+'''+generic
+                subprocess.run(['bash', '-c', other, '--', str(repo), str(work), str(stock)],
+                               check=True, capture_output=True, text=True)
+                self.assertFalse((work/NEXUS).exists())
+                self.assertEqual((work/SINGLE).read_bytes(), b'stock target camera data')
+
     def test_smali_method_selection_handles_large_classes_and_array_signatures(self):
         repo = Path(__file__).resolve().parents[2]
         with tempfile.TemporaryDirectory() as td:
@@ -347,6 +414,9 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
             info={'device':device,'revision':KERNEL_REV,'ext4':True,'kernelsu':False,
                   'sha256':{n:hashlib.sha256(b).hexdigest() for n,b in images.items()}}
             members['kernel.json']=json.dumps(info)
+            from camera_portrait import SOURCE, SINGLE, NEXUS, LIBRARY, RECORD
+            members[RECORD] = json.dumps(dict(schema=1, device=device, source_firmware=SOURCE,
+                files={name: '0'*64 for name in (SINGLE, NEXUS, LIBRARY)}))
             from legacy_features import manifest as legacy_manifest
             legacy = legacy_manifest(Path(__file__).resolve().parents[2])
             members['wifi-provenance.json'] = json.dumps(dict(legacy['migrations']['wifi'],
@@ -365,6 +435,12 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
             members['wifi-provenance.json'] = json.dumps(wrong)
             write()
             with self.assertRaisesRegex(ValueError, 'packaged S10 wifi'):
+                verify_zip(target, device)
+            members['wifi-provenance.json'] = json.dumps(dict(legacy['migrations']['wifi'],
+                device=device, source_firmware=legacy['source_firmware'], mode='wifi'))
+            portrait = json.loads(members[RECORD]); portrait['files'].pop(NEXUS)
+            members[RECORD] = json.dumps(portrait); write()
+            with self.assertRaisesRegex(ValueError, 'Incomplete S10 portrait'):
                 verify_zip(target, device)
 
     def test_stock_policies_reach_all_four_sdhms_outputs(self):

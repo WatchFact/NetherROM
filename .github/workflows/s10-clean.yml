@@ -18,6 +18,7 @@ on:
       - 'unica/patches/dvfs/**'
       - 'unica/patches/vintf/**'
       - 'unica/patches/legacy/**'
+      - 'unica/patches/camera/**'
       - 'unica/patches/product_feature/**'
       - 'unica/patches/fs/**'
       - '.github/workflows/s10-clean.yml'
@@ -197,6 +198,7 @@ jobs:
             out/target/${{ matrix.target }}/firmware-inputs.json
             out/target/${{ matrix.target }}/work_dir/vintf-provenance.json
             out/target/${{ matrix.target }}/work_dir/camera-compatibility.json
+            out/target/${{ matrix.target }}/work_dir/camera-portrait-provenance.json
             out/target/${{ matrix.target }}/work_dir/face-hidl-provenance.json
             out/target/${{ matrix.target }}/work_dir/virtual-vibration-provenance.json
             out/target/${{ matrix.target }}/work_dir/fingerprint-provenance.json

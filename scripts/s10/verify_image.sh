@@ -11,8 +11,13 @@ import hashlib,subprocess,sys
 from pathlib import Path
 sys.path.insert(0,str(Path(sys.argv[1])/'scripts/s10'))
 from audit_output import SYSTEM_FILES,VENDOR_FILES
+from camera_portrait import RECORD,validate_record
+import json,os
 work,tmp,part=Path(sys.argv[2]),Path(sys.argv[3]),sys.argv[4]
-paths=SYSTEM_FILES if part=='system' else VENDOR_FILES
+portrait=validate_record(json.loads((work/RECORD).read_text()),os.environ['TARGET_CODENAME'])
+paths=list(SYSTEM_FILES if part=='system' else VENDOR_FILES)
+paths+=sorted(n.removeprefix(part+'/') for n in portrait if n.startswith(part+'/'))
+paths=list(dict.fromkeys(paths))
 for i,relative in enumerate(paths):
     dest=tmp/f'dump-{i}'
     subprocess.run(['debugfs','-R',f'dump /{relative} {dest}',str(tmp/'raw.img')],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
