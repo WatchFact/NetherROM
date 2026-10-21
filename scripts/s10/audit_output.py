@@ -8,6 +8,9 @@ from pathlib import Path
 
 SYSTEM_FILES = (
     'system/framework/services.jar',
+    'system/framework/framework.jar',
+    'system/priv-app/SecSettings/SecSettings.apk',
+    'system/priv-app/SettingsProvider/SettingsProvider.apk',
     'system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk',
     'system/etc/vintf/compatibility_matrix.device.xml',
     'system/priv-app/SamsungCamera/SamsungCamera.apk',
@@ -47,6 +50,8 @@ def audit(work, device):
     native_camera_output(Path(__file__).resolve().parents[2], work, device)
     from face_hidl import output as face_hidl_output
     face_hidl_output(Path(__file__).resolve().parents[2], work, device)
+    from virtual_vibration import output as virtual_vibration_output
+    virtual_vibration_output(Path(__file__).resolve().parents[2], work, device)
     from policies import output as policy_output
     policy_output(Path(__file__).resolve().parents[2], work, device)
     from camera_output_audit import check

@@ -17,9 +17,47 @@ from policies import inputs as policy_inputs, output as policy_output, record_ma
 from camera_native import check_classes, check_encoders
 from storage_audit import boot_fstab, check_fstab
 from verify_zip import verify as verify_zip
+from virtual_vibration import check_backend, digest, FIELD, HELPER, MANAGER, BOOT
 
 
 class PortTests(unittest.TestCase):
+    def test_virtual_sound_gate_preserves_motor_code_and_rejects_reactivation(self):
+        import re
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); path=root/'smali_classes2'/MANAGER
+            path.parent.mkdir(parents=True)
+            original='''.class public Lcom/android/server/vibrator/VibratorManagerService;
+.super Ljava/lang/Object;
+.method public final bootCompleteReady()V
+    .locals 0
+    return-void
+.end method
+.method public vibrate()V
+    .locals 0
+    return-void
+.end method
+.method public cancel()V
+    .locals 1
+    iget-object v0, p0, '''+FIELD+'''
+    if-eqz v0, :done
+    :done
+    return-void
+.end method
+'''
+            path.write_text(original)
+            info={'boot_method_sha256':digest(re.findall(BOOT,original,re.M|re.S)[0].encode()),
+                  'physical_vibration_code_sha256':digest(re.sub(BOOT,'',original,flags=re.M|re.S).encode()),
+                  'guarded_helper_reads':1}
+            check_backend(root,info)
+            path.write_text(original.replace('vibrate()V','brokenMotor()V'))
+            with self.assertRaises(ValueError): check_backend(root,info)
+            path.write_text(original)
+            extra=root/'smali_classes2/Unexpected.smali'
+            for line in ('new-instance v0, '+HELPER, 'iput-object v0, p0, '+FIELD,
+                         'iget-object v0, p0, '+FIELD+'\n    return-void'):
+                extra.write_text(line+'\n')
+                with self.assertRaises(ValueError): check_backend(root,info)
+
     def test_native_encoder_rejects_modern_format_and_wrong_method(self):
         with tempfile.TemporaryDirectory() as td:
             decoded=Path(td); relative='example/Encoder.smali'

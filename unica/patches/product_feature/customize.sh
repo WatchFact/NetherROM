@@ -142,21 +142,41 @@ fi
 # SEC_PRODUCT_FEATURE_AUDIO_SUPPORT_VIRTUAL_VIBRATION_SOUND
 if $SOURCE_AUDIO_SUPPORT_VIRTUAL_VIBRATION_SOUND; then
     if ! $TARGET_AUDIO_SUPPORT_VIRTUAL_VIBRATION_SOUND; then
-        APPLY_PATCH "system" "system/framework/framework.jar" \
-            "$MODPATH/audio/virtual_vib/framework.jar/0001-Disable-virtual-vibration-support.patch"
-        APPLY_PATCH "system" "system/framework/services.jar" \
-            "$MODPATH/audio/virtual_vib/services.jar/0001-Disable-virtual-vibration-support.patch"
-        SMALI_PATCH "system" "system/framework/services.jar" \
-            "smali/com/android/server/audio/BtHelper\$\$ExternalSyntheticLambda0.smali" "remove"
-        EVAL "sed -i \"/.source/q\" \"$APKTOOL_DIR/system/framework/services.jar/smali_classes2/com/android/server/vibrator/VibratorManagerInternal.smali\""
-        SMALI_PATCH "system" "system/framework/services.jar" \
-            "smali_classes2/com/android/server/vibrator/VibratorManagerService\$SamsungBroadcastReceiver\$\$ExternalSyntheticLambda1.smali" "remove"
-        SMALI_PATCH "system" "system/framework/services.jar" \
-            "smali_classes2/com/android/server/vibrator/VirtualVibSoundHelper.smali" "remove"
-        APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
-            "$MODPATH/audio/virtual_vib/SecSettings.apk/0001-Disable-virtual-vibration-support.patch"
-        APPLY_PATCH "system" "system/priv-app/SettingsProvider/SettingsProvider.apk" \
-            "$MODPATH/audio/virtual_vib/SettingsProvider.apk/0001-Disable-virtual-vibration-support.patch"
+        if [[ "$TARGET_PLATFORM" == "exynos9820" ]]; then
+            # Gate the pinned Android 16 virtual-sound backend without removing
+            # the S10 motor path or source callbacks that still reference it.
+            for VIRTUAL_VIB_APK in system/framework/framework.jar system/framework/services.jar \
+                system/priv-app/SecSettings/SecSettings.apk system/priv-app/SettingsProvider/SettingsProvider.apk; do
+                DECODE_APK "system" "$VIRTUAL_VIB_APK" || return 1
+            done
+            EVAL "python3 \"$SRC_DIR/scripts/s10/virtual_vibration.py\" \"$SRC_DIR\" \"$WORK_DIR\" \"$TARGET_CODENAME\" before" || return 1
+            APPLY_PATCH "system" "system/framework/framework.jar" \
+                "$MODPATH/audio/virtual_vib/framework.jar/0001-Disable-virtual-vibration-support.patch"
+            APPLY_PATCH "system" "system/framework/services.jar" \
+                "$MODPATH/audio/virtual_vib/s10/services.jar/0001-Disable-virtual-sound-startup.patch"
+            APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
+                "$MODPATH/audio/virtual_vib/s10/SecSettings.apk/0001-Hide-unsupported-virtual-vibration.patch"
+            # The pinned provider already initializes vibration_sound_enabled
+            # to zero. Keep its reviewed defaults and normal haptic settings.
+            LOG "Keeping the verified disabled virtual-sound provider default"
+            EVAL "python3 \"$SRC_DIR/scripts/s10/virtual_vibration.py\" \"$SRC_DIR\" \"$WORK_DIR\" \"$TARGET_CODENAME\" after" || return 1
+        else
+            APPLY_PATCH "system" "system/framework/framework.jar" \
+                "$MODPATH/audio/virtual_vib/framework.jar/0001-Disable-virtual-vibration-support.patch"
+            APPLY_PATCH "system" "system/framework/services.jar" \
+                "$MODPATH/audio/virtual_vib/services.jar/0001-Disable-virtual-vibration-support.patch"
+            SMALI_PATCH "system" "system/framework/services.jar" \
+                "smali/com/android/server/audio/BtHelper\$\$ExternalSyntheticLambda0.smali" "remove"
+            EVAL "sed -i \"/.source/q\" \"$APKTOOL_DIR/system/framework/services.jar/smali_classes2/com/android/server/vibrator/VibratorManagerInternal.smali\""
+            SMALI_PATCH "system" "system/framework/services.jar" \
+                "smali_classes2/com/android/server/vibrator/VibratorManagerService\$SamsungBroadcastReceiver\$\$ExternalSyntheticLambda1.smali" "remove"
+            SMALI_PATCH "system" "system/framework/services.jar" \
+                "smali_classes2/com/android/server/vibrator/VirtualVibSoundHelper.smali" "remove"
+            APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
+                "$MODPATH/audio/virtual_vib/SecSettings.apk/0001-Disable-virtual-vibration-support.patch"
+            APPLY_PATCH "system" "system/priv-app/SettingsProvider/SettingsProvider.apk" \
+                "$MODPATH/audio/virtual_vib/SettingsProvider.apk/0001-Disable-virtual-vibration-support.patch"
+        fi
     fi
 else
     if $TARGET_AUDIO_SUPPORT_VIRTUAL_VIBRATION_SOUND; then
@@ -696,12 +716,12 @@ if ! $PRESERVE_NATIVE_DISPLAY_STACK && [[ "$SOURCE_LCD_CONFIG_HFR_MODE" != "$TAR
         "$TARGET_LCD_CONFIG_HFR_MODE"
     SMALI_PATCH "system" "system/framework/secinputdev-service.jar" \
         "smali/com/samsung/android/hardware/secinputdev/utils/SemInputFeatures.smali" "replaceall" \
-        "\\\"$SOURCE_LCD_CONFIG_HFR_MODE\\\"" \
-        "\\\"$TARGET_LCD_CONFIG_HFR_MODE\\\""
+        "\"$SOURCE_LCD_CONFIG_HFR_MODE\"" \
+        "\"$TARGET_LCD_CONFIG_HFR_MODE\""
     SMALI_PATCH "system" "system/framework/secinputdev-service.jar" \
         "smali/com/samsung/android/hardware/secinputdev/utils/SemInputFeaturesExtra.smali" "replaceall" \
-        "\\\"$SOURCE_LCD_CONFIG_HFR_MODE\\\"" \
-        "\\\"$TARGET_LCD_CONFIG_HFR_MODE\\\""
+        "\"$SOURCE_LCD_CONFIG_HFR_MODE\"" \
+        "\"$TARGET_LCD_CONFIG_HFR_MODE\""
     SMALI_PATCH "system" "system/framework/services.jar" \
         "smali_classes2/com/android/server/power/PowerManagerUtil.smali" "replace" \
         "<clinit>()V" \

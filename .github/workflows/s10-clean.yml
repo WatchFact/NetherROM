@@ -16,6 +16,7 @@ on:
       - 'unica/patches/dvfs/**'
       - 'unica/patches/vintf/**'
       - 'unica/patches/legacy/**'
+      - 'unica/patches/product_feature/**'
       - 'unica/patches/fs/**'
       - '.github/workflows/s10-clean.yml'
   workflow_dispatch:
@@ -54,6 +55,7 @@ jobs:
             /unica/patches/vintf/
             /unica/patches/fs/
             /unica/patches/legacy/customize.sh
+            /unica/patches/product_feature/customize.sh
             /security/
       - name: Test physical installer, kernel guards and firmware patch boundaries
         run: python3 scripts/s10/test_port.py
@@ -61,7 +63,7 @@ jobs:
         shell: bash
         run: |
           set -eo pipefail
-          find scripts/s10 platform/exynos9820 target/beyond* unica/patches/{dvfs,vintf,fs,legacy} -name '*.sh' -print0 | xargs -0 -n 1 bash -n
+          find scripts/s10 platform/exynos9820 target/beyond* unica/patches/{dvfs,vintf,fs,legacy,product_feature} -name '*.sh' -print0 | xargs -0 -n 1 bash -n
           for target in beyond0lte beyond1lte beyond2lte beyondx; do
             python3 scripts/s10/preflight.py --device "$target"
             bash -c 'set -e; source ./buildenv.sh "$1"; test "$ROM_VERSION" = 4.0.1; test "$TARGET_CODENAME" = "$1"; test "$TARGET_PLATFORM" = exynos9820; test "$TARGET_USE_DYNAMIC_PARTITIONS" = false; test "$TARGET_OS_FILE_SYSTEM_TYPE" = ext4; test "$TARGET_LCD_CONFIG_HFR_DEFAULT_REFRESH_RATE" = 60' -- "$target"
@@ -192,6 +194,7 @@ jobs:
             out/target/${{ matrix.target }}/vintf-provenance.json
             out/target/${{ matrix.target }}/camera-compatibility.json
             out/target/${{ matrix.target }}/face-hidl-provenance.json
+            out/target/${{ matrix.target }}/virtual-vibration-provenance.json
             out/target/${{ matrix.target }}/apktool/system/framework/services.jar/smali/com/android/server/biometrics/sensors/face/
             out/target/${{ matrix.target }}/apktool/system/framework/services.jar/smali_classes2/vendor/samsung/hardware/biometrics/face/
             kernel-artifacts/${{ matrix.target }}/kernel.json
@@ -201,3 +204,4 @@ jobs:
             scripts/s10/dvfs-stock.json
             scripts/s10/camera-native-v3.1.0.json
             scripts/s10/face-hidl-v4.0.1.json
+            scripts/s10/virtual-vibration-v4.0.1.json
