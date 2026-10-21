@@ -1,0 +1,1323 @@
+From: WatchFact <thedataguyshere@gmail.com>
+Subject: [PATCH] Port S10e power-button fingerprint and gestures
+
+Preserve current boot processing and provider lifecycle ABI.
+---
+--- a/smali/com/android/server/biometrics/SemBiometricFeature.smali
++++ b/smali/com/android/server/biometrics/SemBiometricFeature.smali
+@@ -47,7 +47,11 @@
+ 
+ # direct methods
+ .method static constructor <clinit>()V
+-    .locals 6
++    .locals 8
++
++    const/4 v6, 0x0
++
++    const/4 v7, 0x1
+ 
+     invoke-static {}, Lcom/samsung/android/feature/SemFloatingFeature;->getInstance()Lcom/samsung/android/feature/SemFloatingFeature;
+ 
+@@ -183,7 +187,7 @@
+ 
+     sput-boolean v0, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_USE_AOSP_HAL:Z
+ 
+-    sput-boolean v2, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SENSOR_IS_IN_DISPLAY_TYPE:Z
++    sput-boolean v6, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SENSOR_IS_IN_DISPLAY_TYPE:Z
+ 
+     invoke-static {}, Lcom/samsung/android/feature/SemFloatingFeature;->getInstance()Lcom/samsung/android/feature/SemFloatingFeature;
+ 
+@@ -201,9 +205,9 @@
+ 
+     move-result v0
+ 
+-    sput-boolean v0, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SENSOR_IS_OPTICAL:Z
+-
+-    sput-boolean v2, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SENSOR_IS_ULTRASONIC:Z
++    sput-boolean v6, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SENSOR_IS_OPTICAL:Z
++
++    sput-boolean v6, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SENSOR_IS_ULTRASONIC:Z
+ 
+     invoke-static {}, Lcom/samsung/android/feature/SemFloatingFeature;->getInstance()Lcom/samsung/android/feature/SemFloatingFeature;
+ 
+@@ -219,7 +223,7 @@
+ 
+     move-result v0
+ 
+-    sput-boolean v0, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SENSOR_IS_SIDE:Z
++    sput-boolean v7, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SENSOR_IS_SIDE:Z
+ 
+     invoke-static {}, Lcom/samsung/android/feature/SemFloatingFeature;->getInstance()Lcom/samsung/android/feature/SemFloatingFeature;
+ 
+@@ -231,7 +235,7 @@
+ 
+     move-result v0
+ 
+-    sput-boolean v0, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_EARLY_WAKE_UP:Z
++    sput-boolean v6, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_EARLY_WAKE_UP:Z
+ 
+     invoke-static {}, Lcom/samsung/android/feature/SemFloatingFeature;->getInstance()Lcom/samsung/android/feature/SemFloatingFeature;
+ 
+@@ -253,9 +257,9 @@
+     move v0, v3
+ 
+     :goto_2
+-    sput-boolean v0, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_HW_LIGHT_SOURCE:Z
+-
+-    sput-boolean v1, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_TSP_BLOCK:Z
++    sput-boolean v6, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_HW_LIGHT_SOURCE:Z
++
++    sput-boolean v6, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_TSP_BLOCK:Z
+ 
+     const-string/jumbo v0, "vendor.display.enable_brightness_drm_prop"
+ 
+@@ -290,9 +294,9 @@
+     move v3, v2
+ 
+     :cond_4
+-    sput-boolean v3, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SUPPORT_LOCAL_HBM_IN_HOUSE:Z
+-
+-    sput-boolean v3, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_LOCAL_HBM:Z
++    sput-boolean v6, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SUPPORT_LOCAL_HBM_IN_HOUSE:Z
++
++    sput-boolean v6, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_LOCAL_HBM:Z
+ 
+     sput-boolean v2, Lcom/android/server/biometrics/SemBiometricFeature;->FEATURE_INTEGRATED_LOCKOUT:Z
+ 
+--- a/smali/com/android/server/biometrics/sensors/fingerprint/FingerprintService$1.smali
++++ b/smali/com/android/server/biometrics/sensors/fingerprint/FingerprintService$1.smali
+@@ -4772,42 +4772,11 @@
+ .method public final semHasFeature(I)Z
+     .locals 0
+ 
+-    iget-object p0, p0, Lcom/android/server/biometrics/sensors/fingerprint/FingerprintService$1;->this$0:Lcom/android/server/biometrics/sensors/fingerprint/FingerprintService;
+-
+-    iget-object p0, p0, Lcom/android/server/biometrics/sensors/fingerprint/FingerprintService;->mServiceExtImpl:Lcom/android/server/biometrics/sensors/fingerprint/SemFingerprintServiceExtImpl;
+-
+-    invoke-virtual {p0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+-
+     const/4 p0, 0x1
+-
+-    if-eq p1, p0, :cond_2
+-
+-    const/4 p0, 0x2
+-
+-    if-eq p1, p0, :cond_1
+-
+-    const/4 p0, 0x3
+-
+-    if-eq p1, p0, :cond_0
+-
+-    goto :goto_0
+-
+-    :cond_0
+-    sget-boolean p0, Lcom/android/server/biometrics/SemBiometricFeature;->FEATURE_LOGGING_MODE:Z
+-
+-    goto :goto_0
+-
+-    :cond_1
+-    sget-boolean p0, Lcom/android/server/biometrics/SemBiometricFeature;->FEATURE_LOGGING_MODE:Z
+-
+-    goto :goto_0
+-
+-    :cond_2
+-    sget-boolean p0, Lcom/android/server/biometrics/SemBiometricFeature;->FEATURE_LOGGING_MODE:Z
+-
+-    :goto_0
++    if-ne p1, p0, :unsupported
++    return p0
++    :unsupported
+     const/4 p0, 0x0
+-
+     return p0
+ .end method
+ 
+--- a/smali/com/android/server/biometrics/sensors/fingerprint/SemFingerprintServiceExtImpl.smali
++++ b/smali/com/android/server/biometrics/sensors/fingerprint/SemFingerprintServiceExtImpl.smali
+@@ -7,6 +7,7 @@
+ 
+ 
+ # instance fields
++.field public mGestureManager:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
+ .field mAodController:Lcom/android/server/biometrics/sensors/fingerprint/SemFpAodController;
+ 
+ .field public mBootPhase:I
+@@ -890,8 +891,19 @@
+ .end method
+ 
+ .method public onHalStarted(Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;)V
+-    .locals 0
+-
++    .locals 3
++
++    iget-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFingerprintServiceExtImpl;->mGestureManager:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++    if-nez v0, :ready
++    new-instance v0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++    iget-object v1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFingerprintServiceExtImpl;->mContext:Landroid/content/Context;
++    new-instance v2, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$Injector;
++    invoke-direct {v2}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$Injector;-><init>()V
++    invoke-direct {v0, v1, p1, v2}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;-><init>(Landroid/content/Context;Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$Injector;)V
++    iput-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFingerprintServiceExtImpl;->mGestureManager:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++    invoke-virtual {v0}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->start()V
++    :ready
++    invoke-virtual {v0, p1}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->onHalStarted(Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;)V
+     return-void
+ .end method
+ 
+--- /dev/null
++++ b/smali/com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda0.smali
+@@ -0,0 +1,36 @@
++.class public final synthetic Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda0;
++.super Ljava/lang/Object;
++.source "qb/101886872 4ec8f6d2813f753a220c00d05e2aa013ded863b1967e4bb65f3969ed08f5cc72"
++
++# interfaces
++.implements Ljava/lang/Runnable;
++
++
++# instance fields
++.field public final synthetic f$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;
++
++
++# direct methods
++.method public synthetic constructor <init>(Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;)V
++    .locals 0
++
++    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
++
++    iput-object p1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda0;->f$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;
++
++    return-void
++.end method
++
++
++# virtual methods
++.method public final run()V
++    .locals 0
++
++    iget-object p0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda0;->f$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;
++
++    iget-object p0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;->this$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++
++    invoke-virtual {p0}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->turnOffGestureMode()V
++
++    return-void
++.end method
+--- /dev/null
++++ b/smali/com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda1.smali
+@@ -0,0 +1,69 @@
++.class public final synthetic Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda1;
++.super Ljava/lang/Object;
++.source "qb/101886872 4ec8f6d2813f753a220c00d05e2aa013ded863b1967e4bb65f3969ed08f5cc72"
++
++# interfaces
++.implements Ljava/lang/Runnable;
++
++
++# instance fields
++.field public final synthetic f$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;
++
++.field public final synthetic f$1:I
++
++
++# direct methods
++.method public synthetic constructor <init>(Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;I)V
++    .locals 0
++
++    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
++
++    iput-object p1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda1;->f$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;
++
++    iput p2, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda1;->f$1:I
++
++    return-void
++.end method
++
++
++# virtual methods
++.method public final run()V
++    .locals 3
++
++    iget-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda1;->f$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;
++
++    iget p0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda1;->f$1:I
++
++    invoke-virtual {v0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
++
++    new-instance v1, Ljava/lang/StringBuilder;
++
++    const-string/jumbo v2, "onUserSwitchComplete: "
++
++    invoke-direct {v1, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
++
++    invoke-virtual {v1, p0}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
++
++    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
++
++    move-result-object p0
++
++    const-string v1, "FingerprintService.Gesture"
++
++    invoke-static {v1, p0}, Landroid/util/Slog;->d(Ljava/lang/String;Ljava/lang/String;)I
++
++    iget-object p0, v0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;->this$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++
++    invoke-virtual {p0}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->updateGestureSettingValue()V
++
++    iget-object p0, v0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;->this$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++
++    iget-boolean v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mIsEnabledGestureMainSetting:Z
++
++    if-eqz v0, :cond_0
++
++    invoke-virtual {p0}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->turnOnGestureMode()V
++
++    :cond_0
++    return-void
++.end method
+--- /dev/null
++++ b/smali/com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1.smali
+@@ -0,0 +1,53 @@
++.class public final Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;
++.super Landroid/app/SynchronousUserSwitchObserver;
++.source "qb/101886872 4ec8f6d2813f753a220c00d05e2aa013ded863b1967e4bb65f3969ed08f5cc72"
++
++
++# instance fields
++.field public final synthetic this$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++
++
++# direct methods
++.method public constructor <init>(Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;)V
++    .locals 0
++
++    iput-object p1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;->this$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++
++    invoke-direct {p0}, Landroid/app/SynchronousUserSwitchObserver;-><init>()V
++
++    return-void
++.end method
++
++
++# virtual methods
++.method public final onUserSwitchComplete(I)V
++    .locals 2
++
++    iget-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;->this$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++
++    new-instance v1, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda1;
++
++    invoke-direct {v1, p0, p1}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda1;-><init>(Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;I)V
++
++    iget-object p0, v0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mH:Landroid/os/Handler;
++
++    invoke-virtual {p0, v1}, Landroid/os/Handler;->post(Ljava/lang/Runnable;)Z
++
++    return-void
++.end method
++
++.method public final onUserSwitching(I)V
++    .locals 1
++
++    iget-object p1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;->this$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++
++    new-instance v0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda0;
++
++    invoke-direct {v0, p0}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda0;-><init>(Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;)V
++
++    iget-object p0, p1, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mH:Landroid/os/Handler;
++
++    invoke-virtual {p0, v0}, Landroid/os/Handler;->post(Ljava/lang/Runnable;)Z
++
++    return-void
++.end method
+--- /dev/null
++++ b/smali/com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$2.smali
+@@ -0,0 +1,44 @@
++.class public final Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$2;
++.super Landroid/database/ContentObserver;
++.source "qb/101886872 4ec8f6d2813f753a220c00d05e2aa013ded863b1967e4bb65f3969ed08f5cc72"
++
++
++# instance fields
++.field public final synthetic this$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++
++
++# direct methods
++.method public constructor <init>(Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;Landroid/os/Handler;)V
++    .locals 0
++
++    iput-object p1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$2;->this$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++
++    invoke-direct {p0, p2}, Landroid/database/ContentObserver;-><init>(Landroid/os/Handler;)V
++
++    return-void
++.end method
++
++
++# virtual methods
++.method public final onChange(Z)V
++    .locals 0
++
++    iget-object p0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$2;->this$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++
++    invoke-virtual {p0}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->updateGestureSettingValue()V
++
++    sget-boolean p1, Lcom/android/server/biometrics/SemBiometricFeature;->FEATURE_LOGGING_MODE:Z
++
++    iget-boolean p1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mIsEnabledGestureMainSetting:Z
++
++    if-eqz p1, :cond_0
++
++    invoke-virtual {p0}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->turnOnGestureMode()V
++
++    return-void
++
++    :cond_0
++    invoke-virtual {p0}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->turnOffGestureMode()V
++
++    return-void
++.end method
+--- /dev/null
++++ b/smali/com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$4.smali
+@@ -0,0 +1,215 @@
++.class public final Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$4;
++.super Landroid/content/BroadcastReceiver;
++.source "qb/101886872 4ec8f6d2813f753a220c00d05e2aa013ded863b1967e4bb65f3969ed08f5cc72"
++
++
++# instance fields
++.field public final synthetic this$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++
++
++# direct methods
++.method public constructor <init>(Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;)V
++    .locals 0
++
++    iput-object p1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$4;->this$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++
++    invoke-direct {p0}, Landroid/content/BroadcastReceiver;-><init>()V
++
++    return-void
++.end method
++
++
++# virtual methods
++.method public final onReceive(Landroid/content/Context;Landroid/content/Intent;)V
++    .locals 7
++
++    invoke-virtual {p2}, Landroid/content/Intent;->getAction()Ljava/lang/String;
++
++    move-result-object p1
++
++    const-string/jumbo p2, "android.intent.action.SCREEN_OFF"
++
++    invoke-virtual {p2, p1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
++
++    move-result p2
++
++    const/4 v0, 0x0
++
++    if-nez p2, :cond_3
++
++    const-string/jumbo p2, "android.intent.action.ACTION_SCREEN_OFF_BY_PROXIMITY"
++
++    invoke-virtual {p2, p1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
++
++    move-result p2
++
++    if-eqz p2, :cond_0
++
++    goto :goto_0
++
++    :cond_0
++    const-string/jumbo p2, "android.intent.action.SCREEN_ON"
++
++    invoke-virtual {p2, p1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
++
++    move-result p2
++
++    if-nez p2, :cond_1
++
++    const-string/jumbo p2, "android.intent.action.ACTION_SCREEN_ON_BY_PROXIMITY"
++
++    invoke-virtual {p2, p1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
++
++    move-result p1
++
++    if-eqz p1, :cond_5
++
++    :cond_1
++    iget-object p0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$4;->this$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++
++    iget-boolean p1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mIsEnabledGestureMainSetting:Z
++
++    if-nez p1, :cond_2
++
++    goto :goto_1
++
++    :cond_2
++    iget-object p1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mContext:Landroid/content/Context;
++
++    iget-object p2, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mInjector:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$Injector;
++
++    invoke-virtual {p2}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
++
++    const-class p2, Landroid/os/PowerManager;
++
++    invoke-virtual {p1, p2}, Landroid/content/Context;->getSystemService(Ljava/lang/Class;)Ljava/lang/Object;
++
++    move-result-object p1
++
++    check-cast p1, Landroid/os/PowerManager;
++
++    invoke-virtual {p1}, Landroid/os/PowerManager;->isInteractive()Z
++
++    move-result p1
++
++    if-eqz p1, :cond_5
++
++    const-class p1, Landroid/os/PowerManagerInternal;
++
++    invoke-static {p1}, Lcom/android/server/LocalServices;->getService(Ljava/lang/Class;)Ljava/lang/Object;
++
++    move-result-object p1
++
++    check-cast p1, Landroid/os/PowerManagerInternal;
++
++    invoke-virtual {p1}, Landroid/os/PowerManagerInternal;->isProximityPositive()Z
++
++    move-result p1
++
++    if-nez p1, :cond_5
++
++    iget-object v1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mServiceProvider:Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;
++
++    invoke-interface {v1}, Lcom/android/server/biometrics/sensors/BiometricServiceProvider;->getSensorProperties()Ljava/util/List;
++
++    move-result-object p0
++
++    invoke-interface {p0, v0}, Ljava/util/List;->get(I)Ljava/lang/Object;
++
++    move-result-object p0
++
++    check-cast p0, Landroid/hardware/fingerprint/FingerprintSensorPropertiesInternal;
++
++    iget v2, p0, Landroid/hardware/fingerprint/FingerprintSensorPropertiesInternal;->sensorId:I
++
++    const/16 v3, 0x11
++
++    const/4 v4, 0x1
++
++    const/4 v5, 0x0
++
++    const/4 v6, 0x0
++
++    invoke-interface/range {v1 .. v6}, Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;->semRequest(III[B[B)I
++
++    return-void
++
++    :cond_3
++    :goto_0
++    iget-object p0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$4;->this$0:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++
++    iget-boolean p1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mIsEnabledGestureMainSetting:Z
++
++    if-nez p1, :cond_4
++
++    goto :goto_1
++
++    :cond_4
++    iget-object p1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mContext:Landroid/content/Context;
++
++    iget-object p2, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mInjector:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$Injector;
++
++    invoke-virtual {p2}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
++
++    const-class p2, Landroid/os/PowerManager;
++
++    invoke-virtual {p1, p2}, Landroid/content/Context;->getSystemService(Ljava/lang/Class;)Ljava/lang/Object;
++
++    move-result-object p1
++
++    check-cast p1, Landroid/os/PowerManager;
++
++    invoke-virtual {p1}, Landroid/os/PowerManager;->isInteractive()Z
++
++    move-result p1
++
++    if-eqz p1, :cond_6
++
++    const-class p1, Landroid/os/PowerManagerInternal;
++
++    invoke-static {p1}, Lcom/android/server/LocalServices;->getService(Ljava/lang/Class;)Ljava/lang/Object;
++
++    move-result-object p1
++
++    check-cast p1, Landroid/os/PowerManagerInternal;
++
++    invoke-virtual {p1}, Landroid/os/PowerManagerInternal;->isProximityPositive()Z
++
++    move-result p1
++
++    if-eqz p1, :cond_5
++
++    goto :goto_2
++
++    :cond_5
++    :goto_1
++    return-void
++
++    :cond_6
++    :goto_2
++    iget-object v1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mServiceProvider:Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;
++
++    invoke-interface {v1}, Lcom/android/server/biometrics/sensors/BiometricServiceProvider;->getSensorProperties()Ljava/util/List;
++
++    move-result-object p0
++
++    invoke-interface {p0, v0}, Ljava/util/List;->get(I)Ljava/lang/Object;
++
++    move-result-object p0
++
++    check-cast p0, Landroid/hardware/fingerprint/FingerprintSensorPropertiesInternal;
++
++    iget v2, p0, Landroid/hardware/fingerprint/FingerprintSensorPropertiesInternal;->sensorId:I
++
++    const/16 v3, 0x11
++
++    const/4 v4, 0x0
++
++    const/4 v5, 0x0
++
++    const/4 v6, 0x0
++
++    invoke-interface/range {v1 .. v6}, Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;->semRequest(III[B[B)I
++
++    return-void
++.end method
+--- /dev/null
++++ b/smali/com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager.smali
+@@ -0,0 +1,671 @@
++.class public Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;
++.super Ljava/lang/Object;
++.source "qb/101886872 4ec8f6d2813f753a220c00d05e2aa013ded863b1967e4bb65f3969ed08f5cc72"
++
++# interfaces
++.implements Lcom/android/server/biometrics/sensors/fingerprint/SemFpEventListener;
++
++
++# static fields
++.field static final ACTION_FINGERPRINT_GESTURE_SAMSUNG_PAY:Ljava/lang/String; = "com.samsung.android.spay.gesture.fingerprint"
++
++.field static final ACTION_SCREEN_OFF_BY_PROXIMITY:Ljava/lang/String; = "android.intent.action.ACTION_SCREEN_OFF_BY_PROXIMITY"
++
++.field static final ACTION_SCREEN_ON_BY_PROXIMITY:Ljava/lang/String; = "android.intent.action.ACTION_SCREEN_ON_BY_PROXIMITY"
++
++.field static final DB_SPAY_GESTURE_MENU_VISIBLE:Ljava/lang/String; = "fingerprint_gesture_spay_visible"
++
++.field static final PERMISSION_SAMSUNG_PAY_SIMPLE_PAY:Ljava/lang/String; = "com.samsung.android.spay.permission.SIMPLE_PAY"
++
++
++# instance fields
++.field mBroadCastReceiver:Landroid/content/BroadcastReceiver;
++
++.field mContentObserver:Landroid/database/ContentObserver;
++
++.field public final mContext:Landroid/content/Context;
++
++.field public final mH:Landroid/os/Handler;
++
++.field public final mInjector:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$Injector;
++
++.field public mIsEnabledGestureForSamsungPay:Z
++
++.field public mIsEnabledGestureForStatusBar:Z
++
++.field public mIsEnabledGestureMainSetting:Z
++
++.field public final mServiceProvider:Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;
++
++.field mUserSwitchObserver:Landroid/app/SynchronousUserSwitchObserver;
++
++
++# direct methods
++.method public constructor <init>(Landroid/content/Context;Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$Injector;)V
++    .locals 0
++
++    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
++
++    iput-object p1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mContext:Landroid/content/Context;
++
++    iput-object p2, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mServiceProvider:Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;
++
++    iput-object p3, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mInjector:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$Injector;
++
++    sget-object p1, Lcom/android/server/biometrics/BiometricHandlerProvider;->sBiometricHandlerProvider:Lcom/android/server/biometrics/BiometricHandlerProvider;
++
++    invoke-virtual {p1}, Lcom/android/server/biometrics/BiometricHandlerProvider;->getFingerprintHandler()Landroid/os/Handler;
++
++    move-result-object p1
++
++    iput-object p1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mH:Landroid/os/Handler;
++
++    return-void
++.end method
++
++
++# virtual methods
++.method public final start()V
++    .locals 5
++
++    iget-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mServiceProvider:Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;
++    invoke-interface {v0, p0}, Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;->semAddEventListener(Lcom/android/server/biometrics/sensors/fingerprint/SemFpEventListener;)V
++    invoke-virtual {p0}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->updateGestureSettingValue()V
++
++    new-instance v0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;
++    invoke-direct {v0, p0}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1;-><init>(Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;)V
++    iput-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mUserSwitchObserver:Landroid/app/SynchronousUserSwitchObserver;
++    :try_start_user
++    invoke-static {}, Landroid/app/ActivityManager;->getService()Landroid/app/IActivityManager;
++    move-result-object v1
++    const-string v2, "FingerprintService.Gesture"
++    invoke-interface {v1, v0, v2}, Landroid/app/IActivityManager;->registerUserSwitchObserver(Landroid/app/IUserSwitchObserver;Ljava/lang/String;)V
++    :try_end_user
++    .catch Landroid/os/RemoteException; {:try_start_user .. :try_end_user} :catch_user
++    goto :settings
++    :catch_user
++    const-string v1, "FingerprintService.Gesture"
++    const-string v2, "Unable to register user switch observer"
++    invoke-static {v1, v2}, Landroid/util/Slog;->e(Ljava/lang/String;Ljava/lang/String;)I
++
++    :settings
++    new-instance v0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$2;
++    iget-object v1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mH:Landroid/os/Handler;
++    invoke-direct {v0, p0, v1}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$2;-><init>(Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;Landroid/os/Handler;)V
++    iput-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mContentObserver:Landroid/database/ContentObserver;
++    iget-object v1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mContext:Landroid/content/Context;
++    invoke-virtual {v1}, Landroid/content/Context;->getContentResolver()Landroid/content/ContentResolver;
++    move-result-object v1
++    const/4 v2, 0x0
++    const/4 v3, -0x1
++    const-string v4, "fingerprint_gesture_quick"
++    invoke-static {v4}, Landroid/provider/Settings$System;->getUriFor(Ljava/lang/String;)Landroid/net/Uri;
++    move-result-object v4
++    invoke-virtual {v1, v4, v2, v0, v3}, Landroid/content/ContentResolver;->registerContentObserver(Landroid/net/Uri;ZLandroid/database/ContentObserver;I)V
++    const-string v4, "fingerprint_gesture_spay"
++    invoke-static {v4}, Landroid/provider/Settings$System;->getUriFor(Ljava/lang/String;)Landroid/net/Uri;
++    move-result-object v4
++    invoke-virtual {v1, v4, v2, v0, v3}, Landroid/content/ContentResolver;->registerContentObserver(Landroid/net/Uri;ZLandroid/database/ContentObserver;I)V
++    return-void
++.end method
++
++.method public final handleSwipeDownEvent()V
++    .locals 3
++
++    iget-boolean v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mIsEnabledGestureForStatusBar:Z
++
++    if-nez v0, :cond_0
++
++    return-void
++
++    :cond_0
++    iget-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mContext:Landroid/content/Context;
++
++    iget-object p0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mInjector:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$Injector;
++
++    invoke-virtual {p0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
++
++    const-class p0, Landroid/app/SemStatusBarManager;
++
++    invoke-virtual {v0, p0}, Landroid/content/Context;->getSystemService(Ljava/lang/Class;)Ljava/lang/Object;
++
++    move-result-object p0
++
++    check-cast p0, Landroid/app/SemStatusBarManager;
++
++    invoke-virtual {p0}, Landroid/app/SemStatusBarManager;->isPanelExpanded()Z
++
++    move-result v0
++
++    const-string v1, "FPGT"
++
++    const/4 v2, 0x3
++
++    if-eqz v0, :cond_1
++
++    invoke-virtual {p0}, Landroid/app/SemStatusBarManager;->expandQuickSettingsPanel()V
++
++    invoke-static {}, Lcom/android/server/biometrics/SemBioAnalyticsManager;->get()Lcom/android/server/biometrics/SemBioAnalyticsManager;
++
++    move-result-object p0
++
++    const-string v0, "ExpandQuickSettingsPanel"
++
++    invoke-virtual {p0, v2, v1, v0}, Lcom/android/server/biometrics/SemBioAnalyticsManager;->fpInsertLog(ILjava/lang/String;Ljava/lang/String;)V
++
++    return-void
++
++    :cond_1
++    invoke-virtual {p0}, Landroid/app/SemStatusBarManager;->expandNotificationsPanel()V
++
++    invoke-static {}, Lcom/android/server/biometrics/SemBioAnalyticsManager;->get()Lcom/android/server/biometrics/SemBioAnalyticsManager;
++
++    move-result-object p0
++
++    const-string v0, "ExpandNotificationPanel"
++
++    invoke-virtual {p0, v2, v1, v0}, Lcom/android/server/biometrics/SemBioAnalyticsManager;->fpInsertLog(ILjava/lang/String;Ljava/lang/String;)V
++
++    return-void
++.end method
++
++.method public final handleSwipeUpEvent()V
++    .locals 5
++
++    iget-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mContext:Landroid/content/Context;
++
++    iget-object v1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mInjector:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$Injector;
++
++    invoke-virtual {v1}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
++
++    const-class v1, Landroid/app/SemStatusBarManager;
++
++    invoke-virtual {v0, v1}, Landroid/content/Context;->getSystemService(Ljava/lang/Class;)Ljava/lang/Object;
++
++    move-result-object v0
++
++    check-cast v0, Landroid/app/SemStatusBarManager;
++
++    iget-boolean v1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mIsEnabledGestureForStatusBar:Z
++
++    const-string v2, "FPGT"
++
++    const/4 v3, 0x3
++
++    if-eqz v1, :cond_0
++
++    invoke-virtual {v0}, Landroid/app/SemStatusBarManager;->isPanelExpanded()Z
++
++    move-result v1
++
++    if-eqz v1, :cond_0
++
++    invoke-virtual {v0}, Landroid/app/SemStatusBarManager;->collapsePanels()V
++
++    invoke-static {}, Lcom/android/server/biometrics/SemBioAnalyticsManager;->get()Lcom/android/server/biometrics/SemBioAnalyticsManager;
++
++    move-result-object p0
++
++    const-string v0, "CollapseNotificationPanel"
++
++    invoke-virtual {p0, v3, v2, v0}, Lcom/android/server/biometrics/SemBioAnalyticsManager;->fpInsertLog(ILjava/lang/String;Ljava/lang/String;)V
++
++    return-void
++
++    :cond_0
++    iget-boolean v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mIsEnabledGestureForSamsungPay:Z
++
++    if-eqz v0, :cond_1
++
++    new-instance v0, Landroid/content/Intent;
++
++    invoke-direct {v0}, Landroid/content/Intent;-><init>()V
++
++    const-string/jumbo v1, "com.samsung.android.spay.gesture.fingerprint"
++
++    invoke-virtual {v0, v1}, Landroid/content/Intent;->setAction(Ljava/lang/String;)Landroid/content/Intent;
++
++    const/16 v1, 0x20
++
++    invoke-virtual {v0, v1}, Landroid/content/Intent;->addFlags(I)Landroid/content/Intent;
++
++    iget-object p0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mContext:Landroid/content/Context;
++
++    sget-object v1, Landroid/os/UserHandle;->CURRENT:Landroid/os/UserHandle;
++
++    const-string/jumbo v4, "com.samsung.android.spay.permission.SIMPLE_PAY"
++
++    invoke-virtual {p0, v0, v1, v4}, Landroid/content/Context;->sendBroadcastAsUser(Landroid/content/Intent;Landroid/os/UserHandle;Ljava/lang/String;)V
++
++    invoke-static {}, Lcom/android/server/biometrics/SemBioAnalyticsManager;->get()Lcom/android/server/biometrics/SemBioAnalyticsManager;
++
++    move-result-object p0
++
++    const-string/jumbo v0, "SimpleSamsungPay"
++
++    invoke-virtual {p0, v3, v2, v0}, Lcom/android/server/biometrics/SemBioAnalyticsManager;->fpInsertLog(ILjava/lang/String;Ljava/lang/String;)V
++
++    :cond_1
++    return-void
++.end method
++
++.method public final onGestureEvent(I)V
++    .locals 7
++
++    iget-boolean v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mIsEnabledGestureMainSetting:Z
++
++    if-nez v0, :cond_0
++
++    goto/16 :goto_2
++
++    :cond_0
++    iget-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mContext:Landroid/content/Context;
++
++    iget-object v1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mInjector:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$Injector;
++
++    invoke-virtual {v1}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
++
++    const-class v1, Landroid/os/PowerManager;
++
++    invoke-virtual {v0, v1}, Landroid/content/Context;->getSystemService(Ljava/lang/Class;)Ljava/lang/Object;
++
++    move-result-object v0
++
++    check-cast v0, Landroid/os/PowerManager;
++
++    invoke-virtual {v0}, Landroid/os/PowerManager;->isInteractive()Z
++
++    move-result v0
++
++    const-string v1, "FingerprintService.Gesture"
++
++    if-nez v0, :cond_1
++
++    const-string/jumbo p0, "handleGestureAction: SKIP gesture action because of interactive status"
++
++    invoke-static {v1, p0}, Landroid/util/Slog;->d(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++
++    :cond_1
++    iget-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mContext:Landroid/content/Context;
++
++    const-class v2, Landroid/hardware/display/DisplayManager;
++
++    invoke-virtual {v0, v2}, Landroid/content/Context;->getSystemService(Ljava/lang/Class;)Ljava/lang/Object;
++
++    move-result-object v0
++
++    check-cast v0, Landroid/hardware/display/DisplayManager;
++
++    const/4 v2, 0x0
++
++    if-eqz v0, :cond_3
++
++    invoke-virtual {v0}, Landroid/hardware/display/DisplayManager;->getDisplays()[Landroid/view/Display;
++
++    move-result-object v0
++
++    array-length v3, v0
++
++    move v4, v2
++
++    :goto_0
++    if-ge v4, v3, :cond_3
++
++    aget-object v5, v0, v4
++
++    invoke-virtual {v5}, Landroid/view/Display;->getFlags()I
++
++    move-result v5
++
++    const/high16 v6, 0x20000
++
++    and-int/2addr v5, v6
++
++    if-eqz v5, :cond_2
++
++    const-string/jumbo p0, "handleGestureAction: SKIP gesture action because of DeX Mode"
++
++    invoke-static {v1, p0}, Landroid/util/Slog;->d(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++
++    :cond_2
++    add-int/lit8 v4, v4, 0x1
++
++    goto :goto_0
++
++    :cond_3
++    const/16 v0, 0x4e22
++
++    if-ne p1, v0, :cond_4
++
++    iget-object v3, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mContext:Landroid/content/Context;
++
++    invoke-static {v3}, Lcom/android/server/biometrics/SemUtils;->isFlipFolded(Landroid/content/Context;)Z
++
++    move-result v3
++
++    if-eqz v3, :cond_4
++
++    const-string/jumbo p0, "handleGestureAction: SKIP gesture action because of flip folded status"
++
++    invoke-static {v1, p0}, Landroid/util/Slog;->d(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++
++    :cond_4
++    :try_start_0
++    iget-object v3, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mContext:Landroid/content/Context;
++
++    const-class v4, Landroid/os/PowerManager;
++
++    invoke-virtual {v3, v4}, Landroid/content/Context;->getSystemService(Ljava/lang/Class;)Ljava/lang/Object;
++
++    move-result-object v3
++
++    check-cast v3, Landroid/os/PowerManager;
++
++    invoke-static {}, Landroid/os/SystemClock;->uptimeMillis()J
++
++    move-result-wide v4
++
++    const/4 v6, 0x2
++
++    invoke-virtual {v3, v4, v5, v6, v2}, Landroid/os/PowerManager;->userActivity(JII)V
++
++    const/16 v2, 0x4e21
++
++    if-eq p1, v2, :cond_6
++
++    if-eq p1, v0, :cond_5
++
++    goto :goto_2
++
++    :cond_5
++    invoke-virtual {p0}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->handleSwipeDownEvent()V
++
++    return-void
++
++    :catch_0
++    move-exception p0
++
++    goto :goto_1
++
++    :cond_6
++    invoke-virtual {p0}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->handleSwipeUpEvent()V
++    :try_end_0
++    .catch Ljava/lang/RuntimeException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :goto_1
++    new-instance p1, Ljava/lang/StringBuilder;
++
++    const-string/jumbo v0, "onGestureEvent: "
++
++    invoke-direct {p1, v0}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
++
++    invoke-virtual {p0}, Ljava/lang/RuntimeException;->getMessage()Ljava/lang/String;
++
++    move-result-object p0
++
++    invoke-virtual {p1, p0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
++
++    invoke-virtual {p1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
++
++    move-result-object p0
++
++    invoke-static {v1, p0}, Landroid/util/Slog;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    :goto_2
++    return-void
++.end method
++
++.method public final onHalStarted(Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;)V
++    .locals 0
++
++    iget-boolean p1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mIsEnabledGestureMainSetting:Z
++
++    if-eqz p1, :cond_0
++
++    invoke-virtual {p0}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->turnOnGestureMode()V
++
++    :cond_0
++    return-void
++.end method
++
++.method public final turnOffGestureMode()V
++    .locals 7
++
++    sget-boolean v0, Lcom/android/server/biometrics/SemBiometricFeature;->FEATURE_FINGERPRINT_JDM_HAL:Z
++
++    if-eqz v0, :cond_0
++
++    goto :goto_0
++
++    :cond_0
++    iget-object v1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mServiceProvider:Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;
++
++    invoke-interface {v1}, Lcom/android/server/biometrics/sensors/BiometricServiceProvider;->getSensorProperties()Ljava/util/List;
++
++    move-result-object v0
++
++    const/4 v2, 0x0
++
++    invoke-interface {v0, v2}, Ljava/util/List;->get(I)Ljava/lang/Object;
++
++    move-result-object v0
++
++    check-cast v0, Landroid/hardware/fingerprint/FingerprintSensorPropertiesInternal;
++
++    iget v2, v0, Landroid/hardware/fingerprint/FingerprintSensorPropertiesInternal;->sensorId:I
++
++    const/4 v5, 0x0
++
++    const/4 v6, 0x0
++
++    const/16 v3, 0x10
++
++    const/4 v4, 0x0
++
++    invoke-interface/range {v1 .. v6}, Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;->semRequest(III[B[B)I
++
++    iget-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mBroadCastReceiver:Landroid/content/BroadcastReceiver;
++
++    if-nez v0, :cond_1
++
++    :goto_0
++    return-void
++
++    :cond_1
++    iget-object v1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mContext:Landroid/content/Context;
++
++    invoke-static {v1, v0}, Lcom/android/server/biometrics/SemUtils;->unregisterBroadcast(Landroid/content/Context;Landroid/content/BroadcastReceiver;)V
++
++    const/4 v0, 0x0
++
++    iput-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mBroadCastReceiver:Landroid/content/BroadcastReceiver;
++
++    return-void
++.end method
++
++.method public final turnOnGestureMode()V
++    .locals 8
++
++    sget-boolean v0, Lcom/android/server/biometrics/SemBiometricFeature;->FEATURE_FINGERPRINT_JDM_HAL:Z
++
++    if-eqz v0, :cond_0
++
++    goto :goto_0
++
++    :cond_0
++    iget-object v1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mServiceProvider:Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;
++
++    invoke-interface {v1}, Lcom/android/server/biometrics/sensors/BiometricServiceProvider;->getSensorProperties()Ljava/util/List;
++
++    move-result-object v0
++
++    const/4 v2, 0x0
++
++    invoke-interface {v0, v2}, Ljava/util/List;->get(I)Ljava/lang/Object;
++
++    move-result-object v0
++
++    check-cast v0, Landroid/hardware/fingerprint/FingerprintSensorPropertiesInternal;
++
++    iget v2, v0, Landroid/hardware/fingerprint/FingerprintSensorPropertiesInternal;->sensorId:I
++
++    const/16 v3, 0xf
++
++    const/4 v4, 0x0
++
++    const/4 v5, 0x0
++
++    const/4 v6, 0x0
++
++    invoke-interface/range {v1 .. v6}, Lcom/android/server/biometrics/sensors/fingerprint/ServiceProvider;->semRequest(III[B[B)I
++
++    iget-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mBroadCastReceiver:Landroid/content/BroadcastReceiver;
++
++    if-eqz v0, :cond_1
++
++    :goto_0
++    return-void
++
++    :cond_1
++    new-instance v0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$4;
++
++    invoke-direct {v0, p0}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$4;-><init>(Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;)V
++
++    iput-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mBroadCastReceiver:Landroid/content/BroadcastReceiver;
++
++    new-instance v3, Landroid/content/IntentFilter;
++
++    invoke-direct {v3}, Landroid/content/IntentFilter;-><init>()V
++
++    const-string/jumbo v0, "android.intent.action.SCREEN_ON"
++
++    invoke-virtual {v3, v0}, Landroid/content/IntentFilter;->addAction(Ljava/lang/String;)V
++
++    const-string/jumbo v0, "android.intent.action.SCREEN_OFF"
++
++    invoke-virtual {v3, v0}, Landroid/content/IntentFilter;->addAction(Ljava/lang/String;)V
++
++    const-string/jumbo v0, "android.intent.action.ACTION_SCREEN_ON_BY_PROXIMITY"
++
++    invoke-virtual {v3, v0}, Landroid/content/IntentFilter;->addAction(Ljava/lang/String;)V
++
++    const-string/jumbo v0, "android.intent.action.ACTION_SCREEN_OFF_BY_PROXIMITY"
++
++    invoke-virtual {v3, v0}, Landroid/content/IntentFilter;->addAction(Ljava/lang/String;)V
++
++    iget-object v1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mContext:Landroid/content/Context;
++
++    iget-object v2, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mBroadCastReceiver:Landroid/content/BroadcastReceiver;
++
++    sget-object v4, Landroid/os/UserHandle;->ALL:Landroid/os/UserHandle;
++
++    const/4 v5, 0x0
++
++    const/4 v7, 0x0
++
++    iget-object v6, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mH:Landroid/os/Handler;
++
++    invoke-static/range {v1 .. v7}, Lcom/android/server/biometrics/SemUtils;->registerBroadcastAsUser(Landroid/content/Context;Landroid/content/BroadcastReceiver;Landroid/content/IntentFilter;Landroid/os/UserHandle;Ljava/lang/String;Landroid/os/Handler;I)V
++
++    return-void
++.end method
++
++.method public final updateGestureSettingValue()V
++    .locals 5
++
++    iget-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mContext:Landroid/content/Context;
++
++    invoke-virtual {v0}, Landroid/content/Context;->getContentResolver()Landroid/content/ContentResolver;
++
++    move-result-object v0
++
++    iget-object v1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mInjector:Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$Injector;
++
++    invoke-virtual {v1}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
++
++    const-string/jumbo v1, "fingerprint_gesture_quick"
++
++    const/4 v2, 0x0
++
++    const/4 v3, -0x2
++
++    invoke-static {v0, v1, v2, v3}, Landroid/provider/Settings$System;->getIntForUser(Landroid/content/ContentResolver;Ljava/lang/String;II)I
++
++    move-result v1
++
++    const/4 v4, 0x1
++
++    if-ne v1, v4, :cond_0
++
++    move v1, v4
++
++    goto :goto_0
++
++    :cond_0
++    move v1, v2
++
++    :goto_0
++    iput-boolean v1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mIsEnabledGestureForStatusBar:Z
++
++    const-string/jumbo v1, "fingerprint_gesture_spay"
++
++    invoke-static {v0, v1, v2, v3}, Landroid/provider/Settings$System;->getIntForUser(Landroid/content/ContentResolver;Ljava/lang/String;II)I
++
++    move-result v0
++
++    if-ne v0, v4, :cond_1
++
++    sget-boolean v0, Lcom/android/server/biometrics/SemBiometricFeature;->FEATURE_LOGGING_MODE:Z
++
++    move v0, v4
++
++    goto :goto_1
++
++    :cond_1
++    move v0, v2
++
++    :goto_1
++    iput-boolean v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mIsEnabledGestureForSamsungPay:Z
++
++    iget-boolean v1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mIsEnabledGestureForStatusBar:Z
++
++    if-nez v1, :cond_2
++
++    if-eqz v0, :cond_3
++
++    :cond_2
++    move v2, v4
++
++    :cond_3
++    iput-boolean v2, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mIsEnabledGestureMainSetting:Z
++
++    new-instance v0, Ljava/lang/StringBuilder;
++
++    const-string/jumbo v1, "updateGestureSettingValue: "
++
++    invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
++
++    iget-boolean v1, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mIsEnabledGestureForStatusBar:Z
++
++    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Z)Ljava/lang/StringBuilder;
++
++    const-string v1, ", "
++
++    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
++
++    iget-boolean p0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpGestureManager;->mIsEnabledGestureForSamsungPay:Z
++
++    const-string v1, "FingerprintService.Gesture"
++
++    invoke-static {v1, v0, p0}, Lcom/android/server/AnyMotionDetector$$ExternalSyntheticOutline0;->m(Ljava/lang/String;Ljava/lang/StringBuilder;Z)V
++
++    return-void
++.end method
+--- a/smali/com/android/server/biometrics/sensors/fingerprint/aidl/SemFpAidlResponseHandler$$ExternalSyntheticLambda8.smali
++++ b/smali/com/android/server/biometrics/sensors/fingerprint/aidl/SemFpAidlResponseHandler$$ExternalSyntheticLambda8.smali
+@@ -14,7 +14,7 @@
+ 
+ # virtual methods
+ .method public final run()V
+-    .locals 5
++    .locals 6
+ 
+     iget-object v0, p0, Lcom/android/server/biometrics/sensors/fingerprint/aidl/SemFpAidlResponseHandler$$ExternalSyntheticLambda8;->f$0:Lcom/android/server/biometrics/sensors/fingerprint/aidl/SemFpAidlResponseHandler;
+ 
+@@ -114,6 +114,8 @@
+     goto :goto_1
+ 
+     :cond_5
++    move v5, p0
++
+     iget-object p0, v0, Lcom/android/server/biometrics/sensors/fingerprint/aidl/SemFpAidlResponseHandler;->mHalCallbackEx:Lcom/android/server/biometrics/sensors/fingerprint/SemFpCallbackDispatcher;
+ 
+     iget-object p0, p0, Lcom/android/server/biometrics/sensors/fingerprint/SemFpCallbackDispatcher;->mEventListeners:Ljava/util/List;
+@@ -135,7 +137,7 @@
+ 
+     check-cast v1, Lcom/android/server/biometrics/sensors/fingerprint/SemFpEventListener;
+ 
+-    invoke-virtual {v1}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
++    invoke-interface {v1, v5}, Lcom/android/server/biometrics/sensors/fingerprint/SemFpEventListener;->onGestureEvent(I)V
+ 
+     goto :goto_2
+ 
+--- a/smali_classes2/com/android/server/power/PowerManagerUtil.smali
++++ b/smali_classes2/com/android/server/power/PowerManagerUtil.smali
+@@ -117,7 +117,9 @@
+ 
+ # direct methods
+ .method static constructor <clinit>()V
+-    .locals 17
++    .locals 18
++
++    const/16 v17, 0x0
+ 
+     const-string/jumbo v0, "ro.product.vendor.device"
+ 
+@@ -819,7 +821,7 @@
+ 
+     sput-boolean v6, Lcom/android/server/power/PowerManagerUtil;->SEC_FEATURE_HQM_SEND_LBHD_HIGHEST:Z
+ 
+-    sput-boolean v3, Lcom/android/server/power/PowerManagerUtil;->SECURITY_FINGERPRINT_IN_DISPLAY:Z
++    sput-boolean v17, Lcom/android/server/power/PowerManagerUtil;->SECURITY_FINGERPRINT_IN_DISPLAY:Z
+ 
+     invoke-static {}, Lcom/samsung/android/feature/SemFloatingFeature;->getInstance()Lcom/samsung/android/feature/SemFloatingFeature;
+ 

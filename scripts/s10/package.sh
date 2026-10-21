@@ -55,6 +55,10 @@ cp "$WORK_DIR/vintf-provenance.json" "$tmp/vintf-provenance.json"
 cp "$WORK_DIR/camera-compatibility.json" "$tmp/camera-compatibility.json"
 cp "$WORK_DIR/face-hidl-provenance.json" "$tmp/face-hidl-provenance.json"
 cp "$WORK_DIR/virtual-vibration-provenance.json" "$tmp/virtual-vibration-provenance.json"
+cp "$WORK_DIR/wifi-provenance.json" "$tmp/wifi-provenance.json"
+if [[ "$TARGET_CODENAME" == beyond0lte ]]; then
+  cp "$WORK_DIR/fingerprint-provenance.json" "$tmp/fingerprint-provenance.json"
+fi
 printf 'ota-type=BLOCK\npre-device=%s\npost-timestamp=%s\n' "$TARGET_CODENAME" "$(date +%s)" > "$tmp/META-INF/com/android/metadata"
 printf 'device=%s\nversion=%s\nlayout=physical-ext4\n' "$TARGET_CODENAME" "$ROM_VERSION" > "$tmp/build_info.txt"
 unsigned="$OUT_DIR/s10-unsigned-$TARGET_CODENAME.zip"

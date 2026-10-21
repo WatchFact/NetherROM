@@ -1,0 +1,244 @@
+{
+  "source_firmware": "S926BXXSHDZI1/S926BOXMHDZI1/S926BXXSHDZI1",
+  "review_run": "https://github.com/WatchFact/NetherROM/actions/runs/39584016425",
+  "review_archive_sha256": "52cfa3873592c9925608a3db9fd44fad469862fa4815dbcc524244a981ac1b3c",
+  "tools_archive_sha256": "7b391625609ad129765ee6687fc387858b0c3f949856a4ea42d5cf58ed848a05",
+  "migrations": {
+    "fingerprint": {
+      "patches": {
+        "unica/patches/product_feature/fingerprint/side_fp_s10/framework.jar/0001-Port-S10e-side-fingerprint.patch": "484aaeeb6749fca171d56023def124bbb8a8861190da4f49280c787b258e805a",
+        "unica/patches/product_feature/fingerprint/side_fp_s10/services.jar/0001-Port-S10e-side-fingerprint.patch": "18fec66208a99962f8f69b3d74a53d6ca64d79a1ba026f11e17d2109a773f9be",
+        "unica/patches/product_feature/fingerprint/side_fp_s10/SecSettings.apk/0001-Port-S10e-side-fingerprint.patch": "5dd80b535b071b3a1a1fa6c363b3bc1173d0ad6862fb173a7d43637e7a664020",
+        "unica/patches/product_feature/fingerprint/side_fp_s10/SystemUI.apk/0001-Port-S10e-side-fingerprint.patch": "cab8f63f659b8c9724e203ba9ddb62e9f7f6ee2c138ced504f9b9e7bbe90ee0f"
+      },
+      "artifacts": {
+        "framework.jar": {
+          "partition": "system",
+          "path": "system/framework/framework.jar",
+          "source_sha256": "1a01b3a6e70b0928cbfd0f6698a859a8392de853cdfe62b90a0a3527af3651e6",
+          "before": {
+            "android/hardware/fingerprint/FingerprintManager.smali": "b463b9108197cb70e058e9ca31d35434f074f927743d08769e4e4380fd2d767b",
+            "android/hardware/fingerprint/FingerprintSensorProperties.smali": "19c083dc505bef4ac592b85fab73fbc73601287d38eec2823345c3d25c8f2e81",
+            "android/hardware/fingerprint/FingerprintSensorPropertiesInternal.smali": "79f1037f54d8337111064839e3192cac1a632ecdc2de514e4928ecc1e0d4ca78",
+            "android/hardware/fingerprint/HidlFingerprintSensorConfig.smali": "798f87d5ac40dc9d400875f4955018db54164b443554bf876abe01f37c6fd089",
+            "com/samsung/android/bio/fingerprint/SemFingerprintManager$Characteristics.smali": "1e99a1ed28e48deef8b18dd91de01e2d44624a9ac98332ecdf1c8cc0e813b353",
+            "com/samsung/android/bio/fingerprint/SemFingerprintManager.smali": "9ff7f672d7c8cba27d35d0cefa429c4fa3f8cce4d21ad44fffbefbf47422f73a",
+            "com/samsung/android/rune/InputRune.smali": "3f74ae7e862f0dacbdf028b8b9ccbf45d5f58e58aabcef5e76baafad08eeed81"
+          },
+          "after": {
+            "android/hardware/fingerprint/FingerprintManager.smali": "128edf1606c79815fb378c2f1f3ddaa06ea9a41172aa4ee4b5417f24bbf80bac",
+            "android/hardware/fingerprint/FingerprintSensorProperties.smali": "19c083dc505bef4ac592b85fab73fbc73601287d38eec2823345c3d25c8f2e81",
+            "android/hardware/fingerprint/FingerprintSensorPropertiesInternal.smali": "79f1037f54d8337111064839e3192cac1a632ecdc2de514e4928ecc1e0d4ca78",
+            "android/hardware/fingerprint/HidlFingerprintSensorConfig.smali": "798f87d5ac40dc9d400875f4955018db54164b443554bf876abe01f37c6fd089",
+            "com/samsung/android/bio/fingerprint/SemFingerprintManager$Characteristics.smali": "1e694fe5106d8f424b1f4e41e8911c4fada74101c51aae682eccfbfaffe5e68f",
+            "com/samsung/android/bio/fingerprint/SemFingerprintManager.smali": "9ff7f672d7c8cba27d35d0cefa429c4fa3f8cce4d21ad44fffbefbf47422f73a",
+            "com/samsung/android/rune/InputRune.smali": "3016daaecfa10d8c0ca9fd0a7b9dd6e97f93853709443e25bca67a9e959ed0ab"
+          },
+          "output": {
+            "android/hardware/fingerprint/FingerprintManager.smali": "128edf1606c79815fb378c2f1f3ddaa06ea9a41172aa4ee4b5417f24bbf80bac",
+            "android/hardware/fingerprint/FingerprintSensorProperties.smali": "19c083dc505bef4ac592b85fab73fbc73601287d38eec2823345c3d25c8f2e81",
+            "android/hardware/fingerprint/FingerprintSensorPropertiesInternal.smali": "79f1037f54d8337111064839e3192cac1a632ecdc2de514e4928ecc1e0d4ca78",
+            "android/hardware/fingerprint/HidlFingerprintSensorConfig.smali": "798f87d5ac40dc9d400875f4955018db54164b443554bf876abe01f37c6fd089",
+            "com/samsung/android/bio/fingerprint/SemFingerprintManager$Characteristics.smali": "1e694fe5106d8f424b1f4e41e8911c4fada74101c51aae682eccfbfaffe5e68f",
+            "com/samsung/android/bio/fingerprint/SemFingerprintManager.smali": "9ff7f672d7c8cba27d35d0cefa429c4fa3f8cce4d21ad44fffbefbf47422f73a",
+            "com/samsung/android/rune/InputRune.smali": "3016daaecfa10d8c0ca9fd0a7b9dd6e97f93853709443e25bca67a9e959ed0ab"
+          },
+          "output_methods": {},
+          "field_constants": {},
+          "work_path": "system/system/framework/framework.jar"
+        },
+        "services.jar": {
+          "partition": "system",
+          "path": "system/framework/services.jar",
+          "source_sha256": "0a7cd6f0e2ea163e48bc49056ba4ba7a12e97fa2b8b2afcded7a238e4d34d336",
+          "before": {
+            "com/android/server/biometrics/SemBiometricFeature.smali": "b3b318b61e34e2dedaca76097ddd7291435d221d80ff2a13b0cc98752756edcc",
+            "com/android/server/biometrics/sensors/fingerprint/FingerprintService$1.smali": "00ed83d4c839cb07026f920dc129673b0501702e76cfd15c7b0074ae713e4ace",
+            "com/android/server/biometrics/sensors/fingerprint/FingerprintService$2.smali": "64d3c2e452439ec53d8653baadfe6e1359c6aac0631a5dd1f81171a6a1130376",
+            "com/android/server/biometrics/sensors/fingerprint/SemFingerprintServiceExtImpl.smali": "077754fa0b0c2a013c7aaf5f6b0225678800bb20b7abc39a74c02e01f6e5fdb0",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpEventListener.smali": "365c02433d19d0bb4bdb73415f829a3b5d50b8c3a30fef6794c2f9d8f1c1d004",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda0.smali": null,
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda1.smali": null,
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1.smali": null,
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$2.smali": null,
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$4.smali": null,
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$Injector.smali": "52919dca2d8509ee479be8784fff1139e4277a517d61cf7ef699a6b00493da26",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager.smali": null,
+            "com/android/server/biometrics/sensors/fingerprint/ServiceProvider.smali": "46bf921570c6fe62ba8f470d7ed4d77be339273b38b84523baf8b7a1117f6f96",
+            "com/android/server/biometrics/sensors/fingerprint/aidl/FingerprintProvider$$ExternalSyntheticLambda10.smali": "9eba6a2842043a069701635ec34928b3fa56c165d6a5d10ce4f7c3a02e53dfd6",
+            "com/android/server/biometrics/sensors/fingerprint/aidl/FingerprintProvider$$ExternalSyntheticLambda9.smali": "f9f9f952228a0f3cd36dce2bb4fc257918bc32e40cde716a8e5f7d13e393a7c5",
+            "com/android/server/biometrics/sensors/fingerprint/aidl/FingerprintProvider.smali": "43763a180bc5813b1e21eff8fdc51841bb9c395726b90258b5afa9aad496374b",
+            "com/android/server/biometrics/sensors/fingerprint/aidl/SemFpAidlResponseHandler$$ExternalSyntheticLambda8.smali": "45a0f91a38cef0edbf4f5dbeea1a2f4bc6fca9d90ac26598fd1a9f665b2a2c9c",
+            "com/android/server/power/PowerManagerUtil.smali": "a67558392661575b86837cc537a4e0c6196e693813e0bb1d3bb7e79154db12f5"
+          },
+          "after": {
+            "com/android/server/biometrics/SemBiometricFeature.smali": "9b402e8096bd8c0a2565cc70f6855c9acb7ddb70706ce9247286e5bd51c556bc",
+            "com/android/server/biometrics/sensors/fingerprint/FingerprintService$1.smali": "f6e57b458207ef5072e2eda7f487f254e3c325c50feda9a55e9a7f524638e2fe",
+            "com/android/server/biometrics/sensors/fingerprint/FingerprintService$2.smali": "64d3c2e452439ec53d8653baadfe6e1359c6aac0631a5dd1f81171a6a1130376",
+            "com/android/server/biometrics/sensors/fingerprint/SemFingerprintServiceExtImpl.smali": "361aceb43dd94e6dc2cac9fc2a30513669e850577d09a913c3586b04f4c9522d",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpEventListener.smali": "365c02433d19d0bb4bdb73415f829a3b5d50b8c3a30fef6794c2f9d8f1c1d004",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda0.smali": "b83a5c9ef7f33a316b78d49a4cc84be855a4e002dded7aa4a2776747f9f5432c",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda1.smali": "e74e7320cbd256924097ccb26dee69d14d6180a3aeec953e909e3b9d60278ade",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1.smali": "f52c71ef9c0dd5b2f52f3b7c84f3ba5ecd06cced7c02096d6f9526dcf054dcda",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$2.smali": "c501535cc8004bf4cbad2733a7e7d83d2b14f69372d550f6c733a8c3fcc235ce",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$4.smali": "d019c1b2b572b8ae5e36dc423bbc8e1e41604c29c1b136bf5f57627c89bbe3ee",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$Injector.smali": "52919dca2d8509ee479be8784fff1139e4277a517d61cf7ef699a6b00493da26",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager.smali": "5bb97131dc955f891c495a6d36b7d80c58fe687fe9e22e9a48f451c366161b23",
+            "com/android/server/biometrics/sensors/fingerprint/ServiceProvider.smali": "46bf921570c6fe62ba8f470d7ed4d77be339273b38b84523baf8b7a1117f6f96",
+            "com/android/server/biometrics/sensors/fingerprint/aidl/FingerprintProvider$$ExternalSyntheticLambda10.smali": "9eba6a2842043a069701635ec34928b3fa56c165d6a5d10ce4f7c3a02e53dfd6",
+            "com/android/server/biometrics/sensors/fingerprint/aidl/FingerprintProvider$$ExternalSyntheticLambda9.smali": "f9f9f952228a0f3cd36dce2bb4fc257918bc32e40cde716a8e5f7d13e393a7c5",
+            "com/android/server/biometrics/sensors/fingerprint/aidl/FingerprintProvider.smali": "43763a180bc5813b1e21eff8fdc51841bb9c395726b90258b5afa9aad496374b",
+            "com/android/server/biometrics/sensors/fingerprint/aidl/SemFpAidlResponseHandler$$ExternalSyntheticLambda8.smali": "9e20fd29fe518f0fabcdc54e8ca5ac14c5b85cfb5e0833bdef388f6cdcec0926",
+            "com/android/server/power/PowerManagerUtil.smali": "10e226ef310913e09079fd81eced0d5b9a13ad80dfcecd73b2fbc99744769d0b"
+          },
+          "output": {
+            "com/android/server/biometrics/SemBiometricFeature.smali": "9b402e8096bd8c0a2565cc70f6855c9acb7ddb70706ce9247286e5bd51c556bc",
+            "com/android/server/biometrics/sensors/fingerprint/FingerprintService$1.smali": "f6e57b458207ef5072e2eda7f487f254e3c325c50feda9a55e9a7f524638e2fe",
+            "com/android/server/biometrics/sensors/fingerprint/FingerprintService$2.smali": "64d3c2e452439ec53d8653baadfe6e1359c6aac0631a5dd1f81171a6a1130376",
+            "com/android/server/biometrics/sensors/fingerprint/SemFingerprintServiceExtImpl.smali": "361aceb43dd94e6dc2cac9fc2a30513669e850577d09a913c3586b04f4c9522d",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpEventListener.smali": "365c02433d19d0bb4bdb73415f829a3b5d50b8c3a30fef6794c2f9d8f1c1d004",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda0.smali": "b83a5c9ef7f33a316b78d49a4cc84be855a4e002dded7aa4a2776747f9f5432c",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1$$ExternalSyntheticLambda1.smali": "e74e7320cbd256924097ccb26dee69d14d6180a3aeec953e909e3b9d60278ade",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$1.smali": "f52c71ef9c0dd5b2f52f3b7c84f3ba5ecd06cced7c02096d6f9526dcf054dcda",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$2.smali": "c501535cc8004bf4cbad2733a7e7d83d2b14f69372d550f6c733a8c3fcc235ce",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$4.smali": "d019c1b2b572b8ae5e36dc423bbc8e1e41604c29c1b136bf5f57627c89bbe3ee",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager$Injector.smali": "52919dca2d8509ee479be8784fff1139e4277a517d61cf7ef699a6b00493da26",
+            "com/android/server/biometrics/sensors/fingerprint/SemFpGestureManager.smali": "5bb97131dc955f891c495a6d36b7d80c58fe687fe9e22e9a48f451c366161b23",
+            "com/android/server/biometrics/sensors/fingerprint/ServiceProvider.smali": "46bf921570c6fe62ba8f470d7ed4d77be339273b38b84523baf8b7a1117f6f96",
+            "com/android/server/biometrics/sensors/fingerprint/aidl/FingerprintProvider$$ExternalSyntheticLambda10.smali": "9eba6a2842043a069701635ec34928b3fa56c165d6a5d10ce4f7c3a02e53dfd6",
+            "com/android/server/biometrics/sensors/fingerprint/aidl/FingerprintProvider$$ExternalSyntheticLambda9.smali": "f9f9f952228a0f3cd36dce2bb4fc257918bc32e40cde716a8e5f7d13e393a7c5",
+            "com/android/server/biometrics/sensors/fingerprint/aidl/FingerprintProvider.smali": "43763a180bc5813b1e21eff8fdc51841bb9c395726b90258b5afa9aad496374b",
+            "com/android/server/biometrics/sensors/fingerprint/aidl/SemFpAidlResponseHandler$$ExternalSyntheticLambda8.smali": "9e20fd29fe518f0fabcdc54e8ca5ac14c5b85cfb5e0833bdef388f6cdcec0926"
+          },
+          "output_methods": {
+            "com/android/server/power/PowerManagerUtil.smali": {
+              "brightnessToString(F)Ljava/lang/String;": "290fd5e0b7cfd0f9efb7ab8147b53281c9246075e373fef59404d61308c53d84",
+              "brightnessToString(FI)Ljava/lang/String;": "c1a04db56a9ae7a376ca99787554082420e870d50889d9e0e56786d20d6fff77",
+              "callerInfoToString(Z)Ljava/lang/String;": "fc0535c5455f349a890152b055858a31f0e6c7a93c2381b1b7c12e200fcf093f",
+              "fileExist(Ljava/lang/String;)Z": "e10da3c1f66c68314bd83092758ab25cff770d54f1162b544414c24d2c987137",
+              "fileWriteString(Ljava/lang/String;Ljava/lang/String;)V": "8481c3175d3952e37f25323d110e2466ccf157456d0bebd75ef1dd8389424969",
+              "getCurrentTimeAsString()Ljava/lang/String;": "392de21d88c87d698e8514132cd2b0d4b63ae6bb049806f5d641f0cc1b9efb56",
+              "isFakeAodAvailable(I)Z": "dba4ef2901a0abaa22b4413553fe982d780618429c4571679f2a6edc3a3da1e0",
+              "readFromFile(Ljava/lang/String;)Ljava/lang/String;": "22a27ea6f197b6b674b1f82ead25c3b184771e0621892e33786034f481087cd0"
+            }
+          },
+          "field_constants": {
+            "com/android/server/power/PowerManagerUtil.smali": {
+              "SECURITY_FINGERPRINT_IN_DISPLAY": {
+                "register": "v17",
+                "value": "0x0"
+              }
+            }
+          },
+          "work_path": "system/system/framework/services.jar"
+        },
+        "SecSettings.apk": {
+          "partition": "system",
+          "path": "system/priv-app/SecSettings/SecSettings.apk",
+          "source_sha256": "58257a276715a6afba760c4d7d2a01a39c35c2cdcc924732829e50846f2c378e",
+          "before": {
+            "com/android/settings/biometrics/fingerprint/FingerprintSettingsRequireScreenOnToAuthPreferenceController.smali": "013740bab05d85eb6f5b6972de006f66cffd0b2762f7f1261580f291e685ec11",
+            "com/samsung/android/settings/biometrics/fingerprint/FingerprintSettingsUtils.smali": "069c4856484b66204f81e920752471a3abb445046f3fecafde7e71a878e5a0e0",
+            "com/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature.smali": "fcfac67da15b411676b2db2f532fbb04508945320a7173f93172ce3ab52fff7a",
+            "com/samsung/android/settings/usefulfeature/motionandgestures/fingersensorgesture/FingerSensorGesturePreferenceController.smali": "4226c81bd4e538ae862fd0e9d8d2083b076d1ff143af1c4d593ed33af3211eaf"
+          },
+          "after": {
+            "com/android/settings/biometrics/fingerprint/FingerprintSettingsRequireScreenOnToAuthPreferenceController.smali": "013740bab05d85eb6f5b6972de006f66cffd0b2762f7f1261580f291e685ec11",
+            "com/samsung/android/settings/biometrics/fingerprint/FingerprintSettingsUtils.smali": "2d9d1c2fff97b6c1d10a902dba7e10b50dfcebdf43f3d58219aa27a015b47fe9",
+            "com/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature.smali": "c0a1b91341577f7062bcb824b1e5fba5423d7f46ea27baca1b108eda8b6ee740",
+            "com/samsung/android/settings/usefulfeature/motionandgestures/fingersensorgesture/FingerSensorGesturePreferenceController.smali": "4226c81bd4e538ae862fd0e9d8d2083b076d1ff143af1c4d593ed33af3211eaf"
+          },
+          "output": {
+            "com/android/settings/biometrics/fingerprint/FingerprintSettingsRequireScreenOnToAuthPreferenceController.smali": "013740bab05d85eb6f5b6972de006f66cffd0b2762f7f1261580f291e685ec11",
+            "com/samsung/android/settings/biometrics/fingerprint/FingerprintSettingsUtils.smali": "2d9d1c2fff97b6c1d10a902dba7e10b50dfcebdf43f3d58219aa27a015b47fe9",
+            "com/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature.smali": "c0a1b91341577f7062bcb824b1e5fba5423d7f46ea27baca1b108eda8b6ee740",
+            "com/samsung/android/settings/usefulfeature/motionandgestures/fingersensorgesture/FingerSensorGesturePreferenceController.smali": "4226c81bd4e538ae862fd0e9d8d2083b076d1ff143af1c4d593ed33af3211eaf"
+          },
+          "output_methods": {},
+          "field_constants": {},
+          "work_path": "system/system/priv-app/SecSettings/SecSettings.apk"
+        },
+        "SystemUI.apk": {
+          "partition": "system_ext",
+          "path": "priv-app/SystemUI/SystemUI.apk",
+          "source_sha256": "958f2f9d8e394443cfaccf20411934c2ba45c56ec110d2891a0e19a979a7047e",
+          "before": {
+            "com/android/keyguard/KeyguardSecUpdateMonitorImpl.smali": "48a32665cebfa4b2abd0faaa4e32945af208b1b1855fb9c0bcf9da99d217c71a",
+            "com/android/systemui/LsRune.smali": "c7a827e235be3a941edcdfd6f67f6e66f38e6df2dd7da2996fe5c81f3fe1e501",
+            "com/android/systemui/biometrics/AuthController$6$$ExternalSyntheticLambda0.smali": "b2cf72d7c728bde001a57f09f7390a25fbb0061b8f7ccba671192b28550d252a",
+            "com/android/systemui/biometrics/AuthController.smali": "6b00810bc8528daf6843b3ed5b426fd45e06845885b470b13016931280a84c6a",
+            "com/android/systemui/keyguard/animator/KeyguardTouchSecurityInjector.smali": "7a985c06d1b33b70bc734baa7b78faf828d6409a4be8fe01d7426563e35078ec",
+            "com/android/systemui/util/DeviceState.smali": "319ff49aa78cb3fe8f4fe4e374fdb3225549489362b6058a2a8f2d44f1f54c3f",
+            "com/android/systemui/util/DeviceType.smali": "4ddabbc03b03195ce14cfa5cb4179a1f773a7b01996e9b87b8fda78bf4cc5235"
+          },
+          "after": {
+            "com/android/keyguard/KeyguardSecUpdateMonitorImpl.smali": "48a32665cebfa4b2abd0faaa4e32945af208b1b1855fb9c0bcf9da99d217c71a",
+            "com/android/systemui/LsRune.smali": "467eb102a55983635865b54dbd37dffa89b9527413104167bab4c6b6c984579b",
+            "com/android/systemui/biometrics/AuthController$6$$ExternalSyntheticLambda0.smali": "b2cf72d7c728bde001a57f09f7390a25fbb0061b8f7ccba671192b28550d252a",
+            "com/android/systemui/biometrics/AuthController.smali": "6b00810bc8528daf6843b3ed5b426fd45e06845885b470b13016931280a84c6a",
+            "com/android/systemui/keyguard/animator/KeyguardTouchSecurityInjector.smali": "7a985c06d1b33b70bc734baa7b78faf828d6409a4be8fe01d7426563e35078ec",
+            "com/android/systemui/util/DeviceState.smali": "2bb4da60d8922626d51481a883958fe463fa5a4caee87a3a3520d6dc84ddf6d8",
+            "com/android/systemui/util/DeviceType.smali": "ae2e537237313384812119169e8cecc3367ec8b428162983cde25e4671f544a0"
+          },
+          "output": {
+            "com/android/keyguard/KeyguardSecUpdateMonitorImpl.smali": "48a32665cebfa4b2abd0faaa4e32945af208b1b1855fb9c0bcf9da99d217c71a",
+            "com/android/systemui/biometrics/AuthController$6$$ExternalSyntheticLambda0.smali": "b2cf72d7c728bde001a57f09f7390a25fbb0061b8f7ccba671192b28550d252a",
+            "com/android/systemui/biometrics/AuthController.smali": "6b00810bc8528daf6843b3ed5b426fd45e06845885b470b13016931280a84c6a",
+            "com/android/systemui/keyguard/animator/KeyguardTouchSecurityInjector.smali": "7a985c06d1b33b70bc734baa7b78faf828d6409a4be8fe01d7426563e35078ec",
+            "com/android/systemui/util/DeviceState.smali": "2bb4da60d8922626d51481a883958fe463fa5a4caee87a3a3520d6dc84ddf6d8",
+            "com/android/systemui/util/DeviceType.smali": "ae2e537237313384812119169e8cecc3367ec8b428162983cde25e4671f544a0"
+          },
+          "output_methods": {
+            "com/android/systemui/LsRune.smali": {
+              "<init>()V": "4fde4f0e2b5b6095b5cb1d27d359bc509feba430b68862233f9a9f0e36a0420d"
+            }
+          },
+          "field_constants": {
+            "com/android/systemui/LsRune.smali": {
+              "SECURITY_FINGERPRINT_IN_DISPLAY": {
+                "register": "v18",
+                "value": "0x0"
+              },
+              "SECURITY_FINGERPRINT_GUIDE_POPUP": {
+                "register": "v18",
+                "value": "0x0"
+              },
+              "SECURITY_BACKGROUND_AUTHENTICATION": {
+                "register": "v19",
+                "value": "0x1"
+              }
+            }
+          },
+          "work_path": "system/system/system_ext/priv-app/SystemUI/SystemUI.apk"
+        }
+      }
+    },
+    "wifi": {
+      "patches": {
+        "unica/patches/product_feature/wifi/s10/semwifi-service.jar/0001-Restore-S10-Wi-Fi-capability-gates.patch": "42d2656be2337ae8cd3f3819006eb6debfff39549b796c6841cf588551d63243"
+      },
+      "artifacts": {
+        "semwifi-service.jar": {
+          "partition": "system",
+          "path": "system/framework/semwifi-service.jar",
+          "source_sha256": "d73c641098519acbe4e584ea886b471a7c9aefdfb9f9870b32aa44f5ee834613",
+          "before": {
+            "com/samsung/android/server/wifi/ap/SemWifiApChipInfo.smali": "f76dd14ede58ab2408eeaed321994954c00c1ed9ff54411144d2d2c7522fbe19",
+            "com/samsung/android/server/wifi/driver/WifiDriverFeatureProvider.smali": "17c2aee0a5e13ea4c92876accd7a46586dc0cc0463364a4f27c323ae3ded721c"
+          },
+          "after": {
+            "com/samsung/android/server/wifi/ap/SemWifiApChipInfo.smali": "cd40c34dd02e3c1ac7155fe78d96ad4c6e88dd5c57da28c80d09ff9fc2794565",
+            "com/samsung/android/server/wifi/driver/WifiDriverFeatureProvider.smali": "9da226310bebf02011c42a02573cd3c9ae4ed45e117a4644defca41f88fa3641"
+          },
+          "output": {
+            "com/samsung/android/server/wifi/ap/SemWifiApChipInfo.smali": "cd40c34dd02e3c1ac7155fe78d96ad4c6e88dd5c57da28c80d09ff9fc2794565",
+            "com/samsung/android/server/wifi/driver/WifiDriverFeatureProvider.smali": "9da226310bebf02011c42a02573cd3c9ae4ed45e117a4644defca41f88fa3641"
+          },
+          "output_methods": {},
+          "field_constants": {},
+          "work_path": "system/system/framework/semwifi-service.jar"
+        }
+      }
+    }
+  }
+}

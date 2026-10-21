@@ -1,0 +1,67 @@
+From: WatchFact <thedataguyshere@gmail.com>
+Subject: [PATCH] Port S10e power-button fingerprint and gestures
+
+Preserve current boot processing and provider lifecycle ABI.
+---
+--- a/smali_classes2/android/hardware/fingerprint/FingerprintManager.smali
++++ b/smali_classes2/android/hardware/fingerprint/FingerprintManager.smali
+@@ -1215,7 +1215,7 @@
+ .method public static blacklist semGetSensorPosition()I
+     .locals 1
+ 
+-    const/4 v0, 0x2
++    const/4 v0, 0x4
+ 
+     return v0
+ .end method
+--- a/smali_classes6/com/samsung/android/bio/fingerprint/SemFingerprintManager$Characteristics.smali
++++ b/smali_classes6/com/samsung/android/bio/fingerprint/SemFingerprintManager$Characteristics.smali
+@@ -94,7 +94,7 @@
+ .method public whitelist getSensorType()I
+     .locals 0
+ 
+-    const/4 p0, 0x3
++    const/4 p0, 0x1
+ 
+     return p0
+ .end method
+--- a/smali_classes6/com/samsung/android/rune/InputRune.smali
++++ b/smali_classes6/com/samsung/android/rune/InputRune.smali
+@@ -178,7 +178,7 @@
+ 
+ .field public static final blacklist PWM_FINGERPRINT_BIXBY_UNLOCK:Z = false
+ 
+-.field public static final blacklist PWM_FINGERPRINT_ON_DISPLAY:Z = true
++.field public static final blacklist PWM_FINGERPRINT_ON_DISPLAY:Z = false
+ 
+ .field public static final blacklist PWM_FINGERPRINT_SIDE_TOUCH:Z
+ 
+@@ -393,7 +393,9 @@
+ 
+ # direct methods
+ .method static constructor blacklist <clinit>()V
+-    .locals 8
++    .locals 9
++
++    const/16 v8, 0x1
+ 
+     sget-boolean v0, Lcom/samsung/android/rune/CoreRune;->FW_SA_LOGGING:Z
+ 
+@@ -673,7 +675,7 @@
+ 
+     sput-boolean v2, Lcom/samsung/android/rune/InputRune;->PWM_SKT_PHONE_RELAX_MODE:Z
+ 
+-    sput-boolean v1, Lcom/samsung/android/rune/InputRune;->PWM_FINGERPRINT_SIDE_TOUCH:Z
++    sput-boolean v8, Lcom/samsung/android/rune/InputRune;->PWM_FINGERPRINT_SIDE_TOUCH:Z
+ 
+     invoke-static {}, Lcom/samsung/android/feature/SemFloatingFeature;->getInstance()Lcom/samsung/android/feature/SemFloatingFeature;
+ 
+@@ -797,7 +799,7 @@
+ 
+     sput-boolean v2, Lcom/samsung/android/rune/InputRune;->PWM_QUICK_LAUNCH_CAMERA:Z
+ 
+-    sput-boolean v1, Lcom/samsung/android/rune/InputRune;->PWM_SKIP_TOO_FAST_DOUBLE_PRESS:Z
++    sput-boolean v8, Lcom/samsung/android/rune/InputRune;->PWM_SKIP_TOO_FAST_DOUBLE_PRESS:Z
+ 
+     sput-boolean v0, Lcom/samsung/android/rune/InputRune;->SYSPERF_INPUT_CMD_SUPPORT:Z
+ 

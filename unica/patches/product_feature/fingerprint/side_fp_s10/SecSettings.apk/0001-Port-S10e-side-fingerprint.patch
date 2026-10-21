@@ -1,0 +1,59 @@
+From: WatchFact <thedataguyshere@gmail.com>
+Subject: [PATCH] Port S10e fingerprint settings
+
+---
+--- a/smali_classes5/com/samsung/android/settings/biometrics/fingerprint/FingerprintSettingsUtils.smali
++++ b/smali_classes5/com/samsung/android/settings/biometrics/fingerprint/FingerprintSettingsUtils.smali
+@@ -507,17 +507,9 @@
+ .end method
+ 
+ .method public static isSupportFingerprintScreenOffIconAod()Z
+-    .locals 3
+-
+-    invoke-static {}, Lcom/samsung/android/settings/lockscreen/LockUtils;->isSupportAodService()Z
+-
+-    move-result v0
+-
+-    const-string v1, "FpstFingerprintSettingsUtils"
+-
+-    const-string v2, "isSupportFingerprintScreenOffIconAod : "
+-
+-    invoke-static {v2, v1, v0}, Lcom/android/settings/AirplaneModeEnabler$$ExternalSyntheticOutline0;->m(Ljava/lang/String;Ljava/lang/String;Z)V
++    .locals 1
++
++    const/4 v0, 0x0
+ 
+     return v0
+ .end method
+--- a/smali_classes5/com/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature.smali
++++ b/smali_classes5/com/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature.smali
+@@ -1009,5 +1009,29 @@
+     invoke-virtual {v2}, Landroid/widget/TextView;->invalidate()V
+ 
+     :cond_f
++    iget-object v0, p0, Lcom/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature;->mShowFingerprintIcon:Landroid/view/View;
++    if-eqz v0, :s10_hide_mShowFingerprintIcon
++    const/16 v1, 0x8
++    invoke-virtual {v0, v1}, Landroid/view/View;->setVisibility(I)V
++    :s10_hide_mShowFingerprintIcon
++
++    iget-object v0, p0, Lcom/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature;->mFingerEffect:Landroid/view/View;
++    if-eqz v0, :s10_hide_mFingerEffect
++    const/16 v1, 0x8
++    invoke-virtual {v0, v1}, Landroid/view/View;->setVisibility(I)V
++    :s10_hide_mFingerEffect
++
++    iget-object v0, p0, Lcom/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature;->mScreenOffIcon:Landroid/view/View;
++    if-eqz v0, :s10_hide_mScreenOffIcon
++    const/16 v1, 0x8
++    invoke-virtual {v0, v1}, Landroid/view/View;->setVisibility(I)V
++    :s10_hide_mScreenOffIcon
++
++    iget-object v0, p0, Lcom/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature;->mScreenOffIconAod:Landroid/view/View;
++    if-eqz v0, :s10_hide_mScreenOffIconAod
++    const/16 v1, 0x8
++    invoke-virtual {v0, v1}, Landroid/view/View;->setVisibility(I)V
++    :s10_hide_mScreenOffIconAod
++
+     return-void
+ .end method

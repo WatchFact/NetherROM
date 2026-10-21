@@ -42,6 +42,13 @@ def verify(path, device):
         for name in ('boot.img', 'dtb.img', 'dtbo.img'):
             if hashlib.sha256(z.read(name)).hexdigest() != info['sha256'][name]:
                 raise ValueError('Kernel image changed during packaging: '+name)
+        from legacy_features import manifest as legacy_manifest
+        legacy = legacy_manifest(Path(__file__).resolve().parents[2])
+        for mode in ('wifi', 'fingerprint') if device == 'beyond0lte' else ('wifi',):
+            expected = dict(legacy['migrations'][mode], device=device,
+                            source_firmware=legacy['source_firmware'], mode=mode)
+            if json.loads(z.read(mode+'-provenance.json')) != expected:
+                raise ValueError('Wrong packaged S10 '+mode+' migration provenance')
         bad = z.testzip()
         if bad:
             raise ValueError("Corrupted ZIP member: " + bad)

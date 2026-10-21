@@ -114,11 +114,14 @@ SMALI_PATCH()
     fi
 
     # Check if provided method is method and exists inside smali
-    if ! grep "^\.method.*" "$FILE_PATH/$SMALI" | grep -q -F -- "$METHOD" "$FILE_PATH/$SMALI"; then
+    # Match declarations directly. The old grep pipeline read the file twice;
+    # its unused pipe could SIGPIPE under pipefail on large framework classes.
+    if [[ "$OPERATION" != "replaceall" ]] && \
+            ! awk -v fn="$METHOD" '$1 == ".method" && $NF == fn { found = 1; exit } END { exit !found }' "$FILE_PATH/$SMALI"; then
         LOGE "Method \"$METHOD\" not found in /$PARTITION/$FILE/$SMALI"
 
         local MATCHES
-        MATCHES="$(grep -r "^\.method.*$METHOD" "$FILE_PATH")"
+        MATCHES="$(grep -r -n -F -- "$METHOD" "$FILE_PATH" || true)"
 
         if [ "$MATCHES" ]; then
             echo -e "\n\033[0;31mPossible matches?" >&2

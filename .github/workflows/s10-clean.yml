@@ -11,6 +11,7 @@ on:
       - 'prebuilts/samsung/a73xqxx/**'
       - 'scripts/s10/**'
       - 'scripts/utils/common_utils.sh'
+      - 'scripts/utils/smali_utils.sh'
       - 'scripts/internal/build_flashable_zip.sh'
       - 'unica/configs/essi.sh'
       - 'unica/patches/dvfs/**'
@@ -195,6 +196,8 @@ jobs:
             out/target/${{ matrix.target }}/work_dir/camera-compatibility.json
             out/target/${{ matrix.target }}/work_dir/face-hidl-provenance.json
             out/target/${{ matrix.target }}/work_dir/virtual-vibration-provenance.json
+            out/target/${{ matrix.target }}/work_dir/fingerprint-provenance.json
+            out/target/${{ matrix.target }}/work_dir/wifi-provenance.json
             out/target/${{ matrix.target }}/apktool/system/framework/services.jar/smali/com/android/server/biometrics/sensors/face/
             out/target/${{ matrix.target }}/apktool/system/framework/services.jar/smali_classes2/vendor/samsung/hardware/biometrics/face/
             kernel-artifacts/${{ matrix.target }}/kernel.json

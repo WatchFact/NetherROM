@@ -9,6 +9,8 @@ from pathlib import Path
 SYSTEM_FILES = (
     'system/framework/services.jar',
     'system/framework/framework.jar',
+    'system/framework/semwifi-service.jar',
+    'system/system_ext/priv-app/SystemUI/SystemUI.apk',
     'system/priv-app/SecSettings/SecSettings.apk',
     'system/priv-app/SettingsProvider/SettingsProvider.apk',
     'system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk',
@@ -52,6 +54,8 @@ def audit(work, device, apktool):
     face_hidl_output(Path(__file__).resolve().parents[2], work, device, apktool)
     from virtual_vibration import output as virtual_vibration_output
     virtual_vibration_output(Path(__file__).resolve().parents[2], work, device, apktool)
+    from legacy_features import output as legacy_features_output
+    legacy_features_output(Path(__file__).resolve().parents[2], work, device, apktool)
     from policies import output as policy_output
     policy_output(Path(__file__).resolve().parents[2], work, device)
     from camera_output_audit import check

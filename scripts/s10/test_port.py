@@ -21,6 +21,154 @@ from virtual_vibration import check_backend, digest, FIELD, HELPER, MANAGER, BOO
 
 
 class PortTests(unittest.TestCase):
+    def test_smali_method_selection_handles_large_classes_and_array_signatures(self):
+        repo = Path(__file__).resolve().parents[2]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            path = root/'system/framework/service.jar/smali/com/example/Large.smali'
+            path.parent.mkdir(parents=True)
+            methods = ''.join('.method public longMethodName'+str(n)+'()I\n'
+                              '    .locals 1\n    const/4 v0, 0x0\n    return v0\n.end method\n'
+                              for n in range(2000))
+            selected = ('.method public values()[I\n    .locals 1\n    const/4 v0, 0x0\n'
+                        '    new-array v0, v0, [I\n    return-object v0\n.end method\n')
+            reference = ('# invoke-virtual {p0}, Lcom/example/Large;->missing()[I\n')
+            path.write_text('.class public Lcom/example/Large;\n.super Ljava/lang/Object;\n'+methods+selected+reference)
+            script = '''set -eo pipefail
+SRC_DIR="$1"; APKTOOL_DIR="$2"
+source "$SRC_DIR/scripts/utils/module_utils.sh"
+DECODE_APK(){ return 0; }
+EVAL(){ eval "$1"; }
+SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali replace "$3" 'const/4 v0, 0x0' 'const/4 v0, 0x1'
+'''
+            result = subprocess.run(['bash', '-c', script, '--', str(repo), str(root), 'values()[I'],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(methods, path.read_text())
+            self.assertIn(selected.replace('const/4 v0, 0x0', 'const/4 v0, 0x1'), path.read_text())
+            missing = subprocess.run(['bash', '-c', script, '--', str(repo), str(root), 'missing()[I'],
+                                     capture_output=True, text=True)
+            self.assertNotEqual(missing.returncode, 0)
+            self.assertIn('Method "missing()[I" not found', missing.stderr)
+            # Whole-class replacement has no method argument or declaration.
+            # It must not enter the declaration check or search for an empty name.
+            path.write_text(path.read_text()+'# UNIQUE_BEFORE\n')
+            whole_class = script[:script.index('SMALI_PATCH system')] + (
+                'SMALI_PATCH system system/framework/service.jar '
+                'smali/com/example/Large.smali replaceall UNIQUE_BEFORE UNIQUE_AFTER\n')
+            replaced = subprocess.run(['bash', '-c', whole_class, '--', str(repo), str(root)],
+                                      capture_output=True, text=True)
+            self.assertEqual(replaced.returncode, 0, replaced.stderr)
+            self.assertIn('# UNIQUE_AFTER', path.read_text())
+
+    def test_legacy_feature_guards_check_source_patch_and_real_decode_roots(self):
+        from legacy_features import verify as legacy_verify
+        repo_path = Path(__file__).resolve().parents[2]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            repo, work, apktool = root/'repo', root/'out/work_dir', root/'out/apktool'
+            artifact = 'priv-app/SystemUI/SystemUI.apk'
+            name = 'com/example/PowerButton.smali'
+            original = b'.class public Lcom/example/PowerButton;\n.super Ljava/lang/Object;\n'
+            actual = apktool/'system_ext'/artifact/'smali_classes4'/name
+            actual.parent.mkdir(parents=True)
+            actual.write_bytes(original)
+            # Execute apktool.sh's actual physical partition mapping. S10
+            # merges system_ext in system, while its decode cache stays separate.
+            import re
+            prepare = (repo_path/'scripts/apktool.sh').read_text()
+            mapping = prepare[prepare.index('    local FILE_PATH="$WORK_DIR"'):
+                              prepare.index('    OUTPUT_PATH="$APKTOOL_DIR/')]
+            result = subprocess.check_output(['bash', '-c',
+                'WORK_DIR="$1"; PARTITION=system_ext; FILE="$2"; '
+                'TARGET_OS_BUILD_SYSTEM_EXT_PARTITION=false; '
+                'prepare(){ '+mapping.rstrip()+'; printf "%s" "$INPUT_FILE"; }; prepare',
+                '--', str(work), artifact], text=True)
+            archive = Path(result)
+            self.assertEqual(archive.relative_to(work).as_posix(),
+                             'system/system/system_ext/'+artifact)
+            archive.parent.mkdir(parents=True)
+            archive.write_bytes(b'pinned source APK')
+            patch = repo/'migration.patch'
+            patch.parent.mkdir(parents=True)
+            patch.write_bytes(b'reviewed patch')
+            info = {'source_firmware': 'pinned', 'migrations': {'fingerprint': {
+                'patches': {'migration.patch': digest(patch.read_bytes())},
+                'artifacts': {'SystemUI.apk': {'partition': 'system_ext', 'path': artifact,
+                    'source_sha256': digest(archive.read_bytes()),
+                    'work_path': archive.relative_to(work).as_posix(),
+                    'before': {name: digest(original)}}}}}}
+            lock = repo/'scripts/s10/legacy-features-v4.0.1.json'
+            lock.parent.mkdir(parents=True)
+            lock.write_text(json.dumps(info))
+            legacy_verify(repo, work, apktool, 'beyond0lte', 'fingerprint', 'before')
+            with self.assertRaisesRegex(ValueError, 'only valid for S10e'):
+                legacy_verify(repo, work, apktool, 'beyond2lte', 'fingerprint', 'before')
+            patch.write_bytes(b'unreviewed patch')
+            with self.assertRaisesRegex(ValueError, 'patch differs'):
+                legacy_verify(repo, work, apktool, 'beyond0lte', 'fingerprint', 'before')
+            patch.write_bytes(b'reviewed patch')
+            archive.write_bytes(b'different source APK')
+            with self.assertRaisesRegex(ValueError, 'pinned source firmware'):
+                legacy_verify(repo, work, apktool, 'beyond0lte', 'fingerprint', 'before')
+            archive.write_bytes(b'pinned source APK')
+            actual.write_bytes(original+b'# changed callback\n')
+            with self.assertRaisesRegex(ValueError, 'Unreviewed'):
+                legacy_verify(repo, work, apktool, 'beyond0lte', 'fingerprint', 'before')
+            actual.write_bytes(original)
+            duplicate = apktool/'system_ext'/artifact/'smali'/name
+            duplicate.parent.mkdir(parents=True)
+            duplicate.write_bytes(original)
+            with self.assertRaisesRegex(ValueError, 'ambiguous'):
+                legacy_verify(repo, work, apktool, 'beyond0lte', 'fingerprint', 'before')
+            duplicate.unlink()
+            stale = work/'apktool/system_ext'/artifact/'smali'/name
+            stale.parent.mkdir(parents=True)
+            stale.write_bytes(original)
+            actual.unlink()
+            with self.assertRaisesRegex(ValueError, 'ambiguous'):
+                legacy_verify(repo, work, apktool, 'beyond0lte', 'fingerprint', 'before')
+
+    def test_fingerprint_flags_reject_reassignment_and_sensor_type_drift(self):
+        from legacy_features import check_output_classes, method as legacy_method
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            name = 'com/example/Hardware.smali'
+            path = root/'smali_classes2'/name
+            path.parent.mkdir(parents=True)
+            text = '''.class public Lcom/example/Hardware;
+.super Ljava/lang/Object;
+.method static constructor <clinit>()V
+    .locals 19
+    const/16 v18, 0x0
+    const-string v1, "3"
+    sput-boolean v18, Lcom/example/Hardware;->IN_DISPLAY:Z
+    return-void
+.end method
+.method public static sensorType()I
+    .locals 1
+    const/4 v0, 0x4
+    return v0
+.end method
+'''
+            item = {'output': {}, 'output_methods': {name: {
+                'sensorType()I': digest(legacy_method(text, 'sensorType()I').encode())}},
+                'field_constants': {name: {'IN_DISPLAY': {'register': 'v18', 'value': '0x0'}}}}
+            path.write_text(text)
+            check_output_classes(root, item)
+            # HFR adapts an unrelated literal in the same shared initializer.
+            path.write_text(text.replace('"3"', '"0"'))
+            check_output_classes(root, item)
+            path.write_text(text.replace('    return-void', '    const/16 v18, 0x1\n    return-void'))
+            with self.assertRaisesRegex(ValueError, 'register is overwritten'):
+                check_output_classes(root, item)
+            path.write_text(text.replace('sput-boolean v18', 'sput-boolean v1'))
+            with self.assertRaisesRegex(ValueError, 'hardware flag'):
+                check_output_classes(root, item)
+            path.write_text(text.replace('const/4 v0, 0x4', 'const/4 v0, 0x2'))
+            with self.assertRaisesRegex(ValueError, 'Changed legacy feature method'):
+                check_output_classes(root, item)
+
     def test_virtual_migration_cli_uses_explicit_buildenv_decode_directory(self):
         import re
         import sys
@@ -199,6 +347,10 @@ class PortTests(unittest.TestCase):
             info={'device':device,'revision':KERNEL_REV,'ext4':True,'kernelsu':False,
                   'sha256':{n:hashlib.sha256(b).hexdigest() for n,b in images.items()}}
             members['kernel.json']=json.dumps(info)
+            from legacy_features import manifest as legacy_manifest
+            legacy = legacy_manifest(Path(__file__).resolve().parents[2])
+            members['wifi-provenance.json'] = json.dumps(dict(legacy['migrations']['wifi'],
+                device=device, source_firmware=legacy['source_firmware'], mode='wifi'))
             for part in BUDGET:
                 for suffix in ('.transfer.list','.new.dat.br','.patch.dat'): members[part+suffix]=b''
             def write():
@@ -207,6 +359,13 @@ class PortTests(unittest.TestCase):
             write(); verify_zip(target,device)
             members['dtbo.img']=b'y'*4096; write()
             with self.assertRaises(ValueError): verify_zip(target,device)
+            members['dtbo.img'] = images['dtbo.img']
+            wrong = json.loads(members['wifi-provenance.json'])
+            wrong['device'] = 'beyond0lte'
+            members['wifi-provenance.json'] = json.dumps(wrong)
+            write()
+            with self.assertRaisesRegex(ValueError, 'packaged S10 wifi'):
+                verify_zip(target, device)
 
     def test_stock_policies_reach_all_four_sdhms_outputs(self):
         repo = Path(__file__).resolve().parents[2]
