@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Regressions for physical installation, kernel integrity and model migration."""
 import hashlib
+import gzip
 import json
+import struct
 import subprocess
 import tempfile
 import unittest
@@ -12,9 +14,84 @@ from kernel_artifacts import KERNEL_REV, install
 from validate_midas import verify
 from optional_binary_patch import PATCHES, patch
 from policies import inputs as policy_inputs, output as policy_output, record_matrix, MATRIX, SDHMS
+from camera_native import check_classes
+from storage_audit import boot_fstab, check_fstab
+from verify_zip import verify as verify_zip
 
 
 class PortTests(unittest.TestCase):
+    def test_native_camera_classes_reject_changed_or_duplicate_implementations(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); relative='com/example/Camera.smali'
+            path=root/'smali_classes2'/relative; path.parent.mkdir(parents=True)
+            original=b'.class Lcom/example/Camera;\n.super Ljava/lang/Object;\n'
+            path.write_bytes(original)
+            expected={relative:hashlib.sha256(original).hexdigest()}
+            check_classes(root,expected)
+            other=root/'smali_classes5'/relative; other.parent.mkdir(parents=True)
+            other.write_bytes(original)
+            with self.assertRaises(ValueError): check_classes(root,expected)
+            other.unlink(); path.write_bytes(original+b'# unexpected code change\n')
+            with self.assertRaises(ValueError): check_classes(root,expected)
+            path.write_bytes(original.replace(b'Camera;',b'Impostor;'))
+            with self.assertRaises(ValueError): check_classes(root,expected)
+            path.unlink()
+            with self.assertRaises(ValueError): check_classes(root,expected)
+
+    def test_physical_storage_module_preserves_pinned_boot_bytes(self):
+        repo=Path(__file__).resolve().parents[2]
+        def entry(name, data, mode=0o100644):
+            name=name.encode()+b'\0'; fields=[1,mode,0,0,1,0,len(data),0,0,0,0,len(name),0]
+            result=b'070701'+b''.join(f'{n:08x}'.encode() for n in fields)+name
+            result+=b'\0'*((-len(result))%4); result+=data
+            return result+b'\0'*((-len(result))%4)
+        fstab=''.join(f'/dev/block/by-name/{p} /{p} ext4 ro wait,first_stage_mount\n' for p in BUDGET)
+        fstab+='/dev/block/by-name/userdata /data f2fs noatime wait,check,quota\n'
+        ramdisk=gzip.compress(entry('fstab.exynos9820',fstab.encode())+entry('TRAILER!!!',b''))
+        header=bytearray(2048); header[:8]=b'ANDROID!'
+        struct.pack_into('<9I',header,8,8,0, len(ramdisk),0,0,0,0,2048,1)
+        boot=bytes(header)+b'kernel!!'+b'\0'*2040+ramdisk
+        self.assertEqual(boot_fstab(boot),fstab)
+        check_fstab(fstab,ramdisk=True)
+        for text in (fstab.replace('ext4','erofs'),fstab.replace('wait,first_stage_mount','wait,logical'),
+                     fstab.replace('f2fs','ext4'),fstab.replace('wait,check,quota','wait,fileencryption=ice')):
+            with self.assertRaises(ValueError): check_fstab(text)
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); (work/'kernel').mkdir(); (work/'vendor/etc').mkdir(parents=True)
+            (work/'vendor/etc/fstab.exynos9820').write_text(fstab)
+            images={'boot.img':boot,'dtb.img':bytes.fromhex('d7b7ab1e')+b'x'*4096,'dtbo.img':bytes.fromhex('d7b7ab1e')+b'y'*4096}
+            for name,data in images.items(): (work/'kernel'/name).write_bytes(data)
+            info={'device':'beyond2lte','revision':KERNEL_REV,'ext4':True,'kernelsu':False,
+                  'sha256':{name:hashlib.sha256(data).hexdigest() for name,data in images.items()}}
+            (work/'kernel/kernel.json').write_text(json.dumps(info))
+            script='''set -e; SRC_DIR="$1"; WORK_DIR="$2"; TARGET_PLATFORM=exynos9820; TARGET_CODENAME=beyond2lte;
+                EVAL() { eval "$1"; }; source "$SRC_DIR/unica/patches/fs/customize.sh"'''
+            subprocess.run(['bash','-c',script,'--',str(repo),str(work)],check=True,capture_output=True,text=True)
+            for name,data in images.items(): self.assertEqual((work/'kernel'/name).read_bytes(),data)
+            self.assertEqual((work/'vendor/etc/fstab.exynos9820').read_text(),fstab)
+            (work/'kernel/boot.img').write_bytes(boot+b'changed')
+            result=subprocess.run(['bash','-c',script,'--',str(repo),str(work)],capture_output=True,text=True)
+            self.assertNotEqual(result.returncode,0)
+
+    def test_packaged_kernel_digest_detects_post_build_changes(self):
+        with tempfile.TemporaryDirectory() as td:
+            target=Path(td)/'rom.zip'; device='beyond2lte'
+            images={n:b'x'*4096 for n in ('boot.img','dtb.img','dtbo.img')}
+            sizes={p:4000000 for p in BUDGET}; sizes.update({n.removesuffix('.img'):len(b) for n,b in images.items()})
+            shell,edify=generate(device,sizes)
+            members=dict(images); members['META-INF/com/google/android/updater-script']=edify
+            info={'device':device,'revision':KERNEL_REV,'ext4':True,'kernelsu':False,
+                  'sha256':{n:hashlib.sha256(b).hexdigest() for n,b in images.items()}}
+            members['kernel.json']=json.dumps(info)
+            for part in BUDGET:
+                for suffix in ('.transfer.list','.new.dat.br','.patch.dat'): members[part+suffix]=b''
+            def write():
+                with zipfile.ZipFile(target,'w') as z:
+                    for name,data in members.items(): z.writestr(name,data)
+            write(); verify_zip(target,device)
+            members['dtbo.img']=b'y'*4096; write()
+            with self.assertRaises(ValueError): verify_zip(target,device)
+
     def test_stock_policies_reach_all_four_sdhms_outputs(self):
         repo = Path(__file__).resolve().parents[2]
         for device, models in DEVICES.items():

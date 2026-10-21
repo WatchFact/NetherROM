@@ -1,0 +1,22 @@
+{
+  "hardware_revision": "4d30365b4452a651cc87af8e91733ec1c862f716",
+  "apk": "platform/exynos9820/patches/camera/system/priv-app/SamsungCamera/SamsungCamera.apk",
+  "apk_git_blob": "c03527307a4d57cc0674cab800f47c07c5ec7f63",
+  "apk_sha256": "787def3cdc45f0c8a226f2eb78acda8e46ac4e69a4a533ee9c15e214b067b2d5",
+  "apktool_archive_sha256": "7b391625609ad129765ee6687fc387858b0c3f949856a4ea42d5cf58ed848a05",
+  "classes": {
+    "com/samsung/android/camera/core2/callback/forwarder/TextDetectionInfoCallbackForwarder.smali": "4c790dc211eac94ad193cee16f2645833bc71aa0dc120937fce5e7b547d6e3fa",
+    "com/samsung/android/camera/core2/local/vendorkey/SemCaptureResult.smali": "832dc41ead7b9cfe593e34b1483670cb651e5b9c3a6456e7fea11ec440340d76",
+    "com/samsung/android/camera/core2/maker/MakerCallbackManager.smali": "0808c7876ea73cb43733ec2e6fe7d7dde48ac2b705f9f94fd9589e4195ad8b9c",
+    "com/samsung/android/camera/core2/maker/AutoBeautyPhotoMaker$6.smali": "962ce34ff29f30e8e5d8aa332953b009eb3befa4f79866171fd9da4c952a4a5c",
+    "com/samsung/android/camera/core2/maker/BeautyPhotoMaker$7.smali": "c7e74fd163c8c10e1d0dbd9d79f9b53a1169b8cce03dbed2404d5bc908587e71",
+    "com/samsung/android/camera/core2/maker/DualBokehPhotoMaker$2.smali": "721c061aac37e27cd0638c3722cbf632aede35e2e8e78e4cd8ca20438f9bf8ec",
+    "com/samsung/android/camera/core2/maker/SuperNightPhotoMaker$2.smali": "f5c283f6e82a420b35c77b0315509be6d7a2140b9ee910a8b1806e04bc40fdb7",
+    "com/samsung/android/camera/core2/CamCapability.smali": "85575fd6616eeb23cd670e58b5e6f9c6c707de9de2e577fe4c3c589b6d26ab90",
+    "com/samsung/android/camera/core2/maker/MakerBase.smali": "fa2ae894817aed9020b6e0eacdfe5f973322741d496cd0c0885d65381ffbeb81",
+    "com/sec/android/app/camera/engine/request/CapabilityImpl.smali": "6d2ba13f6ea0b545f7973b0c62032a16c1b4e83399de532ec5f1f78f03c54d74",
+    "com/sec/android/app/camera/engine/request/PrepareMakerRequest.smali": "82c1657d2af19b4155b03b5a6c16036accbc17f45a84cef575fc53c6b1b03ac5",
+    "com/sec/android/app/camera/engine/request/PrepareVideoMakerRequest.smali": "da82c3058e7811cb4eea81340afbf5f139259845fde7ec028bdb6fa727e9a7b5",
+    "com/sec/android/app/camera/interfaces/Capability.smali": "bc4c0ce8d014d3c00dd9e87a7fc7ee6f94db1ebee17df13f0171df107d838167"
+  }
+}

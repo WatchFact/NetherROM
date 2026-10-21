@@ -10,7 +10,7 @@ KERNEL_REV = "9a0a792d227c8ae6cddac0c9d68a8bb9782c44cb"
 DEVICES = ("beyond0lte", "beyond1lte", "beyond2lte", "beyondx")
 
 
-def install(source, destination, device):
+def validate(source, device):
     if device not in DEVICES:
         raise ValueError("Unsupported S10 target")
     info = json.loads((source / "kernel.json").read_text())
@@ -26,6 +26,11 @@ def install(source, destination, device):
             raise ValueError(f"Invalid {name} image")
         if hashlib.sha256(data).hexdigest() != info["sha256"][name]:
             raise ValueError(f"Corrupted kernel artifact: {name}")
+    return info
+
+
+def install(source, destination, device):
+    validate(source, device)
     destination.mkdir(parents=True, exist_ok=True)
     for name in ("boot.img", "dtb.img", "dtbo.img"):
         shutil.copy2(source / name, destination / name)

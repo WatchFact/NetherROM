@@ -1,3 +1,11 @@
+if [[ "$TARGET_PLATFORM" == "exynos9820" ]]; then
+    # The pinned S10 ramdisk already supports physical ext4/erofs partitions
+    # and F2FS userdata. Verify the actual image and vendor
+    # fstab instead of repacking boot.img and invalidating its source digest.
+    EVAL "python3 \"$SRC_DIR/scripts/s10/storage_audit.py\" \"$WORK_DIR\" \"$TARGET_CODENAME\"" || return 1
+    return 0
+fi
+
 # [
 PARTITIONS_LIST="system vendor product system_ext odm vendor_dlkm odm_dlkm system_dlkm"
 

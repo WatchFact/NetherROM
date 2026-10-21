@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import json
+import hashlib
 import sys
 import zipfile
 from pathlib import Path
 from installer import BUDGET, DEVICES
+from kernel_artifacts import KERNEL_REV
 
 
 def verify(path, device):
@@ -33,8 +35,13 @@ def verify(path, device):
         for model in DEVICES[device]:
             if model not in updater:
                 raise ValueError("Missing model assertion")
-        if json.loads(z.read('kernel.json'))['device'] != device:
-            raise ValueError("Wrong kernel variant")
+        info = json.loads(z.read('kernel.json'))
+        if (info['device'] != device or info['revision'] != KERNEL_REV
+                or info['kernelsu'] is not False or info['ext4'] is not True):
+            raise ValueError("Wrong kernel variant, revision or configuration")
+        for name in ('boot.img', 'dtb.img', 'dtbo.img'):
+            if hashlib.sha256(z.read(name)).hexdigest() != info['sha256'][name]:
+                raise ValueError('Kernel image changed during packaging: '+name)
         bad = z.testzip()
         if bad:
             raise ValueError("Corrupted ZIP member: " + bad)

@@ -52,6 +52,12 @@ def declared_imports(text):
 
 def audit(device, firmware=False):
     entries = index()
+    from camera_native import manifest as camera_manifest
+    native = camera_manifest(ROOT)
+    original = json.loads((ROOT/'scripts/s10/hardware-v3.1.0.json').read_text())
+    if (entries.get(native['apk']) != native['apk_git_blob']
+            or original['files'][native['apk']]['sha'] != native['apk_git_blob']):
+        raise ValueError('Native legacy camera provenance does not match the imported APK')
     lock = json.loads((ROOT/'scripts/s10/hardware-lock.json').read_text())
     for path, sha in lock['files'].items():
         if entries.get(path) != sha:

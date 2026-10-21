@@ -40,6 +40,10 @@ VENDOR_FILES = (
 
 
 def audit(work, device):
+    from storage_audit import audit as storage_audit
+    storage_audit(work, device)
+    from camera_native import output as native_camera_output
+    native_camera_output(Path(__file__).resolve().parents[2], work, device)
     from policies import output as policy_output
     policy_output(Path(__file__).resolve().parents[2], work, device)
     from camera_output_audit import check

@@ -126,7 +126,12 @@ if [ "$TARGET_PLATFORM_SDK_VERSION" -lt "34" ]; then
     PATCHED=true
     APPLY_PATCH "system" "system/framework/framework.jar" \
         "$MODPATH/camera/framework.jar/0001-Backport-legacy-CameraMetadataNative-code.patch"
-    if $TARGET_CAMERA_SUPPORT_MASS_APP_FLAVOR; then
+    if [[ "$TARGET_PLATFORM" == "exynos9820" ]]; then
+        # The pinned 3.1.0 camera already uses the legacy callbacks and second
+        # picture API. Modern-camera backports target a different class model.
+        DECODE_APK "system" "system/priv-app/SamsungCamera/SamsungCamera.apk"
+        EVAL "python3 \"$SRC_DIR/scripts/s10/camera_native.py\" \"$SRC_DIR\" \"$WORK_DIR\" \"$APKTOOL_DIR/system/priv-app/SamsungCamera/SamsungCamera.apk\" \"$TARGET_CODENAME\"" || return 1
+    elif $TARGET_CAMERA_SUPPORT_MASS_APP_FLAVOR; then
         APPLY_PATCH "system" "system/priv-app/SamsungCamera/SamsungCamera.apk" \
             "$MODPATH/camera_mass/SamsungCamera.apk/0001-Backport-legacy-Scene-detection-code.patch"
     else
@@ -439,7 +444,9 @@ fi
 # platform until the feature is ported against the new capability model.
 if [ "$TARGET_PLATFORM_SDK_VERSION" -lt "35" ] && [ "$TARGET_PLATFORM" != "exynos990" ]; then
     PATCHED=true
-    if $TARGET_CAMERA_SUPPORT_MASS_APP_FLAVOR; then
+    if [[ "$TARGET_PLATFORM" == "exynos9820" ]]; then
+        EVAL "python3 \"$SRC_DIR/scripts/s10/camera_native.py\" \"$SRC_DIR\" \"$WORK_DIR\" \"$APKTOOL_DIR/system/priv-app/SamsungCamera/SamsungCamera.apk\" \"$TARGET_CODENAME\"" || return 1
+    elif $TARGET_CAMERA_SUPPORT_MASS_APP_FLAVOR; then
         APPLY_PATCH "system" "system/priv-app/SamsungCamera/SamsungCamera.apk" \
             "$MODPATH/camera_mass/SamsungCamera.apk/0001-Backport-CONTROL_AVAILABLE_FEATURE_SECOND_PICTURE_CO.patch"
     else
