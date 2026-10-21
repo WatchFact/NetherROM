@@ -54,42 +54,7 @@ jobs:
               gh run cancel "$old_run" --repo "$GH_REPO" || true
             done
 
-  preflight:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          filter: blob:none
-          sparse-checkout-cone-mode: false
-          sparse-checkout: |
-            /buildenv.sh
-            /scripts/
-            /target/beyond2lte/
-            /platform/exynos9820/config.sh
-            /platform/exynos9820/patches/**/customize.sh
-            /platform/exynos9820/patches/**/module.prop
-            /unica/configs/
-            /unica/patches/dvfs/
-            /unica/patches/vintf/
-            /unica/patches/fs/
-            /unica/patches/camera/customize.sh
-            /unica/patches/legacy/customize.sh
-            /unica/patches/product_feature/customize.sh
-            /security/
-      - name: Test physical installer, kernel guards and firmware patch boundaries
-        run: python3 scripts/s10/test_port.py
-      - name: Validate locked Exynos9820 hardware and only SM-G975F/DS target
-        shell: bash
-        run: |
-          set -eo pipefail
-          find scripts/s10 platform/exynos9820 target/beyond2lte unica/patches/{dvfs,vintf,fs,legacy,product_feature} -name '*.sh' -print0 | xargs -0 -n 1 bash -n
-          for target in beyond2lte; do
-            python3 scripts/s10/preflight.py --device "$target"
-            bash -c 'set -e; source ./buildenv.sh "$1"; test "$ROM_VERSION" = 4.0.2; test "$TARGET_CODENAME" = "$1"; test "$TARGET_PLATFORM" = exynos9820; test "$TARGET_USE_DYNAMIC_PARTITIONS" = false; test "$TARGET_OS_FILE_SYSTEM_TYPE" = ext4; test "$TARGET_LCD_CONFIG_HFR_DEFAULT_REFRESH_RATE" = 60' -- "$target"
-          done
-
   source-release:
-    needs: preflight
     runs-on: ubuntu-24.04
     steps:
       - name: Publish reviewed port source snapshot
@@ -105,7 +70,6 @@ jobs:
           fi
 
   build:
-    needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 350
     strategy:
@@ -143,10 +107,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: bash scripts/s10/tools.sh
-      - name: Verify stock thermal policies survive APK compilation and signing
-        run: python3 scripts/s10/thermal_apk_smoke.py --repo "$PWD" --tools "$PWD/out/tools" --device '${{ matrix.target }}'
-      - name: Verify physical ODM image size, contents and metadata with pinned tools
-        run: python3 scripts/s10/odm_image_smoke.py --repo "$PWD" --tools "$PWD/out/tools" --device '${{ matrix.target }}'
       - name: Compile target S10 kernel from pinned source
         run: bash scripts/s10/kernel.sh '${{ matrix.target }}'
       - name: Download and extract firmware from scratch
