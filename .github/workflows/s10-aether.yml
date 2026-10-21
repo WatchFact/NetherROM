@@ -27,12 +27,33 @@ on:
 
 permissions:
   contents: write
-  actions: read
+  actions: write
 concurrency:
-  group: s10-clean-${{ github.run_id }}-${{ github.run_attempt }}
-  cancel-in-progress: false
+  # Superseded commits must not waste runners building obsolete devices.
+  group: s10-smg975f-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  cancel-obsolete:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Cancel obsolete S10 multi-device runs on this branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          CURRENT_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run list --workflow s10-aether.yml --branch "$GITHUB_REF_NAME" \
+            --limit 100 --json databaseId,status,headSha --repo "$GH_REPO" |
+            jq -r --arg sha "$CURRENT_SHA" \
+              '.[] | select(.headSha != $sha and (.status == "queued" or .status == "in_progress" or .status == "waiting" or .status == "pending")) | .databaseId' |
+            while read -r old_run; do
+              echo "Cancelling obsolete commit run $old_run"
+              gh run cancel "$old_run" --repo "$GH_REPO" || true
+            done
+
   preflight:
     runs-on: ubuntu-24.04
     steps:
