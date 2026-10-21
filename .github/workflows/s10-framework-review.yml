@@ -57,6 +57,34 @@ jobs:
           test "$(cat "$source_dir/.extracted")" = "$SOURCE_FIRMWARE_VERSION"
           mkdir framework-review
           cp "$source_dir/.extracted" framework-review/firmware.txt
+          # Record sizes before making a capacity decision. This is a read-only
+          # firmware inventory; it does not remove ROM or hardware payloads.
+          python3 - "$source_dir" <<'PY_CAPACITY'
+          import collections,json,os,sys,zipfile
+          from pathlib import Path
+          root=Path(sys.argv[1]); directories=collections.Counter(); files=[]; archives=[]
+          for path in sorted(root.rglob('*')):
+              if path.is_symlink() or not path.is_file(): continue
+              name=path.relative_to(root).as_posix(); size=path.stat().st_size
+              files.append({'path':name,'size':size})
+              parts=Path(name).parts
+              for depth in range(1,min(len(parts),5)):
+                  directories['/'.join(parts[:depth])]+=size
+              if path.suffix in ('.apk','.apex','.capex'):
+                  with zipfile.ZipFile(path) as archive:
+                      entries=archive.infolist()
+                      archives.append({'path':name,'size':size,'uncompressed':sum(x.file_size for x in entries),
+                          'stored_bytes':sum(x.file_size for x in entries if x.compress_type==0),
+                          'stored_dex':sum(x.file_size for x in entries if x.compress_type==0 and x.filename.endswith('.dex')),
+                          'stored_native':sum(x.file_size for x in entries if x.compress_type==0 and x.filename.endswith('.so'))})
+          report={'firmware':(root/'.extracted').read_text(),'directories':dict(directories.most_common()),
+              'files':sorted(files,key=lambda x:x['size'],reverse=True),
+              'archives':sorted(archives,key=lambda x:x['size'],reverse=True)}
+          Path('framework-review/capacity.json').write_text(json.dumps(report,indent=2)+'\n')
+          print('Exact source firmware payload sizes (largest directories):')
+          print(json.dumps(dict(directories.most_common(50)),indent=2))
+          print('Largest files:'); print(json.dumps(report['files'][:50],indent=2))
+          PY_CAPACITY
           # Keep exact portrait inputs for reviewing the model/backend contract.
           mkdir -p framework-review/portrait
           cp "$source_dir/system/system/cameradata/portrait_data/"*.json framework-review/portrait/
