@@ -1,0 +1,6 @@
+{
+  "name": "netherrom-build",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "privileged": true,
+  "hostRequirements": { "cpus": 8, "storage": "64gb" }
+}
