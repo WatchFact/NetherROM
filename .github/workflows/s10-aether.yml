@@ -1,0 +1,222 @@
+name: NetherROM Aether 4.0.2 - S10 legacy clean build
+on:
+  push:
+    branches: [port/artisan-aether-s10-clean-20261021]
+    paths:
+      - 'platform/exynos9820/**'
+      - 'target/beyond*/**'
+      - 'prebuilts/samsung/a26xxx/**'
+      - 'prebuilts/samsung/r9sxxx/**'
+      - 'prebuilts/samsung/p3sxxx/**'
+      - 'prebuilts/samsung/a73xqxx/**'
+      - 'scripts/s10/**'
+      - 'scripts/apktool.sh'
+      - 'scripts/utils/common_utils.sh'
+      - 'scripts/utils/smali_utils.sh'
+      - 'scripts/internal/build_flashable_zip.sh'
+      - 'scripts/internal/create_work_dir.sh'
+      - 'unica/configs/essi.sh'
+      - 'unica/patches/dvfs/**'
+      - 'unica/patches/vintf/**'
+      - 'unica/patches/legacy/**'
+      - 'unica/patches/camera/**'
+      - 'unica/patches/product_feature/**'
+      - 'unica/patches/fs/**'
+      - '.github/workflows/s10-aether.yml'
+  workflow_dispatch:
+    inputs:
+      device:
+        description: Exynos S10 target
+        required: true
+        default: all
+        type: choice
+        options: [all, beyond0lte, beyond1lte, beyond2lte, beyondx]
+
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: s10-clean-${{ github.run_id }}-${{ github.run_attempt }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /buildenv.sh
+            /scripts/
+            /target/beyond*/
+            /platform/exynos9820/config.sh
+            /platform/exynos9820/patches/**/customize.sh
+            /platform/exynos9820/patches/**/module.prop
+            /unica/configs/
+            /unica/patches/dvfs/
+            /unica/patches/vintf/
+            /unica/patches/fs/
+            /unica/patches/camera/customize.sh
+            /unica/patches/legacy/customize.sh
+            /unica/patches/product_feature/customize.sh
+            /security/
+      - name: Test physical installer, kernel guards and firmware patch boundaries
+        run: python3 scripts/s10/test_port.py
+      - name: Validate complete hardware inventory and all four configurations
+        shell: bash
+        run: |
+          set -eo pipefail
+          find scripts/s10 platform/exynos9820 target/beyond* unica/patches/{dvfs,vintf,fs,legacy,product_feature} -name '*.sh' -print0 | xargs -0 -n 1 bash -n
+          for target in beyond0lte beyond1lte beyond2lte beyondx; do
+            python3 scripts/s10/preflight.py --device "$target"
+            bash -c 'set -e; source ./buildenv.sh "$1"; test "$ROM_VERSION" = 4.0.2; test "$TARGET_CODENAME" = "$1"; test "$TARGET_PLATFORM" = exynos9820; test "$TARGET_USE_DYNAMIC_PARTITIONS" = false; test "$TARGET_OS_FILE_SYSTEM_TYPE" = ext4; test "$TARGET_LCD_CONFIG_HFR_DEFAULT_REFRESH_RATE" = 60' -- "$target"
+          done
+
+  source-release:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Publish reviewed port source snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag="netherrom-4.0.2-s10-source-${GITHUB_SHA:0:12}"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
+              --title 'NetherROM 4.0.2 S10 port source - hardware testing pending' \
+              --notes 'Clean ArtisanROM 4.0.2 base (39312bda2bd001f2e60efbb4e381c421c44da630), complete S10 Exynos9820 hardware imported from 3.1.0 (4d30365b4452a651cc87af8e91733ec1c862f716). Source snapshot only. Flashable packages are published separately after complete build, image and ZIP checks. Physical boot and hardware operation have not been tested.'
+          fi
+
+  build:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        target: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.device != 'all' && format('["{0}"]', inputs.device) || '["beyond0lte","beyond1lte","beyond2lte","beyondx"]') }}
+    steps:
+      - name: Checkout pristine source without firmware or build caches
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+      - name: Reclaim runner space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+      - name: Install ROM and kernel dependencies
+        run: |
+          sudo apt-get update
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            attr bc bison build-essential ccache clang cpio curl e2fsprogs flex ffmpeg \
+            git libbrotli-dev libbz2-dev libelf-dev libgtest-dev libncurses-dev \
+            libpcre2-dev libprotobuf-dev libssl-dev libunwind-dev libzstd-dev \
+            lld lz4 p7zip-full protobuf-compiler python-is-python3 python3 rsync \
+            unzip webp wget zip gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          sudo modprobe erofs || true
+          sudo modprobe f2fs || true
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Restore SHA256-pinned assembler tools (no firmware caches)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/s10/tools.sh
+      - name: Verify stock thermal policies survive APK compilation and signing
+        run: python3 scripts/s10/thermal_apk_smoke.py --repo "$PWD" --tools "$PWD/out/tools" --device '${{ matrix.target }}'
+      - name: Verify physical ODM image size, contents and metadata with pinned tools
+        run: python3 scripts/s10/odm_image_smoke.py --repo "$PWD" --tools "$PWD/out/tools" --device '${{ matrix.target }}'
+      - name: Compile target S10 kernel from pinned source
+        run: bash scripts/s10/kernel.sh '${{ matrix.target }}'
+      - name: Download and extract firmware from scratch
+        shell: bash
+        run: |
+          set -eo pipefail
+          source ./buildenv.sh '${{ matrix.target }}'
+          ./scripts/download_fw.sh
+          ./scripts/extract_fw.sh
+          python3 scripts/s10/preflight.py --device '${{ matrix.target }}' --firmware
+          # Keep download markers for make_rom; original multi-GB archives are no longer needed.
+          find out/odin -type f ! -name .downloaded -delete
+      - name: Build fresh filesystems and every patched APK
+        shell: bash
+        run: |
+          set -eo pipefail
+          source ./buildenv.sh '${{ matrix.target }}'
+          ./scripts/make_rom.sh --force --no-rom-zip 2>&1 | tee "out/target/${{ matrix.target }}/build.log"
+      - name: Build, sign and verify physical ext4 installer
+        shell: bash
+        run: |
+          set -eo pipefail
+          source ./buildenv.sh '${{ matrix.target }}'
+          # Record firmware identities and reclaim extraction space before packaging.
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,shutil
+          root=Path('out').resolve(); identities={}
+          for p in (root/'fw').glob('*/.extracted'):
+              identities[p.parent.name]=p.read_text()
+          (root/'target/${{ matrix.target }}/firmware-inputs.json').write_text(json.dumps(identities,indent=2)+'\n')
+          for name in ('fw','odin'):
+              p=root/name
+              if p.is_dir(): shutil.rmtree(p)
+          PY
+          bash scripts/s10/package.sh
+      - name: Publish validated ROM prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          zip='out/NetherROM_4.0.2_${{ matrix.target }}_EXPERIMENTAL.zip'
+          mkdir release-parts
+          split -b 1800M -d -a 3 "$zip" "release-parts/$(basename "$zip").part-"
+          cp "$zip.sha256" release-parts/ROM-SHA256.txt
+          (cd release-parts && sha256sum *.part-* > PARTS-SHA256.txt)
+          tag='netherrom-4.0.2-${{ matrix.target }}-${{ github.run_number }}'
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
+              --title 'NetherROM 4.0.2 - ${{ matrix.target }} - experimental' \
+              --notes 'Clean kernel and firmware build. Physical ext4 partitions, kernel target/digests, image contents and ZIP CRC verified. Device boot and hardware operation are not yet tested. Requires the ArtisanROM S10 legacy repartition layout and compatible recovery. Verify PARTS-SHA256.txt, concatenate the numbered parts in order, then verify ROM-SHA256.txt. Read docs/s10-aether-4.0.2.md.'
+          fi
+          gh release upload "$tag" release-parts/* --clobber
+      - name: Preserve build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s10-${{ matrix.target }}-${{ github.run_id }}-diagnostics
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            out/config.sh
+            out/target/${{ matrix.target }}/*.log
+            out/target/${{ matrix.target }}/firmware-inputs.json
+            out/target/${{ matrix.target }}/work_dir/vintf-provenance.json
+            out/target/${{ matrix.target }}/work_dir/camera-compatibility.json
+            out/target/${{ matrix.target }}/work_dir/camera-portrait-provenance.json
+            out/target/${{ matrix.target }}/work_dir/odm-provenance.json
+            out/target/${{ matrix.target }}/work_dir/configs/fs_config-odm
+            out/target/${{ matrix.target }}/work_dir/configs/file_context-odm
+            out/target/${{ matrix.target }}/work_dir/face-hidl-provenance.json
+            out/target/${{ matrix.target }}/work_dir/virtual-vibration-provenance.json
+            out/target/${{ matrix.target }}/work_dir/fingerprint-provenance.json
+            out/target/${{ matrix.target }}/work_dir/wifi-provenance.json
+            out/target/${{ matrix.target }}/apktool/system/framework/services.jar/smali/com/android/server/biometrics/sensors/face/
+            out/target/${{ matrix.target }}/apktool/system/framework/services.jar/smali_classes2/vendor/samsung/hardware/biometrics/face/
+            kernel-artifacts/${{ matrix.target }}/kernel.json
+            kernel-artifacts/${{ matrix.target }}/kernel.config
+            kernel-artifacts/${{ matrix.target }}/clang-version.txt
+            scripts/s10/hardware-lock.json
+            scripts/s10/dvfs-stock.json
+            scripts/s10/camera-native-v3.1.0.json
+            scripts/s10/face-hidl-v4.0.2.json
+            scripts/s10/virtual-vibration-v4.0.2.json

@@ -1,0 +1,80 @@
+{
+  "source_firmware": "S926BXXSHDZI1/S926BOXMHDZI1/S926BXXSHDZI1",
+  "tools_archive_sha256": "7b391625609ad129765ee6687fc387858b0c3f949856a4ea42d5cf58ed848a05",
+  "review_run": "https://github.com/WatchFact/NetherROM/actions/runs/39561544252",
+  "review_archive_sha256": "068fb3accd917cdf394c51321a7cebe088624639a02f764b03bbc0504ddc4949",
+  "patches": {
+    "unica/patches/product_feature/audio/virtual_vib/framework.jar/0001-Disable-virtual-vibration-support.patch": "2e4d64250852dddb018b1a7cbe3426e85713f858d29d1d32b07b3a88d3fc1549",
+    "unica/patches/product_feature/audio/virtual_vib/s10/services.jar/0001-Disable-virtual-sound-startup.patch": "b3154e97e3c74798202d32d304251470f8987b6e219589f72323b811c4677e62",
+    "unica/patches/product_feature/audio/virtual_vib/s10/SecSettings.apk/0001-Hide-unsupported-virtual-vibration.patch": "3b63dc447e588b3a3f63092491cbadec6dbc41796120091443a1884d8f248109"
+  },
+  "artifacts": {
+    "system/framework/framework.jar": {
+      "source_sha256": "1a01b3a6e70b0928cbfd0f6698a859a8392de853cdfe62b90a0a3527af3651e6",
+      "before": {
+        "com/samsung/android/audio/Rune.smali": "2e1ca499022e0ddfc7cddae2f50341b8828052f4e3e9c6609cb84edbf3fd674d",
+        "com/samsung/android/vibrator/VibRune.smali": "15898009f3b9c303250f04f0b87b68c38abd60c22dda50c7824ea441da5f600e"
+      },
+      "after": {
+        "com/samsung/android/audio/Rune.smali": "81df8aa0e4039ed8b0a2c405d407bb8ca92ff9d4f89605326f4d6ecdc8388f29",
+        "com/samsung/android/vibrator/VibRune.smali": "00108908ae015dff00c20e166c39cd3f0c3b95b3823a36b94fe87e1d3fc9c092"
+      }
+    },
+    "system/framework/services.jar": {
+      "source_sha256": "0a7cd6f0e2ea163e48bc49056ba4ba7a12e97fa2b8b2afcded7a238e4d34d336",
+      "before": {
+        "com/android/server/vibrator/VibratorManagerService.smali": "a259cc0506afd652bcd8bcf8d1bee1a0f0bc8064f5e740dfde060994678b23bd",
+        "com/android/server/vibrator/VibratorManagerService$1.smali": "a4481733508dccf49ddb0659fd068754cae4077b3f31631ef5d0ad1b9e14ab67",
+        "com/android/server/vibrator/VibratorManagerService$ExternalVibratorService.smali": "ecc6e3f362a57e3e65be9c301808ed9d0503ea885153a42a6f1429cc8fdd4580",
+        "com/android/server/vibrator/VibratorManagerService$Lifecycle.smali": "5564bbb4c44c49d0c3406c390af48ccf016b880e610cb49c57f561d1c015846e",
+        "com/android/server/vibrator/VibratorManagerService$SamsungBroadcastReceiver$$ExternalSyntheticLambda0.smali": "2eaed185bee1e5a39a252ea0061f967475f06124ea9e72bf9db3d6b7a037ce91",
+        "com/android/server/vibrator/VibratorManagerService$SamsungBroadcastReceiver$$ExternalSyntheticLambda1.smali": "5952c0e4133df067586f09d5bf26ce67a193d9c6b8a09fe566c497af0b5aead0",
+        "com/android/server/vibrator/VibrationCustomSettings.smali": "6d42d3a8796a82e889f5737bbcb7cdd1e6df41f60d01db8c50aad732b92c22cb",
+        "com/android/server/vibrator/VibrationSettings.smali": "b2e8a99cbf8287b6ea3bf899edb2e6a96a23f325847e26fb73b514f865d7df13",
+        "com/android/server/vibrator/VibratorManagerInternal.smali": "e1336560a12a815a1eefba19d2856e651dbbea7ab036835e0b80957fd7bf93b8",
+        "com/android/server/vibrator/VirtualVibSoundHelper.smali": "986e8537d04989f31d8df90d1138279d5df15b936f2ddaf3eeaaddc3c23d8b2d",
+        "com/android/server/audio/AudioDeviceBroker.smali": "d8148806aac3b1c73bd0fb8314f95bb64ed67df05acccf384ac092545c1c07a1",
+        "com/android/server/audio/BtHelper.smali": "77c130eb86171af09aa3ed5f8f3ad8dc50eed45df4db47f4d1d2fd0485566ddc",
+        "com/android/server/audio/BtHelper$$ExternalSyntheticLambda0.smali": "01352fe766ea1db3c0f02d2bb823bdc90edbc645df5c4e8c95f2dcdc0f48783b",
+        "com/samsung/android/server/audio/utils/BtUtils.smali": "b0aa17587a12302d9290654270a4c651d759d0d3746d8aed815a4561798fbb0d"
+      },
+      "after": {
+        "com/android/server/vibrator/VibratorManagerService.smali": "44e6298c516efa5d45a59aa0980bb253d38bb8fc10badebc2c77b768718603ec",
+        "com/android/server/vibrator/VibratorManagerService$1.smali": "a4481733508dccf49ddb0659fd068754cae4077b3f31631ef5d0ad1b9e14ab67",
+        "com/android/server/vibrator/VibratorManagerService$ExternalVibratorService.smali": "ecc6e3f362a57e3e65be9c301808ed9d0503ea885153a42a6f1429cc8fdd4580",
+        "com/android/server/vibrator/VibratorManagerService$Lifecycle.smali": "5564bbb4c44c49d0c3406c390af48ccf016b880e610cb49c57f561d1c015846e",
+        "com/android/server/vibrator/VibratorManagerService$SamsungBroadcastReceiver$$ExternalSyntheticLambda0.smali": "2eaed185bee1e5a39a252ea0061f967475f06124ea9e72bf9db3d6b7a037ce91",
+        "com/android/server/vibrator/VibratorManagerService$SamsungBroadcastReceiver$$ExternalSyntheticLambda1.smali": "5952c0e4133df067586f09d5bf26ce67a193d9c6b8a09fe566c497af0b5aead0",
+        "com/android/server/vibrator/VibrationCustomSettings.smali": "6d42d3a8796a82e889f5737bbcb7cdd1e6df41f60d01db8c50aad732b92c22cb",
+        "com/android/server/vibrator/VibrationSettings.smali": "b2e8a99cbf8287b6ea3bf899edb2e6a96a23f325847e26fb73b514f865d7df13",
+        "com/android/server/vibrator/VibratorManagerInternal.smali": "e1336560a12a815a1eefba19d2856e651dbbea7ab036835e0b80957fd7bf93b8",
+        "com/android/server/vibrator/VirtualVibSoundHelper.smali": "986e8537d04989f31d8df90d1138279d5df15b936f2ddaf3eeaaddc3c23d8b2d",
+        "com/android/server/audio/AudioDeviceBroker.smali": "d8148806aac3b1c73bd0fb8314f95bb64ed67df05acccf384ac092545c1c07a1",
+        "com/android/server/audio/BtHelper.smali": "77c130eb86171af09aa3ed5f8f3ad8dc50eed45df4db47f4d1d2fd0485566ddc",
+        "com/android/server/audio/BtHelper$$ExternalSyntheticLambda0.smali": "01352fe766ea1db3c0f02d2bb823bdc90edbc645df5c4e8c95f2dcdc0f48783b",
+        "com/samsung/android/server/audio/utils/BtUtils.smali": "b0aa17587a12302d9290654270a4c651d759d0d3746d8aed815a4561798fbb0d"
+      }
+    },
+    "system/priv-app/SecSettings/SecSettings.apk": {
+      "source_sha256": "58257a276715a6afba760c4d7d2a01a39c35c2cdcc924732829e50846f2c378e",
+      "before": {
+        "com/samsung/android/settings/asbase/vibration/VirtualVibrationSoundPreferenceController.smali": "608a8bc57433fecc5dddc3966128f59ad325fbdaa5be95d5450e67edf4ea49cc"
+      },
+      "after": {
+        "com/samsung/android/settings/asbase/vibration/VirtualVibrationSoundPreferenceController.smali": "cebdd47bfd05833257494d371db95742f7c480c6772eb3900e3e2ffc139df208"
+      }
+    },
+    "system/priv-app/SettingsProvider/SettingsProvider.apk": {
+      "source_sha256": "ee626abf5ebd46198f5ea6cb27d82c98e69f4c1c179cb04f5ba6ba4fb5a6c863",
+      "before": {
+        "com/android/providers/settings/DatabaseHelper$1.smali": "c7c2288109341d56daabf722f621a5a70fad55245542234a1059d0d2b9ef175a"
+      },
+      "after": {
+        "com/android/providers/settings/DatabaseHelper$1.smali": "c7c2288109341d56daabf722f621a5a70fad55245542234a1059d0d2b9ef175a"
+      }
+    }
+  },
+  "boot_method_sha256": "82e3a556319dc9b1c0fb137136744d1273388ee2ca0f7f196e1af0d8b4acbd74",
+  "physical_vibration_code_sha256": "a232d46dbd278259ba31cada485ce7fe1121af9b4108798e3afc6ef8a6959298",
+  "guarded_helper_reads": 10
+}

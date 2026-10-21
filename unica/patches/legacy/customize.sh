@@ -126,7 +126,12 @@ if [ "$TARGET_PLATFORM_SDK_VERSION" -lt "34" ]; then
     PATCHED=true
     APPLY_PATCH "system" "system/framework/framework.jar" \
         "$MODPATH/camera/framework.jar/0001-Backport-legacy-CameraMetadataNative-code.patch"
-    if $TARGET_CAMERA_SUPPORT_MASS_APP_FLAVOR; then
+    if [[ "$TARGET_PLATFORM" == "exynos9820" ]]; then
+        # The pinned 3.1.0 camera already uses the legacy callbacks and second
+        # picture API. Modern-camera backports target a different class model.
+        DECODE_APK "system" "system/priv-app/SamsungCamera/SamsungCamera.apk"
+        EVAL "python3 \"$SRC_DIR/scripts/s10/camera_native.py\" \"$SRC_DIR\" \"$WORK_DIR\" \"$APKTOOL_DIR/system/priv-app/SamsungCamera/SamsungCamera.apk\" \"$TARGET_CODENAME\"" || return 1
+    elif $TARGET_CAMERA_SUPPORT_MASS_APP_FLAVOR; then
         APPLY_PATCH "system" "system/priv-app/SamsungCamera/SamsungCamera.apk" \
             "$MODPATH/camera_mass/SamsungCamera.apk/0001-Backport-legacy-Scene-detection-code.patch"
     else
@@ -139,30 +144,38 @@ fi
 if [ "$TARGET_PLATFORM_SDK_VERSION" -lt "34" ]; then
     if [ ! -f "$WORK_DIR/vendor/bin/hw/vendor.samsung.hardware.biometrics.face@3.0-service" ]; then
         PATCHED=true
-        APPLY_PATCH "system" "system/framework/services.jar" \
-            "$MODPATH/face/services.jar/0001-Fallback-to-Face-HIDL-2.0.patch"
-        SMALI_PATCH "system" "system/framework/services.jar" \
-            "smali/com/android/server/biometrics/sensors/face/hidl/HidlToAidlCallbackConverter.smali" "replaceall" \
-            "V3_0" \
-            "V2_0" \
-            > /dev/null
-        SMALI_PATCH "system" "system/framework/services.jar" \
-            "smali/com/android/server/biometrics/sensors/face/hidl/TestHal.smali" "replaceall" \
-            "V3_0" \
-            "V2_0" \
-            > /dev/null
-        SMALI_PATCH "system" "system/framework/services.jar" \
-            "smali/com/android/server/biometrics/sensors/face/aidl/SemFaceServiceExImpl\$\$ExternalSyntheticLambda6.smali" "remove"
-        LOG "- Removing \"smali_classes2/vendor/samsung/hardware/biometrics/face/V3_0/ISehBiometricsFace.smali\" from /system/system/framework/services.jar"
-        EVAL "rm \"$APKTOOL_DIR/system/framework/services.jar/smali_classes2/vendor/samsung/hardware/biometrics/face/V3_0/ISehBiometricsFace.smali\""
-        LOG "- Removing \"smali_classes2/vendor/samsung/hardware/biometrics/face/V3_0/ISehBiometricsFace\$Proxy.smali\" from /system/system/framework/services.jar"
-        EVAL "rm \"$APKTOOL_DIR/system/framework/services.jar/smali_classes2/vendor/samsung/hardware/biometrics/face/V3_0/ISehBiometricsFace\\\$Proxy.smali\""
-        SMALI_PATCH "system" "system/framework/services.jar" \
-            "smali_classes2/vendor/samsung/hardware/biometrics/face/V3_0/ISehBiometricsFace\$Stub\$1.smali" "remove"
-        SMALI_PATCH "system" "system/framework/services.jar" \
-            "smali_classes2/vendor/samsung/hardware/biometrics/face/V3_0/ISehBiometricsFaceClientCallback\$Proxy.smali" "remove"
-        SMALI_PATCH "system" "system/framework/services.jar" \
-            "smali_classes2/vendor/samsung/hardware/biometrics/face/V3_0/ISehBiometricsFaceClientCallback.smali" "remove"
+        if [[ "$TARGET_PLATFORM" == "exynos9820" ]]; then
+            DECODE_APK "system" "system/framework/services.jar"
+            EVAL "python3 \"$SRC_DIR/scripts/s10/face_hidl.py\" \"$SRC_DIR\" \"$WORK_DIR\" \"$APKTOOL_DIR/system/framework/services.jar\" \"$TARGET_CODENAME\" before" || return 1
+            APPLY_PATCH "system" "system/framework/services.jar" \
+                "$MODPATH/face_s10/services.jar/0001-Use-S10-Face-HIDL-2.0.patch"
+            EVAL "python3 \"$SRC_DIR/scripts/s10/face_hidl.py\" \"$SRC_DIR\" \"$WORK_DIR\" \"$APKTOOL_DIR/system/framework/services.jar\" \"$TARGET_CODENAME\" after" || return 1
+        else
+            APPLY_PATCH "system" "system/framework/services.jar" \
+                "$MODPATH/face/services.jar/0001-Fallback-to-Face-HIDL-2.0.patch"
+            SMALI_PATCH "system" "system/framework/services.jar" \
+                "smali/com/android/server/biometrics/sensors/face/hidl/HidlToAidlCallbackConverter.smali" "replaceall" \
+                "V3_0" \
+                "V2_0" \
+                > /dev/null
+            SMALI_PATCH "system" "system/framework/services.jar" \
+                "smali/com/android/server/biometrics/sensors/face/hidl/TestHal.smali" "replaceall" \
+                "V3_0" \
+                "V2_0" \
+                > /dev/null
+            SMALI_PATCH "system" "system/framework/services.jar" \
+                "smali/com/android/server/biometrics/sensors/face/aidl/SemFaceServiceExImpl\$\$ExternalSyntheticLambda6.smali" "remove"
+            LOG "- Removing \"smali_classes2/vendor/samsung/hardware/biometrics/face/V3_0/ISehBiometricsFace.smali\" from /system/system/framework/services.jar"
+            EVAL "rm \"$APKTOOL_DIR/system/framework/services.jar/smali_classes2/vendor/samsung/hardware/biometrics/face/V3_0/ISehBiometricsFace.smali\""
+            LOG "- Removing \"smali_classes2/vendor/samsung/hardware/biometrics/face/V3_0/ISehBiometricsFace\$Proxy.smali\" from /system/system/framework/services.jar"
+            EVAL "rm \"$APKTOOL_DIR/system/framework/services.jar/smali_classes2/vendor/samsung/hardware/biometrics/face/V3_0/ISehBiometricsFace\\\$Proxy.smali\""
+            SMALI_PATCH "system" "system/framework/services.jar" \
+                "smali_classes2/vendor/samsung/hardware/biometrics/face/V3_0/ISehBiometricsFace\$Stub\$1.smali" "remove"
+            SMALI_PATCH "system" "system/framework/services.jar" \
+                "smali_classes2/vendor/samsung/hardware/biometrics/face/V3_0/ISehBiometricsFaceClientCallback\$Proxy.smali" "remove"
+            SMALI_PATCH "system" "system/framework/services.jar" \
+                "smali_classes2/vendor/samsung/hardware/biometrics/face/V3_0/ISehBiometricsFaceClientCallback.smali" "remove"
+        fi
     fi
 fi
 
@@ -439,7 +452,9 @@ fi
 # platform until the feature is ported against the new capability model.
 if [ "$TARGET_PLATFORM_SDK_VERSION" -lt "35" ] && [ "$TARGET_PLATFORM" != "exynos990" ]; then
     PATCHED=true
-    if $TARGET_CAMERA_SUPPORT_MASS_APP_FLAVOR; then
+    if [[ "$TARGET_PLATFORM" == "exynos9820" ]]; then
+        EVAL "python3 \"$SRC_DIR/scripts/s10/camera_native.py\" \"$SRC_DIR\" \"$WORK_DIR\" \"$APKTOOL_DIR/system/priv-app/SamsungCamera/SamsungCamera.apk\" \"$TARGET_CODENAME\"" || return 1
+    elif $TARGET_CAMERA_SUPPORT_MASS_APP_FLAVOR; then
         APPLY_PATCH "system" "system/priv-app/SamsungCamera/SamsungCamera.apk" \
             "$MODPATH/camera_mass/SamsungCamera.apk/0001-Backport-CONTROL_AVAILABLE_FEATURE_SECOND_PICTURE_CO.patch"
     else
@@ -471,11 +486,18 @@ if [ "$TARGET_PLATFORM_SDK_VERSION" -lt "35" ]; then
                 'const v3, 0x7f420888' \
                 'const v3, 0x7f000789'
         fi
-        SMALI_PATCH "system" "system/priv-app/SamsungCamera/SamsungCamera.apk" \
-            "smali_classes3/com/samsung/android/sum/core/filter/EncoderFilter.smali" "replace" \
-            'configCodec(Lcom/samsung/android/sum/core/message/Message;)V' \
-            'const v4, 0x7f420888' \
-            'const v4, 0x7f000789'
+        if [[ "$TARGET_PLATFORM" == "exynos9820" ]]; then
+            # The pinned S10 camera has native OMX surface encoders and no SUM
+            # EncoderFilter. Verify its implementations instead of a modern
+            # camera patch targeting a different architecture.
+            EVAL "python3 \"$SRC_DIR/scripts/s10/camera_native.py\" \"$SRC_DIR\" \"$WORK_DIR\" \"$APKTOOL_DIR/system/priv-app/SamsungCamera/SamsungCamera.apk\" \"$TARGET_CODENAME\"" || return 1
+        else
+            SMALI_PATCH "system" "system/priv-app/SamsungCamera/SamsungCamera.apk" \
+                "smali_classes3/com/samsung/android/sum/core/filter/EncoderFilter.smali" "replace" \
+                'configCodec(Lcom/samsung/android/sum/core/message/Message;)V' \
+                'const v4, 0x7f420888' \
+                'const v4, 0x7f000789'
+        fi
         SMALI_PATCH "system" "system/priv-app/vexfwk_service/vexfwk_service.apk" \
             "smali/com/samsung/android/sum/core/filter/EncoderFilter.smali" "replace" \
             'configCodec(Lcom/samsung/android/sum/core/message/Message;)V' \

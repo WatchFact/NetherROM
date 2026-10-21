@@ -1,0 +1,4 @@
+id=s10_previous_display_compat
+name=Previous display compatibility guards
+author=HackMe, WatchFact
+description=Retain the earlier DDIScaler fix only for exact matching driver builds.

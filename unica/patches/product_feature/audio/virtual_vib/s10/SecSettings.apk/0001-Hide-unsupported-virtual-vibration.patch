@@ -1,0 +1,181 @@
+From: WatchFact <thedataguyshere@gmail.com>
+Subject: [PATCH] Hide unsupported S10 virtual vibration controls
+
+Expose the source controller as unsupported and reject UI/slice/Cube writes.
+Keep ordinary haptic preferences and their reset/backup data intact.
+---
+--- a/smali_classes5/com/samsung/android/settings/asbase/vibration/VirtualVibrationSoundPreferenceController.smali
++++ b/smali_classes5/com/samsung/android/settings/asbase/vibration/VirtualVibrationSoundPreferenceController.smali
+@@ -195,7 +195,7 @@
+ .method public getAvailabilityStatus()I
+     .locals 0
+ 
+-    const/4 p0, 0x0
++    const/4 p0, 0x3
+ 
+     return p0
+ .end method
+@@ -377,23 +377,15 @@
+ .method public isControllable()Z
+     .locals 0
+ 
+-    const/4 p0, 0x1
++    const/4 p0, 0x0
+ 
+     return p0
+ .end method
+ 
+ .method public isSliceable()Z
+-    .locals 1
+-
+-    invoke-virtual {p0}, Lcom/samsung/android/settings/asbase/vibration/VirtualVibrationSoundPreferenceController;->getPreferenceKey()Ljava/lang/String;
+-
+-    move-result-object p0
+-
+-    const-string/jumbo v0, "vibration_sound_enabled"
+-
+-    invoke-static {p0, v0}, Landroid/text/TextUtils;->equals(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Z
+-
+-    move-result p0
++    .locals 0
++
++    const/4 p0, 0x0
+ 
+     return p0
+ .end method
+@@ -497,104 +489,40 @@
+ .end method
+ 
+ .method public setChecked(Z)Z
+-    .locals 4
+-
+-    const/16 v0, 0x150
+-
+-    const/16 v1, 0x1c52
+-
+-    invoke-static {v0, v1, p1}, Lcom/samsung/android/settings/logging/LoggingHelper;->insertEventLogging(IIZ)V
+-
+-    if-eqz p1, :cond_0
+-
+-    invoke-direct {p0}, Lcom/samsung/android/settings/asbase/vibration/VirtualVibrationSoundPreferenceController;->cancelToast()V
+-
+-    new-instance v0, Landroid/os/Handler;
+-
+-    invoke-static {}, Landroid/os/Looper;->getMainLooper()Landroid/os/Looper;
+-
+-    move-result-object v1
+-
+-    invoke-direct {v0, v1}, Landroid/os/Handler;-><init>(Landroid/os/Looper;)V
+-
+-    new-instance v1, Lcom/samsung/android/settings/asbase/vibration/VirtualVibrationSoundPreferenceController$1;
+-
+-    invoke-direct {v1}, Ljava/lang/Object;-><init>()V
+-
+-    iput-object p0, v1, Lcom/samsung/android/settings/asbase/vibration/VirtualVibrationSoundPreferenceController$1;->this$0:Lcom/samsung/android/settings/asbase/vibration/VirtualVibrationSoundPreferenceController;
++    .locals 0
++
++    const/4 p0, 0x0
++
++    return p0
++.end method
++
++.method public setValue(Lcom/samsung/android/settings/cube/ControlValue;)Lcom/samsung/android/settings/cube/ControlResult;
++    .locals 1
++
++    invoke-virtual {p0}, Lcom/samsung/android/settings/asbase/vibration/VirtualVibrationSoundPreferenceController;->getPreferenceKey()Ljava/lang/String;
++
++    move-result-object v0
++
++    new-instance p0, Lcom/samsung/android/settings/cube/ControlResult;
++
++    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
++
++    iput-object v0, p0, Lcom/samsung/android/settings/cube/ControlResult;->mKey:Ljava/lang/String;
++
++    sget-object p1, Lcom/samsung/android/settings/cube/ControlResult$ResultCode;->FAIL:Lcom/samsung/android/settings/cube/ControlResult$ResultCode;
++
++    iput-object p1, p0, Lcom/samsung/android/settings/cube/ControlResult;->mResultCode:Lcom/samsung/android/settings/cube/ControlResult$ResultCode;
++
++    sget-object p1, Lcom/samsung/android/settings/cube/ControlResult$ErrorCode;->NOT_SUPPORT_DEVICE:Lcom/samsung/android/settings/cube/ControlResult$ErrorCode;
++
++    iput-object p1, p0, Lcom/samsung/android/settings/cube/ControlResult;->mErrorCode:Lcom/samsung/android/settings/cube/ControlResult$ErrorCode;
++
++    const-string p1, ""
++
++    iput-object p1, p0, Lcom/samsung/android/settings/cube/ControlResult;->mErrorMsg:Ljava/lang/String;
+ 
+     invoke-static {}, Ljava/lang/invoke/VarHandle;->storeStoreFence()V
+ 
+-    const-wide/16 v2, 0x0
+-
+-    invoke-virtual {v0, v1, v2, v3}, Landroid/os/Handler;->postDelayed(Ljava/lang/Runnable;J)Z
+-
+-    goto :goto_0
+-
+-    :cond_0
+-    invoke-direct {p0}, Lcom/samsung/android/settings/asbase/vibration/VirtualVibrationSoundPreferenceController;->cancelToast()V
+-
+-    :goto_0
+-    iget-object p0, p0, Lcom/android/settingslib/core/AbstractPreferenceController;->mContext:Landroid/content/Context;
+-
+-    invoke-virtual {p0}, Landroid/content/Context;->getContentResolver()Landroid/content/ContentResolver;
+-
+-    move-result-object p0
+-
+-    const-string/jumbo v0, "vibration_sound_enabled"
+-
+-    invoke-static {p0, v0, p1}, Landroid/provider/Settings$System;->putInt(Landroid/content/ContentResolver;Ljava/lang/String;I)Z
+-
+-    move-result p0
+-
+-    return p0
+-.end method
+-
+-.method public setValue(Lcom/samsung/android/settings/cube/ControlValue;)Lcom/samsung/android/settings/cube/ControlResult;
+-    .locals 2
+-
+-    invoke-virtual {p0}, Lcom/samsung/android/settings/asbase/vibration/VirtualVibrationSoundPreferenceController;->getPreferenceKey()Ljava/lang/String;
+-
+-    move-result-object v0
+-
+-    invoke-virtual {p1}, Lcom/samsung/android/settings/cube/ControlValue;->getValue()Ljava/lang/String;
+-
+-    move-result-object p1
+-
+-    invoke-static {p1}, Ljava/lang/Boolean;->parseBoolean(Ljava/lang/String;)Z
+-
+-    move-result p1
+-
+-    iget-object p0, p0, Lcom/android/settingslib/core/AbstractPreferenceController;->mContext:Landroid/content/Context;
+-
+-    invoke-virtual {p0}, Landroid/content/Context;->getContentResolver()Landroid/content/ContentResolver;
+-
+-    move-result-object p0
+-
+-    const-string/jumbo v1, "vibration_sound_enabled"
+-
+-    invoke-static {p0, v1, p1}, Landroid/provider/Settings$System;->putInt(Landroid/content/ContentResolver;Ljava/lang/String;I)Z
+-
+-    new-instance p0, Lcom/samsung/android/settings/cube/ControlResult;
+-
+-    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+-
+-    iput-object v0, p0, Lcom/samsung/android/settings/cube/ControlResult;->mKey:Ljava/lang/String;
+-
+-    sget-object p1, Lcom/samsung/android/settings/cube/ControlResult$ResultCode;->SUCCESS:Lcom/samsung/android/settings/cube/ControlResult$ResultCode;
+-
+-    iput-object p1, p0, Lcom/samsung/android/settings/cube/ControlResult;->mResultCode:Lcom/samsung/android/settings/cube/ControlResult$ResultCode;
+-
+-    const/4 p1, 0x0
+-
+-    iput-object p1, p0, Lcom/samsung/android/settings/cube/ControlResult;->mErrorCode:Lcom/samsung/android/settings/cube/ControlResult$ErrorCode;
+-
+-    const-string p1, ""
+-
+-    iput-object p1, p0, Lcom/samsung/android/settings/cube/ControlResult;->mErrorMsg:Ljava/lang/String;
+-
+-    invoke-static {}, Ljava/lang/invoke/VarHandle;->storeStoreFence()V
+-
+     return-object p0
+ .end method
+ 

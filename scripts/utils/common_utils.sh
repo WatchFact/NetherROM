@@ -201,6 +201,8 @@ ADD_TO_WORK_DIR()
     local SOURCE="$1"
     local PARTITION="$2"
     local FILE="$3"
+    local SOURCE_META_PARTITION="$PARTITION"
+    local SOURCE_RELATIVE="$FILE"
     shift 3
 
     # Optional: alternate destination path inside the partition.
@@ -299,12 +301,24 @@ ADD_TO_WORK_DIR()
     local ENTRY="${TARGET_FILE//$WORK_DIR\//}"
     [[ "$PARTITION" == "system" ]] && ENTRY="${ENTRY//system\/system\//system/}"
     ENTRY="${ENTRY%/.}"
+    local SOURCE_ENTRY="${SOURCE_FILE#"$SOURCE/"}"
+    [[ "$SOURCE_META_PARTITION" == "system" ]] && SOURCE_ENTRY="${SOURCE_ENTRY//system\/system\//system/}"
+    if [[ "$SOURCE_META_PARTITION" == "system_ext" ]]; then
+        SOURCE_ENTRY="system_ext/${SOURCE_RELATIVE#/}"
+        if [ ! -f "$SOURCE/fs_config-system_ext" ] && [ -f "$SOURCE/fs_config-system" ]; then
+            SOURCE_META_PARTITION="system"
+            SOURCE_ENTRY="system/${SOURCE_ENTRY}"
+        fi
+    fi
+    SOURCE_ENTRY="${SOURCE_ENTRY%/.}"
 
     if ! grep -q -F "$ENTRY " "$WORK_DIR/configs/fs_config-$PARTITION" 2> /dev/null; then
         if [ "$USER" ] && [ "$GROUP" ] && [ "$MODE" ]; then
             echo "$ENTRY $USER $GROUP $MODE capabilities=0x0" >> "$WORK_DIR/configs/fs_config-$PARTITION"
-        elif grep -q -F "$ENTRY " "$SOURCE/fs_config-$PARTITION" 2> /dev/null; then
-            grep -F "$ENTRY " "$SOURCE/fs_config-$PARTITION" >> "$WORK_DIR/configs/fs_config-$PARTITION"
+        elif grep -q -F "$SOURCE_ENTRY " "$SOURCE/fs_config-$SOURCE_META_PARTITION" 2> /dev/null; then
+            while IFS= read -r LINE; do
+                echo "$ENTRY${LINE#"$SOURCE_ENTRY"}" >> "$WORK_DIR/configs/fs_config-$PARTITION"
+            done < <(grep -F "$SOURCE_ENTRY " "$SOURCE/fs_config-$SOURCE_META_PARTITION")
         else
             LOGW "No fs_config entry found for \"$ENTRY\" in \"${SOURCE//$SRC_DIR\//}\". Using default values"
 
@@ -323,8 +337,11 @@ ADD_TO_WORK_DIR()
     if ! grep -q -F "/$(_HANDLE_SPECIAL_CHARS "$ENTRY") " "$WORK_DIR/configs/file_context-$PARTITION" 2> /dev/null; then
         if [ "$LABEL" ]; then
             echo "/$(_HANDLE_SPECIAL_CHARS "$ENTRY") $LABEL" >> "$WORK_DIR/configs/file_context-$PARTITION"
-        elif grep -q -F "/$(_HANDLE_SPECIAL_CHARS "$ENTRY") " "$SOURCE/file_context-$PARTITION" 2> /dev/null; then
-            grep -F "/$(_HANDLE_SPECIAL_CHARS "$ENTRY") " "$SOURCE/file_context-$PARTITION" >> "$WORK_DIR/configs/file_context-$PARTITION"
+        elif grep -q -F "/$(_HANDLE_SPECIAL_CHARS "$SOURCE_ENTRY") " "$SOURCE/file_context-$SOURCE_META_PARTITION" 2> /dev/null; then
+            local SOURCE_ESC="/$(_HANDLE_SPECIAL_CHARS "$SOURCE_ENTRY")"
+            while IFS= read -r LINE; do
+                echo "/$(_HANDLE_SPECIAL_CHARS "$ENTRY")${LINE#"$SOURCE_ESC"}" >> "$WORK_DIR/configs/file_context-$PARTITION"
+            done < <(grep -F "$SOURCE_ESC " "$SOURCE/file_context-$SOURCE_META_PARTITION")
         else
             LOGW "No file_context entry found for \"$ENTRY\" in \"${SOURCE//$SRC_DIR\//}\". Using default value"
 
@@ -337,33 +354,21 @@ ADD_TO_WORK_DIR()
     if [ -d "$TARGET_FILE" ]; then
         # Relative path of the copied directory in the source tree, used as base for its
         # children entries so they can be pointed at the destination when `dest` is supplied
-        local SRC_ASSET="${SOURCE_FILE%/.}"
-        SRC_ASSET="${SRC_ASSET//$SOURCE\//}"
-
         local FILES
         FILES="$(find "${SOURCE_FILE%/.}")"
 
         while IFS= read -r F; do
-            # Suffix of the entry relative to the copied directory
-            local S
-            S="${F#"${SOURCE_FILE%/.}"}"
-
-            # `f` is the entry as seen in the source, `e` the one in the work dir
-            local f="$SRC_ASSET$S"
+            local S="${F#"${SOURCE_FILE%/.}"}"
+            local f="$SOURCE_ENTRY$S"
             local e="$ENTRY$S"
-            [[ "$PARTITION" == "system" ]] && f="${f//system\/system\//system/}" && e="${e//system\/system\//system/}"
-            if ! $TARGET_OS_BUILD_SYSTEM_EXT_PARTITION; then
-                f="${f//system_ext\//system/system_ext/}"
-                e="${e//system_ext\//system/system_ext/}"
-            fi
 
             IS_VALID_PARTITION_NAME "$f" && continue
 
             if ! grep -q -F "$e " "$WORK_DIR/configs/fs_config-$PARTITION" 2> /dev/null; then
-                if grep -q -F "$f " "$SOURCE/fs_config-$PARTITION" 2> /dev/null; then
+                if grep -q -F "$f " "$SOURCE/fs_config-$SOURCE_META_PARTITION" 2> /dev/null; then
                     while IFS= read -r L; do
                         echo "$e${L#"$f"}" >> "$WORK_DIR/configs/fs_config-$PARTITION"
-                    done < <(grep -F "$f " "$SOURCE/fs_config-$PARTITION")
+                    done < <(grep -F "$f " "$SOURCE/fs_config-$SOURCE_META_PARTITION")
                 else
                     LOGW "No fs_config entry found for \"$f\" in \"${SOURCE//$SRC_DIR\//}\". Using default values"
 
@@ -380,7 +385,7 @@ ADD_TO_WORK_DIR()
             fi
 
             if ! grep -q -F "/$(_HANDLE_SPECIAL_CHARS "$e") " "$WORK_DIR/configs/file_context-$PARTITION" 2> /dev/null; then
-                if grep -q -F "/$(_HANDLE_SPECIAL_CHARS "$f") " "$SOURCE/file_context-$PARTITION" 2> /dev/null; then
+                if grep -q -F "/$(_HANDLE_SPECIAL_CHARS "$f") " "$SOURCE/file_context-$SOURCE_META_PARTITION" 2> /dev/null; then
                     local SRC_ENTRY_ESC
                     SRC_ENTRY_ESC="/$(_HANDLE_SPECIAL_CHARS "$f")"
                     local DEST_ENTRY_ESC
@@ -388,7 +393,7 @@ ADD_TO_WORK_DIR()
 
                     while IFS= read -r L; do
                         echo "$DEST_ENTRY_ESC${L#"$SRC_ENTRY_ESC"}" >> "$WORK_DIR/configs/file_context-$PARTITION"
-                    done < <(grep -F "$SRC_ENTRY_ESC " "$SOURCE/file_context-$PARTITION")
+                    done < <(grep -F "$SRC_ENTRY_ESC " "$SOURCE/file_context-$SOURCE_META_PARTITION")
                 else
                     LOGW "No file_context entry found for \"$f\" in \"${SOURCE//$SRC_DIR\//}\". Using default value"
 
@@ -407,8 +412,8 @@ ADD_TO_WORK_DIR()
             IS_VALID_PARTITION_NAME "$TMP" && break
 
             if ! grep -q -F "$TMP " "$WORK_DIR/configs/fs_config-$PARTITION" 2> /dev/null; then
-                if grep -q -F "$TMP " "$SOURCE/fs_config-$PARTITION" 2> /dev/null; then
-                    grep -F "$TMP " "$SOURCE/fs_config-$PARTITION" >> "$WORK_DIR/configs/fs_config-$PARTITION"
+                if grep -q -F "$TMP " "$SOURCE/fs_config-$SOURCE_META_PARTITION" 2> /dev/null; then
+                    grep -F "$TMP " "$SOURCE/fs_config-$SOURCE_META_PARTITION" >> "$WORK_DIR/configs/fs_config-$PARTITION"
                 else
                     LOGW "No fs_config entry found for \"$TMP\" in \"${SOURCE//$SRC_DIR\//}\". Using default values"
 
@@ -422,8 +427,8 @@ ADD_TO_WORK_DIR()
             fi
 
             if ! grep -q -F "/$(_HANDLE_SPECIAL_CHARS "$TMP") " "$WORK_DIR/configs/file_context-$PARTITION" 2> /dev/null; then
-                if grep -q -F "/$(_HANDLE_SPECIAL_CHARS "$TMP") " "$SOURCE/file_context-$PARTITION" 2> /dev/null; then
-                    grep -F "/$(_HANDLE_SPECIAL_CHARS "$TMP") " "$SOURCE/file_context-$PARTITION" >> "$WORK_DIR/configs/file_context-$PARTITION"
+                if grep -q -F "/$(_HANDLE_SPECIAL_CHARS "$TMP") " "$SOURCE/file_context-$SOURCE_META_PARTITION" 2> /dev/null; then
+                    grep -F "/$(_HANDLE_SPECIAL_CHARS "$TMP") " "$SOURCE/file_context-$SOURCE_META_PARTITION" >> "$WORK_DIR/configs/file_context-$PARTITION"
                 else
                     LOGW "No file_context entry found for \"$TMP\" in \"${SOURCE//$SRC_DIR\//}\". Using default value"
 

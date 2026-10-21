@@ -142,21 +142,41 @@ fi
 # SEC_PRODUCT_FEATURE_AUDIO_SUPPORT_VIRTUAL_VIBRATION_SOUND
 if $SOURCE_AUDIO_SUPPORT_VIRTUAL_VIBRATION_SOUND; then
     if ! $TARGET_AUDIO_SUPPORT_VIRTUAL_VIBRATION_SOUND; then
-        APPLY_PATCH "system" "system/framework/framework.jar" \
-            "$MODPATH/audio/virtual_vib/framework.jar/0001-Disable-virtual-vibration-support.patch"
-        APPLY_PATCH "system" "system/framework/services.jar" \
-            "$MODPATH/audio/virtual_vib/services.jar/0001-Disable-virtual-vibration-support.patch"
-        SMALI_PATCH "system" "system/framework/services.jar" \
-            "smali/com/android/server/audio/BtHelper\$\$ExternalSyntheticLambda0.smali" "remove"
-        EVAL "sed -i \"/.source/q\" \"$APKTOOL_DIR/system/framework/services.jar/smali_classes2/com/android/server/vibrator/VibratorManagerInternal.smali\""
-        SMALI_PATCH "system" "system/framework/services.jar" \
-            "smali_classes2/com/android/server/vibrator/VibratorManagerService\$SamsungBroadcastReceiver\$\$ExternalSyntheticLambda1.smali" "remove"
-        SMALI_PATCH "system" "system/framework/services.jar" \
-            "smali_classes2/com/android/server/vibrator/VirtualVibSoundHelper.smali" "remove"
-        APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
-            "$MODPATH/audio/virtual_vib/SecSettings.apk/0001-Disable-virtual-vibration-support.patch"
-        APPLY_PATCH "system" "system/priv-app/SettingsProvider/SettingsProvider.apk" \
-            "$MODPATH/audio/virtual_vib/SettingsProvider.apk/0001-Disable-virtual-vibration-support.patch"
+        if [[ "$TARGET_PLATFORM" == "exynos9820" ]]; then
+            # Gate the pinned Android 16 virtual-sound backend without removing
+            # the S10 motor path or source callbacks that still reference it.
+            for VIRTUAL_VIB_APK in system/framework/framework.jar system/framework/services.jar \
+                system/priv-app/SecSettings/SecSettings.apk system/priv-app/SettingsProvider/SettingsProvider.apk; do
+                DECODE_APK "system" "$VIRTUAL_VIB_APK" || return 1
+            done
+            EVAL "python3 \"$SRC_DIR/scripts/s10/virtual_vibration.py\" \"$SRC_DIR\" \"$WORK_DIR\" \"$APKTOOL_DIR\" \"$TARGET_CODENAME\" before" || return 1
+            APPLY_PATCH "system" "system/framework/framework.jar" \
+                "$MODPATH/audio/virtual_vib/framework.jar/0001-Disable-virtual-vibration-support.patch"
+            APPLY_PATCH "system" "system/framework/services.jar" \
+                "$MODPATH/audio/virtual_vib/s10/services.jar/0001-Disable-virtual-sound-startup.patch"
+            APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
+                "$MODPATH/audio/virtual_vib/s10/SecSettings.apk/0001-Hide-unsupported-virtual-vibration.patch"
+            # The pinned provider already initializes vibration_sound_enabled
+            # to zero. Keep its reviewed defaults and normal haptic settings.
+            LOG "Keeping the verified disabled virtual-sound provider default"
+            EVAL "python3 \"$SRC_DIR/scripts/s10/virtual_vibration.py\" \"$SRC_DIR\" \"$WORK_DIR\" \"$APKTOOL_DIR\" \"$TARGET_CODENAME\" after" || return 1
+        else
+            APPLY_PATCH "system" "system/framework/framework.jar" \
+                "$MODPATH/audio/virtual_vib/framework.jar/0001-Disable-virtual-vibration-support.patch"
+            APPLY_PATCH "system" "system/framework/services.jar" \
+                "$MODPATH/audio/virtual_vib/services.jar/0001-Disable-virtual-vibration-support.patch"
+            SMALI_PATCH "system" "system/framework/services.jar" \
+                "smali/com/android/server/audio/BtHelper\$\$ExternalSyntheticLambda0.smali" "remove"
+            EVAL "sed -i \"/.source/q\" \"$APKTOOL_DIR/system/framework/services.jar/smali_classes2/com/android/server/vibrator/VibratorManagerInternal.smali\""
+            SMALI_PATCH "system" "system/framework/services.jar" \
+                "smali_classes2/com/android/server/vibrator/VibratorManagerService\$SamsungBroadcastReceiver\$\$ExternalSyntheticLambda1.smali" "remove"
+            SMALI_PATCH "system" "system/framework/services.jar" \
+                "smali_classes2/com/android/server/vibrator/VirtualVibSoundHelper.smali" "remove"
+            APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
+                "$MODPATH/audio/virtual_vib/SecSettings.apk/0001-Disable-virtual-vibration-support.patch"
+            APPLY_PATCH "system" "system/priv-app/SettingsProvider/SettingsProvider.apk" \
+                "$MODPATH/audio/virtual_vib/SettingsProvider.apk/0001-Disable-virtual-vibration-support.patch"
+        fi
     fi
 else
     if $TARGET_AUDIO_SUPPORT_VIRTUAL_VIBRATION_SOUND; then
@@ -481,60 +501,79 @@ if [[ "$SOURCE_FINGERPRINT_CONFIG_SENSOR" != "$TARGET_FINGERPRINT_CONFIG_SENSOR"
                 APPLY_PATCH "system" "system/priv-app/BiometricSetting/BiometricSetting.apk" \
                     "$MODPATH/fingerprint/side_fp/BiometricSetting.apk/0001-Add-FEATURE_FINGERPRINT_JDM_HAL-support.patch"
 
-                APPLY_PATCH "system" "system/framework/framework.jar" \
-                    "$MODPATH/fingerprint/side_fp/framework.jar/0001-Add-side-fingerprint-sensor-support.patch"
-                APPLY_PATCH "system" "system/framework/services.jar" \
-                    "$MODPATH/fingerprint/side_fp/services.jar/0001-Add-side-fingerprint-sensor-support.patch"
-                EVAL "sed -i \"/implements/i .implements Lcom\/android\/server\/biometrics\/sensors\/fingerprint\/SemFpHalLifecycleListener;\" \"$APKTOOL_DIR/system/framework/services.jar/smali/com/android/server/biometrics/sensors/fingerprint/SemFingerprintServiceExtImpl.smali\""
-                APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
-                    "$MODPATH/fingerprint/side_fp/SecSettings.apk/0001-Add-side-fingerprint-sensor-support.patch"
-                EVAL "sed -i \"s/^\.implements.*/.implements Landroid\/widget\/CompoundButton\$OnCheckedChangeListener;/g\" \"$APKTOOL_DIR/system/priv-app/SecSettings/SecSettings.apk/smali_classes4/com/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature\\\$\\\$ExternalSyntheticLambda1.smali\""
-                SMALI_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
-                    "smali_classes4/com/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature\$\$ExternalSyntheticLambda4.smali" "remove"
-                SMALI_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
-                    "smali_classes4/com/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature\$\$ExternalSyntheticLambda9.smali" "remove"
-                SMALI_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
-                    "smali_classes4/com/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature\$1.smali" "remove"
-                APPLY_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" \
-                    "$MODPATH/fingerprint/side_fp/SystemUI.apk/0001-Add-side-fingerprint-sensor-support.patch"
-                EVAL "sed -i \"s/^\.implements.*/.implements Ljava\/util\/function\/Consumer;/g\" \"$APKTOOL_DIR/system_ext/priv-app/SystemUI/SystemUI.apk/smali/com/android/keyguard/KeyguardSecUpdateMonitorImpl\\\$\\\$ExternalSyntheticLambda28.smali\""
-                SMALI_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" \
-                    "smali/com/android/keyguard/KeyguardSecUpdateMonitorImpl\$\$ExternalSyntheticLambda24.smali" "remove"
-                SMALI_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" \
-                    "smali/com/android/keyguard/KeyguardSecUpdateMonitorImpl\$\$ExternalSyntheticLambda29.smali" "remove"
-                SMALI_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" \
-                    "smali/com/android/keyguard/KeyguardSecUpdateMonitorImpl\$\$ExternalSyntheticLambda33.smali" "remove"
-                SMALI_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" \
-                    "smali/com/android/keyguard/KeyguardSecUpdateMonitorImpl\$\$ExternalSyntheticLambda40.smali" "remove"
-                SMALI_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" \
-                    "smali/com/android/keyguard/KeyguardSecUpdateMonitorImpl\$\$ExternalSyntheticLambda42.smali" "remove"
+                if [[ "${TARGET_PLATFORM:-}" == "exynos9820" ]]; then
+                    [[ "$TARGET_CODENAME" == "beyond0lte" && "$TARGET_FINGERPRINT_CONFIG_SENSOR" == "google_touch_side,settings=3,navi=1" ]] || \
+                        ABORT "Unreviewed S10 side fingerprint configuration"
+                    DECODE_APK "system" "system/framework/framework.jar"
+                    DECODE_APK "system" "system/framework/services.jar"
+                    DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
+                    DECODE_APK "system_ext" "priv-app/SystemUI/SystemUI.apk"
+                    python3 "$SRC_DIR/scripts/s10/legacy_features.py" "$SRC_DIR" "$WORK_DIR" "$APKTOOL_DIR" "$TARGET_CODENAME" fingerprint before
+                    APPLY_PATCH "system" "system/framework/framework.jar" \
+                        "$MODPATH/fingerprint/side_fp_s10/framework.jar/0001-Port-S10e-side-fingerprint.patch"
+                    APPLY_PATCH "system" "system/framework/services.jar" \
+                        "$MODPATH/fingerprint/side_fp_s10/services.jar/0001-Port-S10e-side-fingerprint.patch"
+                    APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
+                        "$MODPATH/fingerprint/side_fp_s10/SecSettings.apk/0001-Port-S10e-side-fingerprint.patch"
+                    APPLY_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" \
+                        "$MODPATH/fingerprint/side_fp_s10/SystemUI.apk/0001-Port-S10e-side-fingerprint.patch"
+                    python3 "$SRC_DIR/scripts/s10/legacy_features.py" "$SRC_DIR" "$WORK_DIR" "$APKTOOL_DIR" "$TARGET_CODENAME" fingerprint after
+                else
+                    APPLY_PATCH "system" "system/framework/framework.jar" \
+                        "$MODPATH/fingerprint/side_fp/framework.jar/0001-Add-side-fingerprint-sensor-support.patch"
+                    APPLY_PATCH "system" "system/framework/services.jar" \
+                        "$MODPATH/fingerprint/side_fp/services.jar/0001-Add-side-fingerprint-sensor-support.patch"
+                    EVAL "sed -i \"/implements/i .implements Lcom\/android\/server\/biometrics\/sensors\/fingerprint\/SemFpHalLifecycleListener;\" \"$APKTOOL_DIR/system/framework/services.jar/smali/com/android/server/biometrics/sensors/fingerprint/SemFingerprintServiceExtImpl.smali\""
+                    APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
+                        "$MODPATH/fingerprint/side_fp/SecSettings.apk/0001-Add-side-fingerprint-sensor-support.patch"
+                    EVAL "sed -i \"s/^\.implements.*/.implements Landroid\/widget\/CompoundButton\$OnCheckedChangeListener;/g\" \"$APKTOOL_DIR/system/priv-app/SecSettings/SecSettings.apk/smali_classes4/com/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature\\\$\\\$ExternalSyntheticLambda1.smali\""
+                    SMALI_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
+                        "smali_classes4/com/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature\$\$ExternalSyntheticLambda4.smali" "remove"
+                    SMALI_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
+                        "smali_classes4/com/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature\$\$ExternalSyntheticLambda9.smali" "remove"
+                    SMALI_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
+                        "smali_classes4/com/samsung/android/settings/biometrics/fingerprint/SuwFingerprintUsefulFeature\$1.smali" "remove"
+                    APPLY_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" \
+                        "$MODPATH/fingerprint/side_fp/SystemUI.apk/0001-Add-side-fingerprint-sensor-support.patch"
+                    EVAL "sed -i \"s/^\.implements.*/.implements Ljava\/util\/function\/Consumer;/g\" \"$APKTOOL_DIR/system_ext/priv-app/SystemUI/SystemUI.apk/smali/com/android/keyguard/KeyguardSecUpdateMonitorImpl\\\$\\\$ExternalSyntheticLambda28.smali\""
+                    SMALI_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" \
+                        "smali/com/android/keyguard/KeyguardSecUpdateMonitorImpl\$\$ExternalSyntheticLambda24.smali" "remove"
+                    SMALI_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" \
+                        "smali/com/android/keyguard/KeyguardSecUpdateMonitorImpl\$\$ExternalSyntheticLambda29.smali" "remove"
+                    SMALI_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" \
+                        "smali/com/android/keyguard/KeyguardSecUpdateMonitorImpl\$\$ExternalSyntheticLambda33.smali" "remove"
+                    SMALI_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" \
+                        "smali/com/android/keyguard/KeyguardSecUpdateMonitorImpl\$\$ExternalSyntheticLambda40.smali" "remove"
+                    SMALI_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" \
+                        "smali/com/android/keyguard/KeyguardSecUpdateMonitorImpl\$\$ExternalSyntheticLambda42.smali" "remove"
 
-                if [[ "$TARGET_FINGERPRINT_CONFIG_SENSOR" == *"navi=1"* ]]; then
-                    LOG "- Enabling FP_FEATURE_GESTURE_MODE:Z in /system/system/framework/services.jar/smali/com/android/server/biometrics/SemBiometricFeature.smali"
-                    SMALI_PATCH "system" "system/framework/services.jar" \
-                        "smali/com/android/server/biometrics/SemBiometricFeature.smali" "replace" \
-                        "<clinit>()V" \
-                        "sput-boolean v3, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_GESTURE_MODE:Z" \
-                        "sput-boolean v2, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_GESTURE_MODE:Z" \
-                        > /dev/null
-                fi
-                if [[ "$TARGET_FINGERPRINT_CONFIG_SENSOR" == *"swipe_enroll"* ]]; then
-                    LOG "- Enabling FP_FEATURE_SWIPE_ENROLL:Z in /system/system/framework/services.jar/smali/com/android/server/biometrics/SemBiometricFeature.smali"
-                    SMALI_PATCH "system" "system/framework/services.jar" \
-                        "smali/com/android/server/biometrics/SemBiometricFeature.smali" "replace" \
-                        "<clinit>()V" \
-                        "sput-boolean v3, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SWIPE_ENROLL:Z" \
-                        "sput-boolean v2, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SWIPE_ENROLL:Z" \
-                        > /dev/null
-                fi
-                if [[ "$TARGET_FINGERPRINT_CONFIG_SENSOR" == *"wof_off"* ]]; then
-                    LOG "- Enabling FP_FEATURE_WOF_OPTION_DEFAULT_OFF:Z in /system/system/framework/services.jar/smali/com/android/server/biometrics/SemBiometricFeature.smali"
-                    SMALI_PATCH "system" "system/framework/services.jar" \
-                        "smali/com/android/server/biometrics/SemBiometricFeature.smali" "replace" \
-                        "<clinit>()V" \
-                        "sput-boolean v3, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_WOF_OPTION_DEFAULT_OFF:Z" \
-                        "sput-boolean v2, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_WOF_OPTION_DEFAULT_OFF:Z" \
-                        > /dev/null
+                    if [[ "$TARGET_FINGERPRINT_CONFIG_SENSOR" == *"navi=1"* ]]; then
+                        LOG "- Enabling FP_FEATURE_GESTURE_MODE:Z in /system/system/framework/services.jar/smali/com/android/server/biometrics/SemBiometricFeature.smali"
+                        SMALI_PATCH "system" "system/framework/services.jar" \
+                            "smali/com/android/server/biometrics/SemBiometricFeature.smali" "replace" \
+                            "<clinit>()V" \
+                            "sput-boolean v3, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_GESTURE_MODE:Z" \
+                            "sput-boolean v2, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_GESTURE_MODE:Z" \
+                            > /dev/null
+                    fi
+                    if [[ "$TARGET_FINGERPRINT_CONFIG_SENSOR" == *"swipe_enroll"* ]]; then
+                        LOG "- Enabling FP_FEATURE_SWIPE_ENROLL:Z in /system/system/framework/services.jar/smali/com/android/server/biometrics/SemBiometricFeature.smali"
+                        SMALI_PATCH "system" "system/framework/services.jar" \
+                            "smali/com/android/server/biometrics/SemBiometricFeature.smali" "replace" \
+                            "<clinit>()V" \
+                            "sput-boolean v3, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SWIPE_ENROLL:Z" \
+                            "sput-boolean v2, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SWIPE_ENROLL:Z" \
+                            > /dev/null
+                    fi
+                    if [[ "$TARGET_FINGERPRINT_CONFIG_SENSOR" == *"wof_off"* ]]; then
+                        LOG "- Enabling FP_FEATURE_WOF_OPTION_DEFAULT_OFF:Z in /system/system/framework/services.jar/smali/com/android/server/biometrics/SemBiometricFeature.smali"
+                        SMALI_PATCH "system" "system/framework/services.jar" \
+                            "smali/com/android/server/biometrics/SemBiometricFeature.smali" "replace" \
+                            "<clinit>()V" \
+                            "sput-boolean v3, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_WOF_OPTION_DEFAULT_OFF:Z" \
+                            "sput-boolean v2, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_WOF_OPTION_DEFAULT_OFF:Z" \
+                            > /dev/null
+                    fi
                 fi
             elif [[ "$(GET_FINGERPRINT_SENSOR_TYPE "$TARGET_FINGERPRINT_CONFIG_SENSOR")" != "ultrasonic" ]]; then
                 # TODO handle this condition
@@ -696,12 +735,12 @@ if ! $PRESERVE_NATIVE_DISPLAY_STACK && [[ "$SOURCE_LCD_CONFIG_HFR_MODE" != "$TAR
         "$TARGET_LCD_CONFIG_HFR_MODE"
     SMALI_PATCH "system" "system/framework/secinputdev-service.jar" \
         "smali/com/samsung/android/hardware/secinputdev/utils/SemInputFeatures.smali" "replaceall" \
-        "\\\"$SOURCE_LCD_CONFIG_HFR_MODE\\\"" \
-        "\\\"$TARGET_LCD_CONFIG_HFR_MODE\\\""
+        "\"$SOURCE_LCD_CONFIG_HFR_MODE\"" \
+        "\"$TARGET_LCD_CONFIG_HFR_MODE\""
     SMALI_PATCH "system" "system/framework/secinputdev-service.jar" \
         "smali/com/samsung/android/hardware/secinputdev/utils/SemInputFeaturesExtra.smali" "replaceall" \
-        "\\\"$SOURCE_LCD_CONFIG_HFR_MODE\\\"" \
-        "\\\"$TARGET_LCD_CONFIG_HFR_MODE\\\""
+        "\"$SOURCE_LCD_CONFIG_HFR_MODE\"" \
+        "\"$TARGET_LCD_CONFIG_HFR_MODE\""
     SMALI_PATCH "system" "system/framework/services.jar" \
         "smali_classes2/com/android/server/power/PowerManagerUtil.smali" "replace" \
         "<clinit>()V" \
@@ -1303,6 +1342,25 @@ else
     fi
 fi
 
+# The S10 driver reports its own sharing capabilities. The donor forces them
+# on, and its old TWT patch no longer matches the current driver feature API.
+S10_WIFI_CAPABILITIES=false
+if [[ "${TARGET_PLATFORM:-}" == "exynos9820" ]]; then
+    if ! $SOURCE_WLAN_SUPPORT_MOBILEAP_WIFI_CONCURRENCY || $TARGET_WLAN_SUPPORT_MOBILEAP_WIFI_CONCURRENCY || \
+            $TARGET_WLAN_SUPPORT_TWT_CONTROL || ! $TARGET_WLAN_SUPPORT_LOWLATENCY; then
+        ABORT "Unreviewed S10 Wi-Fi capability configuration"
+    fi
+    DECODE_APK "system" "system/framework/semwifi-service.jar"
+    python3 "$SRC_DIR/scripts/s10/legacy_features.py" "$SRC_DIR" "$WORK_DIR" "$APKTOOL_DIR" "$TARGET_CODENAME" wifi before
+    APPLY_PATCH "system" "system/framework/semwifi-service.jar" \
+        "$MODPATH/wifi/s10/semwifi-service.jar/0001-Restore-S10-Wi-Fi-capability-gates.patch"
+    SMALI_PATCH "system" "system/framework/semwifi-service.jar" \
+        "smali/com/samsung/android/server/wifi/ap/SemSoftApConfiguration.smali" "replaceall" \
+        "SPF_Concurrency=true" "SPF_Concurrency=false"
+    python3 "$SRC_DIR/scripts/s10/legacy_features.py" "$SRC_DIR" "$WORK_DIR" "$APKTOOL_DIR" "$TARGET_CODENAME" wifi after
+    S10_WIFI_CAPABILITIES=true
+fi
+
 # SEC_PRODUCT_FEATURE_WLAN_SEC_SUPPORT_MOBILEAP_WIFI_CONCURRENCY
 if ! $SOURCE_WLAN_SUPPORT_MOBILEAP_WIFI_CONCURRENCY; then
     if $TARGET_WLAN_SUPPORT_MOBILEAP_WIFI_CONCURRENCY; then
@@ -1320,7 +1378,7 @@ if ! $SOURCE_WLAN_SUPPORT_MOBILEAP_WIFI_CONCURRENCY; then
             "SPF_Concurrency=true"
     fi
 else
-    if ! $TARGET_WLAN_SUPPORT_MOBILEAP_WIFI_CONCURRENCY; then
+    if ! $TARGET_WLAN_SUPPORT_MOBILEAP_WIFI_CONCURRENCY && ! $S10_WIFI_CAPABILITIES; then
         # TODO handle this condition
         LOG_MISSING_PATCHES "SOURCE_WLAN_SUPPORT_MOBILEAP_WIFI_CONCURRENCY" "TARGET_WLAN_SUPPORT_MOBILEAP_WIFI_CONCURRENCY"
     fi
@@ -1353,8 +1411,12 @@ fi
 # SEC_PRODUCT_FEATURE_WLAN_SUPPORT_LOWLATENCY
 if $SOURCE_WLAN_SUPPORT_TWT_CONTROL && $SOURCE_WLAN_SUPPORT_LOWLATENCY; then
     if ! $TARGET_WLAN_SUPPORT_TWT_CONTROL; then
-        APPLY_PATCH "system" "system/framework/semwifi-service.jar" \
-            "$MODPATH/wifi/twt_control/semwifi-service.jar/0001-Disable-TWT_CONTROL-support.patch"
+        if $S10_WIFI_CAPABILITIES; then
+            LOG "S10 TWT entry points are disabled; driver low-latency detection is preserved"
+        else
+            APPLY_PATCH "system" "system/framework/semwifi-service.jar" \
+                "$MODPATH/wifi/twt_control/semwifi-service.jar/0001-Disable-TWT_CONTROL-support.patch"
+        fi
 
         if ! $TARGET_WLAN_SUPPORT_LOWLATENCY; then
             APPLY_PATCH "system" "system/framework/semwifi-service.jar" \

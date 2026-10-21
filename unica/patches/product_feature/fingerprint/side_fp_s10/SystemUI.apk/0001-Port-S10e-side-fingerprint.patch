@@ -1,0 +1,296 @@
+From: WatchFact <thedataguyshere@gmail.com>
+Subject: [PATCH] Use native guarded side-fingerprint UI on S10e
+
+---
+--- a/smali/com/android/systemui/LsRune.smali
++++ b/smali/com/android/systemui/LsRune.smali
+@@ -189,7 +189,11 @@
+ 
+ # direct methods
+ .method static constructor <clinit>()V
+-    .locals 18
++    .locals 20
++
++    const/16 v18, 0x0
++
++    const/16 v19, 0x1
+ 
+     const-string/jumbo v0, "user"
+ 
+@@ -735,7 +739,7 @@
+ 
+     const/16 v16, 0x1
+ 
+-    sput-boolean v16, Lcom/android/systemui/LsRune;->SECURITY_FINGERPRINT_IN_DISPLAY:Z
++    sput-boolean v18, Lcom/android/systemui/LsRune;->SECURITY_FINGERPRINT_IN_DISPLAY:Z
+ 
+     const-string v2, "SEC_FLOATING_FEATURE_BIOAUTH_CONFIG_FINGERPRINT_FEATURES"
+ 
+@@ -747,7 +751,7 @@
+ 
+     sput-boolean v2, Lcom/android/systemui/LsRune;->SECURITY_FINGERPRINT_HOME:Z
+ 
+-    sput-boolean v3, Lcom/android/systemui/LsRune;->SECURITY_BACKGROUND_AUTHENTICATION:Z
++    sput-boolean v19, Lcom/android/systemui/LsRune;->SECURITY_BACKGROUND_AUTHENTICATION:Z
+ 
+     const-string v2, "SEC_FLOATING_FEATURE_LOCKSCREEN_CONFIG_PUNCHHOLE_VI"
+ 
+@@ -811,7 +815,7 @@
+     :goto_12
+     sput-boolean v4, Lcom/android/systemui/LsRune;->SECURITY_BLOCK_CARRIER_TEXT_WHEN_SIM_NOT_READY:Z
+ 
+-    sput-boolean v2, Lcom/android/systemui/LsRune;->SECURITY_FINGERPRINT_GUIDE_POPUP:Z
++    sput-boolean v18, Lcom/android/systemui/LsRune;->SECURITY_FINGERPRINT_GUIDE_POPUP:Z
+ 
+     sput-boolean v17, Lcom/android/systemui/LsRune;->SECURITY_CONTINUITY_LOCKSCREEN_VI:Z
+ 
+--- a/smali_classes4/com/android/systemui/util/DeviceState.smali
++++ b/smali_classes4/com/android/systemui/util/DeviceState.smali
+@@ -670,7 +670,7 @@
+ .method public static getInDisplayFingerprintHeight()I
+     .locals 1
+ 
+-    sget v0, Lcom/android/systemui/util/DeviceState;->sInDisplayFingerprintHeight:I
++    const/4 v0, 0x0
+ 
+     return v0
+ .end method
+@@ -678,7 +678,7 @@
+ .method public static getInDisplayFingerprintImageSize()I
+     .locals 1
+ 
+-    sget v0, Lcom/android/systemui/util/DeviceState;->sInDisplayFingerprintImageSize:I
++    const/4 v0, 0x0
+ 
+     return v0
+ .end method
+@@ -686,7 +686,7 @@
+ .method public static getInDisplayFingerprintMarginBottom()I
+     .locals 1
+ 
+-    sget v0, Lcom/android/systemui/util/DeviceState;->sInDisplayFingerprintMarginBottom:I
++    const/4 v0, 0x0
+ 
+     return v0
+ .end method
+@@ -1681,49 +1681,8 @@
+ .end method
+ 
+ .method public static isInDisplayFpSensorPositionHigh()Z
+-    .locals 2
+-
+-    const-class v0, Lcom/android/systemui/keyguard/DisplayLifecycle;
+-
+-    sget-object v1, Lcom/android/systemui/Dependency;->sDependency:Lcom/android/systemui/Dependency;
+-
+-    invoke-virtual {v1, v0}, Lcom/android/systemui/Dependency;->getDependencyInner(Ljava/lang/Object;)Ljava/lang/Object;
+-
+-    move-result-object v0
+-
+-    check-cast v0, Lcom/android/systemui/keyguard/DisplayLifecycle;
+-
+-    invoke-virtual {v0}, Lcom/android/systemui/keyguard/DisplayLifecycle;->getRealSize()Landroid/graphics/Point;
+-
+-    move-result-object v0
+-
+-    iget v1, v0, Landroid/graphics/Point;->y:I
+-
+-    iget v0, v0, Landroid/graphics/Point;->x:I
+-
+-    invoke-static {v1, v0}, Ljava/lang/Math;->max(II)I
+-
+-    move-result v0
+-
+-    int-to-float v0, v0
+-
+-    sget v1, Lcom/android/systemui/util/DeviceState;->sInDisplayFingerprintHeight:I
+-
+-    int-to-float v1, v1
+-
+-    div-float/2addr v1, v0
+-
+-    const v0, 0x3e6147ae    # 0.22f
+-
+-    cmpl-float v0, v1, v0
+-
+-    if-lez v0, :cond_0
+-
+-    const/4 v0, 0x1
+-
+-    return v0
+-
+-    :cond_0
++    .locals 1
++
+     const/4 v0, 0x0
+ 
+     return v0
+@@ -2883,62 +2842,12 @@
+ .end method
+ 
+ .method public static setInDisplayFingerprintSensorPosition(Landroid/util/DisplayMetrics;)V
+-    .locals 4
+-
+-    invoke-static {}, Lcom/android/systemui/util/DeviceState;->readFingerprintSensor()V
+-
+-    sget-object v0, Lcom/android/systemui/util/DeviceState;->sSemSensorImageSize:Ljava/lang/String;
+-
+-    invoke-static {v0}, Ljava/lang/Float;->parseFloat(Ljava/lang/String;)F
+-
+-    move-result v0
+-
+-    const/4 v1, 0x5
+-
+-    invoke-static {v1, v0, p0}, Landroid/util/TypedValue;->applyDimension(IFLandroid/util/DisplayMetrics;)F
+-
+-    move-result v0
+-
+-    sget-object v2, Lcom/android/systemui/util/DeviceState;->sSemSensorMarginBottom:Ljava/lang/String;
+-
+-    invoke-static {v2}, Ljava/lang/Float;->parseFloat(Ljava/lang/String;)F
+-
+-    move-result v2
+-
+-    invoke-static {v1, v2, p0}, Landroid/util/TypedValue;->applyDimension(IFLandroid/util/DisplayMetrics;)F
+-
+-    move-result v2
+-
+-    sget-object v3, Lcom/android/systemui/util/DeviceState;->sSemSensorAreaHeight:Ljava/lang/String;
+-
+-    invoke-static {v3}, Ljava/lang/Float;->parseFloat(Ljava/lang/String;)F
+-
+-    move-result v3
+-
+-    invoke-static {v1, v3, p0}, Landroid/util/TypedValue;->applyDimension(IFLandroid/util/DisplayMetrics;)F
+-
+-    move-result p0
+-
+-    float-to-int v1, v2
+-
+-    float-to-int p0, p0
+-
+-    div-int/lit8 p0, p0, 0x2
+-
+-    add-int/2addr p0, v1
+-
+-    float-to-int v0, v0
+-
+-    div-int/lit8 v2, v0, 0x2
+-
+-    add-int/2addr v2, p0
+-
+-    sput v2, Lcom/android/systemui/util/DeviceState;->sInDisplayFingerprintHeight:I
+-
++    .locals 1
++
++    const/4 v0, 0x0
++    sput v0, Lcom/android/systemui/util/DeviceState;->sInDisplayFingerprintHeight:I
+     sput v0, Lcom/android/systemui/util/DeviceState;->sInDisplayFingerprintImageSize:I
+-
+-    sput v1, Lcom/android/systemui/util/DeviceState;->sInDisplayFingerprintMarginBottom:I
+-
++    sput v0, Lcom/android/systemui/util/DeviceState;->sInDisplayFingerprintMarginBottom:I
+     return-void
+ .end method
+ 
+--- a/smali_classes4/com/android/systemui/util/DeviceType.smali
++++ b/smali_classes4/com/android/systemui/util/DeviceType.smali
+@@ -474,26 +474,8 @@
+ .end method
+ 
+ .method public static isInDisplayFingerprintSupported()Z
+-    .locals 3
+-
+-    sget v0, Lcom/android/systemui/util/DeviceType;->supportInDisplayFingerprint:I
+-
+-    const/4 v1, -0x1
+-
+-    const/4 v2, 0x1
+-
+-    if-ne v0, v1, :cond_0
+-
+-    sput v2, Lcom/android/systemui/util/DeviceType;->supportInDisplayFingerprint:I
+-
+-    :cond_0
+-    sget v0, Lcom/android/systemui/util/DeviceType;->supportInDisplayFingerprint:I
+-
+-    if-ne v0, v2, :cond_1
+-
+-    return v2
+-
+-    :cond_1
++    .locals 1
++
+     const/4 v0, 0x0
+ 
+     return v0
+@@ -737,29 +719,11 @@
+ .end method
+ 
+ .method public static isOpticalFingerprintSupported()Z
+-    .locals 3
+-
+-    sget v0, Lcom/android/systemui/util/DeviceType;->supportOpticalFingerprint:I
+-
+-    const/4 v1, -0x1
+-
+-    const/4 v2, 0x0
+-
+-    if-ne v0, v1, :cond_0
+-
+-    sput v2, Lcom/android/systemui/util/DeviceType;->supportOpticalFingerprint:I
+-
+-    :cond_0
+-    sget v0, Lcom/android/systemui/util/DeviceType;->supportOpticalFingerprint:I
+-
+-    const/4 v1, 0x1
+-
+-    if-ne v0, v1, :cond_1
+-
+-    return v1
+-
+-    :cond_1
+-    return v2
++    .locals 1
++
++    const/4 v0, 0x0
++
++    return v0
+ .end method
+ 
+ .method public static isQcomChipType()Z
+@@ -891,29 +855,11 @@
+ .end method
+ 
+ .method public static isSideFingerprintSupported()Z
+-    .locals 3
+-
+-    sget v0, Lcom/android/systemui/util/DeviceType;->supportSideFingerprint:I
+-
+-    const/4 v1, -0x1
+-
+-    const/4 v2, 0x0
+-
+-    if-ne v0, v1, :cond_0
+-
+-    sput v2, Lcom/android/systemui/util/DeviceType;->supportSideFingerprint:I
+-
+-    :cond_0
+-    sget v0, Lcom/android/systemui/util/DeviceType;->supportSideFingerprint:I
+-
+-    const/4 v1, 0x1
+-
+-    if-ne v0, v1, :cond_1
+-
+-    return v1
+-
+-    :cond_1
+-    return v2
++    .locals 1
++
++    const/4 v0, 0x1
++
++    return v0
+ .end method
+ 
+ .method public static isSupport5G()Z
