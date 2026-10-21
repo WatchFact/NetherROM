@@ -1,7 +1,0 @@
-/dev/block/by-name/system /system ext4 defaults defaults
-/dev/block/by-name/vendor /vendor ext4 defaults defaults
-/dev/block/by-name/product /product ext4 defaults defaults
-/dev/block/by-name/odm /odm ext4 defaults defaults
-/dev/block/by-name/boot /boot emmc defaults defaults
-/dev/block/by-name/dtb /dtb emmc defaults defaults
-/dev/block/by-name/dtbo /dtbo emmc defaults defaults

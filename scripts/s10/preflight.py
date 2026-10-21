@@ -10,7 +10,7 @@ from pathlib import Path
 from policies import inputs as policy_inputs, matrix as check_matrix
 
 ROOT = Path(__file__).resolve().parents[2]
-DEVICES = ('beyond0lte', 'beyond1lte', 'beyond2lte', 'beyondx')
+DEVICES = ('beyond2lte',)
 
 
 def index():

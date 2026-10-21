@@ -679,6 +679,9 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
             for model in models: self.assertIn(model, edify)
         with self.assertRaises(ValueError): generate('beyond2lte',dict(sizes,odm=5*1048576))
         with self.assertRaises(ValueError): generate('beyond2lte',dict(sizes,super=1))
+        with self.assertRaisesRegex(ValueError, 'only supports'): generate('beyond1lte',sizes)
+        self.assertIn('&&', generate('beyond2lte',sizes)[1])
+        self.assertNotIn('SM-G975N', generate('beyond2lte',sizes)[1])
 
     def test_midas_preserves_reviewed_model_selectors(self):
         with tempfile.TemporaryDirectory() as td:

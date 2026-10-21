@@ -4,6 +4,9 @@ set -eo pipefail
 : "${SRC_DIR:?Source buildenv.sh first}"
 : "${WORK_DIR:?}"
 [[ "$TARGET_PLATFORM" == exynos9820 && "$TARGET_USE_DYNAMIC_PARTITIONS" == false ]]
+[[ "$TARGET_CODENAME" == beyond2lte && "${TARGET_FIRMWARE%%/*}" == SM-G975F ]] || {
+  echo 'Refusing non-SM-G975F/beyond2lte target firmware' >&2; exit 1;
+}
 [[ "$TARGET_OS_FILE_SYSTEM_TYPE" == ext4 && "$ROM_VERSION" == 4.0.2 ]]
 source "$SRC_DIR/scripts/utils/build_utils.sh"
 python3 "$SRC_DIR/scripts/s10/odm_layout.py" finalize "$WORK_DIR" "$TARGET_CODENAME"

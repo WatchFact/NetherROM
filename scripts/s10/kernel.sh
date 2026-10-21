@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 set -euo pipefail
 target="${1:?S10 target required}"
-case "$target" in beyond0lte|beyond1lte|beyond2lte|beyondx) ;; *) exit 1;; esac
+[[ "$target" == "beyond2lte" ]] || { echo 'Only SM-G975F/DS (beyond2lte) is supported' >&2; exit 1; }
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 rev=9a0a792d227c8ae6cddac0c9d68a8bb9782c44cb
 dir="${RUNNER_TEMP:-/tmp}/s10-kernel-$target"

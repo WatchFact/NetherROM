@@ -1,10 +1,10 @@
-name: NetherROM Aether 4.0.2 - S10 legacy clean build
+name: NetherROM Aether 4.0.2 - SM-G975F/DS-only build
 on:
   push:
     branches: [port/artisan-aether-s10-clean-20261021]
     paths:
       - 'platform/exynos9820/**'
-      - 'target/beyond*/**'
+      - 'target/beyond2lte/**'
       - 'prebuilts/samsung/a26xxx/**'
       - 'prebuilts/samsung/r9sxxx/**'
       - 'prebuilts/samsung/p3sxxx/**'
@@ -24,13 +24,6 @@ on:
       - 'unica/patches/fs/**'
       - '.github/workflows/s10-aether.yml'
   workflow_dispatch:
-    inputs:
-      device:
-        description: Exynos S10 target
-        required: true
-        default: all
-        type: choice
-        options: [all, beyond0lte, beyond1lte, beyond2lte, beyondx]
 
 permissions:
   contents: write
@@ -50,7 +43,7 @@ jobs:
           sparse-checkout: |
             /buildenv.sh
             /scripts/
-            /target/beyond*/
+            /target/beyond2lte/
             /platform/exynos9820/config.sh
             /platform/exynos9820/patches/**/customize.sh
             /platform/exynos9820/patches/**/module.prop
@@ -64,12 +57,12 @@ jobs:
             /security/
       - name: Test physical installer, kernel guards and firmware patch boundaries
         run: python3 scripts/s10/test_port.py
-      - name: Validate complete hardware inventory and all four configurations
+      - name: Validate locked Exynos9820 hardware and only SM-G975F/DS target
         shell: bash
         run: |
           set -eo pipefail
-          find scripts/s10 platform/exynos9820 target/beyond* unica/patches/{dvfs,vintf,fs,legacy,product_feature} -name '*.sh' -print0 | xargs -0 -n 1 bash -n
-          for target in beyond0lte beyond1lte beyond2lte beyondx; do
+          find scripts/s10 platform/exynos9820 target/beyond2lte unica/patches/{dvfs,vintf,fs,legacy,product_feature} -name '*.sh' -print0 | xargs -0 -n 1 bash -n
+          for target in beyond2lte; do
             python3 scripts/s10/preflight.py --device "$target"
             bash -c 'set -e; source ./buildenv.sh "$1"; test "$ROM_VERSION" = 4.0.2; test "$TARGET_CODENAME" = "$1"; test "$TARGET_PLATFORM" = exynos9820; test "$TARGET_USE_DYNAMIC_PARTITIONS" = false; test "$TARGET_OS_FILE_SYSTEM_TYPE" = ext4; test "$TARGET_LCD_CONFIG_HFR_DEFAULT_REFRESH_RATE" = 60' -- "$target"
           done
@@ -83,11 +76,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          tag="netherrom-4.0.2-s10-source-${GITHUB_SHA:0:12}"
+          tag="netherrom-4.0.2-sm-g975f-source-${GITHUB_SHA:0:12}"
           if ! gh release view "$tag" >/dev/null 2>&1; then
             gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
-              --title 'NetherROM 4.0.2 S10 port source - hardware testing pending' \
-              --notes 'Clean ArtisanROM 4.0.2 base (39312bda2bd001f2e60efbb4e381c421c44da630), complete S10 Exynos9820 hardware imported from 3.1.0 (4d30365b4452a651cc87af8e91733ec1c862f716). Source snapshot only. Flashable packages are published separately after complete build, image and ZIP checks. Physical boot and hardware operation have not been tested.'
+              --title 'NetherROM 4.0.2 SM-G975F/DS port source - untested' \
+              --notes 'Clean ArtisanROM 4.0.2 base (39312bda2bd001f2e60efbb4e381c421c44da630), SM-G975F/DS-only Exynos9820 target imported from 3.1.0 (4d30365b4452a651cc87af8e91733ec1c862f716). Source snapshot only. Flashable packages are published separately after complete build, image and ZIP checks. Physical boot and hardware operation have not been tested.'
           fi
 
   build:
@@ -95,10 +88,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 350
     strategy:
-      fail-fast: false
-      max-parallel: 4
+      fail-fast: true
       matrix:
-        target: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.device != 'all' && format('["{0}"]', inputs.device) || '["beyond0lte","beyond1lte","beyond2lte","beyondx"]') }}
+        target: [beyond2lte]
     steps:
       - name: Checkout pristine source without firmware or build caches
         uses: actions/checkout@v4
@@ -185,7 +177,7 @@ jobs:
           tag='netherrom-4.0.2-${{ matrix.target }}-${{ github.run_number }}'
           if ! gh release view "$tag" >/dev/null 2>&1; then
             gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
-              --title 'NetherROM 4.0.2 - ${{ matrix.target }} - experimental' \
+              --title 'NetherROM 4.0.2 - SM-G975F/DS (beyond2lte) - experimental' \
               --notes 'Clean kernel and firmware build. Physical ext4 partitions, kernel target/digests, image contents and ZIP CRC verified. Device boot and hardware operation are not yet tested. Requires the ArtisanROM S10 legacy repartition layout and compatible recovery. Verify PARTS-SHA256.txt, concatenate the numbered parts in order, then verify ROM-SHA256.txt. Read docs/s10-aether-4.0.2.md.'
           fi
           gh release upload "$tag" release-parts/* --clobber

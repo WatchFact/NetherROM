@@ -6,11 +6,12 @@ import sys
 from pathlib import Path
 
 BUDGET = {"system": 7000, "vendor": 1500, "product": 1500, "odm": 4}
-DEVICES = {"beyond0lte": ("SM-G970F", "SM-G970N"), "beyond1lte": ("SM-G973F", "SM-G973N"),
-           "beyond2lte": ("SM-G975F", "SM-G975N"), "beyondx": ("SM-G977B", "SM-G977N")}
+DEVICES = {"beyond2lte": ("SM-G975F", "SM-G975F/DS")}
 
 
 def generate(device, sizes):
+    if device != 'beyond2lte':
+        raise ValueError('This branch only supports Galaxy S10+ SM-G975F/DS (beyond2lte)')
     models = DEVICES[device]
     if set(sizes) != set(BUDGET) | {"boot", "dtb", "dtbo"}:
         raise ValueError("Unexpected or missing partition")
@@ -28,10 +29,14 @@ def generate(device, sizes):
             '[ -b "$device" ] || { echo "Missing $device"; exit 1; }',
             'capacity=$(blockdev --getsize64 "$device")',
             f'[ "$capacity" -ge {max(size, minimum)} ] || {{ echo "Partition too small: $device"; exit 1; }}'])
-    checks = [f'getprop("ro.product.device") == "{device}"']
-    checks += [f'getprop("ro.boot.em.model") == "{model}"' for model in models]
+    # Require BOTH the proper device codename and an SM-G975F/DS model.
+    # Refuse recovery environments that cannot establish both identities.
+    model_checks = [f'getprop("{key}") == "{model}"'
+                    for key in ("ro.boot.em.model", "ro.product.model", "ro.product.vendor.model")
+                    for model in models]
+    checks = f'(getprop("ro.product.device") == "{device}") && (' + ' || '.join(model_checks) + ')'
     updater = [f'ui_print("NetherROM 4.0.2 for {device} - legacy ext4 OTA");',
-               'assert(' + ' || '.join(checks) + ' || abort("Wrong Galaxy S10 variant"));',
+               'assert(' + checks + ' || abort("Wrong S10+ model/codename; expected SM-G975F (beyond2lte)"));',
                'assert(package_extract_file("s10-preflight.sh", "/tmp/s10-preflight.sh"));',
                'set_perm(0, 0, 0755, "/tmp/s10-preflight.sh");',
                'assert(run_program("/tmp/s10-preflight.sh") == 0);',

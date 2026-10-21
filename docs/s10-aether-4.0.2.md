@@ -6,8 +6,7 @@ This is a **new port branch**, independently created from the source branch,
 not a branch off the former experiments. ArtisanROM 4.0.1 is the latest
 published stable release as of 2026-10-21. The 4.0.2 source is pre-release.
 
-Devices: Exynos **beyond0lte** (SM-G970F/N), **beyond1lte** (SM-G973F/N),
-**beyond2lte** (SM-G975F/N), **beyondx** (SM-G977B/N). Snapdragon excluded.
+**Only supported device:** Galaxy S10+ Exynos 9820, **SM-G975F / SM-G975F/DS**, codename **beyond2lte**. All other S10-family targets, including SM-G975N, and all Snapdragon/S20 build targets are removed from this branch. They cannot be selected or packaged.
 
 ## Hardware and isolation
 
@@ -29,11 +28,13 @@ prerequisites. Never flash a PIT for another phone variant.
 ## Pipeline
 
 `.github/workflows/s10-aether.yml` performs read-only hardware preflight,
-regression tests and four clean S10 builds. It compiles the pinned Exynos9820
+regression tests and exactly one clean S10+ (beyond2lte) build. It compiles the pinned Exynos9820
 kernel and generates signed physical-partition installer ZIPs with image,
 metadata, OTA reconstruction and partition-size validation. A source
 prerelease is tagged after preflight; ROM assets are published only if all
 on-run build/package checks pass.
+
+The updater requires both the beyond2lte device codename and the approved SM-G975F model property; it aborts on wrong or unidentifiable models. The build checks the SM-G975F target firmware and refuses other device IDs.
 
 **Unverified:** boot, radio/IMS, camera, fingerprint, Wi-Fi, Bluetooth,
 storage, recovery compatibility, charging and stability require on-device
