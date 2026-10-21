@@ -18,6 +18,20 @@ resource against these inputs, checks both generic default policies, rejects
 leftover encrypted source policies and checks the floating-feature selector.
 The SDHMS APK is also checked inside the actual ext4 image.
 
+The first full four-device ROM construction at `364eb3c` reached packaging but
+failed this audit because Apktool's `--shorten-resource-paths` renamed the DVFS
+entry. Reproduction with the SHA256-pinned compiler maps the exact stock XML to
+`res/bN.xml`; building without that flag keeps
+`res/raw/dvfs_policy_makalu_xx.xml` and identical bytes. The S10 SDHMS build now
+preserves resource paths. The audit still requires the named file and compares
+its bytes; stock policy digests, selectors and thermal limits are unchanged.
+
+Before compiling each kernel, `thermal_apk_smoke.py` compiles a small policy APK
+with the pinned AAPT2/Apktool, reproduces the old shortening in a control, then
+executes the actual production `BUILD` function and platform signer. It requires
+the stock target DVFS/SIOP and generic policy bytes at their exact APK paths.
+This is a resource-build regression, not a ROM build or a hardware test.
+
 The S10 VINTF device compatibility matrix is imported from each build's own
 extracted target firmware. Its requirements describe the stock vendor HALs;
 they are not copied from the S24+ vendor contract. Import validates the XML

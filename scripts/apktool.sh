@@ -31,8 +31,15 @@ BUILD()
     mkdir -p "$OUTPUT_PATH/build/apk"
     cp -a "$OUTPUT_PATH/original/META-INF" "$OUTPUT_PATH/build/apk/META-INF"
 
-    # Build APK with --shorten-resource-paths (https://developer.android.com/tools/aapt2#optimize_options)
-    EVAL "apktool -JXmx${HEAP_SIZE}m b -j \"$THREAD_COUNT\" -p \"$FRAMEWORK_DIR\" -srp \"$OUTPUT_PATH\"" || exit 1
+    local RESOURCE_FLAGS="-srp"
+    if [[ "${TARGET_PLATFORM:-}" == "exynos9820" && \
+            "$FILE" == "system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk" ]]; then
+        # S10 stock DVFS policies are audited at their named res/raw paths.
+        # AAPT2 shortening renames those entries after the policy import.
+        RESOURCE_FLAGS=""
+        LOG "- Preserving S10 SDHMS thermal policy resource paths"
+    fi
+    EVAL "apktool -JXmx${HEAP_SIZE}m b -j \"$THREAD_COUNT\" -p \"$FRAMEWORK_DIR\" $RESOURCE_FLAGS \"$OUTPUT_PATH\"" || exit 1
 
     local FILE_NAME
     FILE_NAME="$(basename "$INPUT_FILE")"

@@ -411,6 +411,16 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
                 members['assets/'+policy+'.xml'] = b'<siop_document/>'
                 write_apk()
                 with self.assertRaises(ValueError): policy_output(repo, work, device)
+                members['assets/'+policy+'.xml'] = files['siop_model.xml'].read_bytes()
+                # A shortened path still contains identical XML bytes, but must
+                # fail the named-resource contract that packaging enforces.
+                raw_name = 'res/raw/dvfs_policy_makalu_xx.xml'
+                members['res/bN.xml'] = members.pop(raw_name)
+                write_apk()
+                with self.assertRaises(KeyError): policy_output(repo, work, device)
+                members[raw_name] = b'<DvfsHintList/>'
+                write_apk()
+                with self.assertRaises(ValueError): policy_output(repo, work, device)
 
     @staticmethod
     def stock_matrix():

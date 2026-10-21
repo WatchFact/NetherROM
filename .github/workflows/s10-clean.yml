@@ -10,6 +10,7 @@ on:
       - 'prebuilts/samsung/p3sxxx/**'
       - 'prebuilts/samsung/a73xqxx/**'
       - 'scripts/s10/**'
+      - 'scripts/apktool.sh'
       - 'scripts/utils/common_utils.sh'
       - 'scripts/utils/smali_utils.sh'
       - 'scripts/internal/build_flashable_zip.sh'
@@ -126,6 +127,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: bash scripts/s10/tools.sh
+      - name: Verify stock thermal policies survive APK compilation and signing
+        run: python3 scripts/s10/thermal_apk_smoke.py --repo "$PWD" --tools "$PWD/out/tools" --device '${{ matrix.target }}'
       - name: Compile target S10 kernel from pinned source
         run: bash scripts/s10/kernel.sh '${{ matrix.target }}'
       - name: Download and extract firmware from scratch
