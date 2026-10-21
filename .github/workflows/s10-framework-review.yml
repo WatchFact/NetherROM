@@ -1,0 +1,85 @@
+name: S10 pinned framework compatibility review
+on:
+  push:
+    branches: [port/s10-v4.0.1]
+    paths: ['.github/workflows/s10-framework-review.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /buildenv.sh
+            /scripts/
+            /unica/configs/
+            /platform/exynos9820/config.sh
+            /target/beyond2lte/config.sh
+            /external/make.sh
+            /external/ext4_utils/mke2fs.conf
+      - uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+      - name: Install extraction dependencies
+        run: |
+          sudo apt-get update
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            attr bc bison build-essential ccache clang cpio curl e2fsprogs flex ffmpeg \
+            git libbrotli-dev libbz2-dev libelf-dev libgtest-dev libncurses-dev \
+            libpcre2-dev libprotobuf-dev libssl-dev libunwind-dev libzstd-dev \
+            lld lz4 p7zip-full protobuf-compiler python-is-python3 python3 rsync \
+            unzip webp wget zip
+          sudo modprobe erofs || true
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Restore verified extraction tools
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/s10/tools.sh
+      - name: Extract only the pinned source firmware
+        shell: bash
+        run: |
+          set -eo pipefail
+          source ./buildenv.sh beyond2lte
+          ./scripts/download_fw.sh --ignore-target
+          ./scripts/extract_fw.sh --ignore-target
+          source_dir="$FW_DIR/SM-S926B_EUX"
+          test "$(cat "$source_dir/.extracted")" = "$SOURCE_FIRMWARE_VERSION"
+          mkdir framework-review
+          cp "$source_dir/.extracted" framework-review/firmware.txt
+          cp "$source_dir/system/system/framework/services.jar" framework-review/services.jar
+          sha256sum framework-review/services.jar | tee framework-review/SHA256.txt
+          apktool d --no-res --no-debug-info -o framework-review/decoded framework-review/services.jar
+          test -s framework-review/decoded/smali/com/android/server/biometrics/sensors/face/hidl/TestHal.smali
+          test -s framework-review/decoded/smali/com/android/server/biometrics/sensors/face/hidl/HidlToAidlCallbackConverter.smali
+      - name: Publish exact framework review inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tar -czf s10-framework-review.tar.gz framework-review
+          sha256sum s10-framework-review.tar.gz > s10-framework-review.tar.gz.sha256
+          tag="s10-framework-review-${GITHUB_SHA:0:12}"
+          gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
+            --title 'S10 framework port review inputs - not installable' \
+            --notes 'Read-only framework inputs from pinned S926BXXSHDZI1/S926BOXMHDZI1/S926BXXSHDZI1 source firmware, decoded with the verified S10 build toolchain. These diagnostics are for correcting the HIDL 2.0 backport. This is not a flashable ROM or a successful ROM build.' \
+            s10-framework-review.tar.gz s10-framework-review.tar.gz.sha256
+      - name: Preserve review diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s10-framework-review-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: ignore
+          path: framework-review/
