@@ -64,7 +64,7 @@ jobs:
           test -s framework-review/decoded/smali/com/android/server/biometrics/sensors/face/hidl/HidlToAidlCallbackConverter.smali
           # Review the settings and framework migrations together against the
           # same pristine firmware. These inputs never replace clean ROM builds.
-          for relative in framework/framework.jar framework/framework-res.apk \
+          for relative in framework/framework.jar framework/framework-res.apk framework/semwifi-service.jar \
             priv-app/SecSettings/SecSettings.apk priv-app/SettingsProvider/SettingsProvider.apk; do
             name="$(basename "$relative")"
             cp "$source_dir/system/system/$relative" "framework-review/$name"
@@ -73,6 +73,13 @@ jobs:
               apktool d --no-res --no-debug-info -o "framework-review/decoded-$name" "framework-review/$name"
             fi
           done
+          # The side fingerprint UI and Wi-Fi feature gates must be reviewed
+          # against the same source firmware, not guessed from another R8 layout.
+          mapfile -t systemui_paths < <(find "$source_dir" -type f -path '*/priv-app/SystemUI/SystemUI.apk')
+          test "${#systemui_paths[@]}" -eq 1
+          cp "${systemui_paths[0]}" framework-review/SystemUI.apk
+          sha256sum framework-review/SystemUI.apk >> framework-review/SHA256.txt
+          apktool d --no-res --no-debug-info -o framework-review/decoded-SystemUI.apk framework-review/SystemUI.apk
       - name: Publish exact framework review inputs
         env:
           GH_TOKEN: ${{ github.token }}
@@ -84,7 +91,7 @@ jobs:
           tag="s10-framework-review-${GITHUB_SHA:0:12}"
           gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
             --title 'S10 framework port review inputs - not installable' \
-            --notes 'Read-only framework and Settings inputs from pinned S926BXXSHDZI1/S926BOXMHDZI1/S926BXXSHDZI1 source firmware, decoded with the verified S10 build toolchain. These diagnostics support reviewing the legacy framework migrations together. This is not a flashable ROM or a successful ROM build.' \
+            --notes 'Read-only framework, Settings, Wi-Fi and SystemUI inputs from pinned S926BXXSHDZI1/S926BOXMHDZI1/S926BXXSHDZI1 source firmware, decoded with the verified S10 build toolchain. These diagnostics support reviewing the legacy framework migrations together. This is not a flashable ROM or a successful ROM build.' \
             s10-framework-review.tar.gz s10-framework-review.tar.gz.sha256
       - name: Preserve review diagnostics
         if: always()
