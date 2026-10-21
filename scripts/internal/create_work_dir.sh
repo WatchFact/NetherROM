@@ -167,6 +167,11 @@ mkdir -p "$WORK_DIR"
 mkdir -p "$WORK_DIR/configs"
 COPY_SOURCE_FIRMWARE
 COPY_TARGET_FIRMWARE
+if [[ "$TARGET_PLATFORM" == exynos9820 ]]; then
+    # Stock S10 embeds its ODM files in vendor; the pinned port boot mounts
+    # a physical ODM. Materialize it before ROM property modules run.
+    python3 "$SRC_DIR/scripts/s10/odm_layout.py" prepare "$WORK_DIR" "$TARGET_CODENAME" || exit 1
+fi
 COPY_TARGET_KERNEL
 printf '%s' "$FIRMWARE_IDENTITY" > "$WORK_DIR/.firmware_identity"
 

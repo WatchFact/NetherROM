@@ -6,6 +6,7 @@ set -eo pipefail
 [[ "$TARGET_PLATFORM" == exynos9820 && "$TARGET_USE_DYNAMIC_PARTITIONS" == false ]]
 [[ "$TARGET_OS_FILE_SYSTEM_TYPE" == ext4 && "$ROM_VERSION" == 4.0.1 ]]
 source "$SRC_DIR/scripts/utils/build_utils.sh"
+python3 "$SRC_DIR/scripts/s10/odm_layout.py" finalize "$WORK_DIR" "$TARGET_CODENAME"
 tmp="$OUT_DIR/s10-package-$TARGET_CODENAME"
 test ! -e "$tmp"
 mkdir -p "$tmp/META-INF/com/google/android" "$tmp/META-INF/com/android"
@@ -17,14 +18,25 @@ for part in system_ext vendor_dlkm odm_dlkm system_dlkm super; do
 done
 printf '{}\n' > "$tmp/sizes.json"
 for part in system vendor product odm; do
+  image_args=()
+  if [[ "$part" == odm ]]; then
+    test "$TARGET_ODM_PARTITION_SIZE" = 4194304
+    image_args+=(--partition-size "$TARGET_ODM_PARTITION_SIZE")
+  fi
   "$SRC_DIR/scripts/build_fs_image.sh" ext4 --no-avb --sparse --generate-map \
+    "${image_args[@]}" \
     --output "$tmp/$part.img" "$WORK_DIR/$part" \
     "$WORK_DIR/configs/file_context-$part" "$WORK_DIR/configs/fs_config-$part"
   size="$(GET_IMAGE_SIZE "$tmp/$part.img")"
-  python3 - "$tmp/sizes.json" "$part" "$size" <<'PY'
+  python3 - "$tmp/sizes.json" "$part" "$size" "$SRC_DIR" <<'PY'
 import json,sys
 from pathlib import Path
-p=Path(sys.argv[1]); d=json.loads(p.read_text()); d[sys.argv[2]]=int(sys.argv[3]); p.write_text(json.dumps(d))
+sys.path.insert(0,str(Path(sys.argv[4])/'scripts/s10'))
+from installer import BUDGET
+size=int(sys.argv[3]); part=sys.argv[2]
+if size <= 0 or size > BUDGET[part]*1048576:
+    raise ValueError('Expanded ext4 image exceeds the physical S10 capacity: '+part)
+p=Path(sys.argv[1]); d=json.loads(p.read_text()); d[part]=size; p.write_text(json.dumps(d))
 PY
   # Check the actual sparse ext4 contents before encoding the block OTA.
   bash "$SRC_DIR/scripts/s10/verify_image.sh" "$part" "$tmp/$part.img"
@@ -54,6 +66,7 @@ cp "$SRC_DIR/scripts/s10/dvfs-stock.json" "$tmp/dvfs-provenance.json"
 cp "$WORK_DIR/vintf-provenance.json" "$tmp/vintf-provenance.json"
 cp "$WORK_DIR/camera-compatibility.json" "$tmp/camera-compatibility.json"
 cp "$WORK_DIR/camera-portrait-provenance.json" "$tmp/camera-portrait-provenance.json"
+cp "$WORK_DIR/odm-provenance.json" "$tmp/odm-provenance.json"
 cp "$WORK_DIR/face-hidl-provenance.json" "$tmp/face-hidl-provenance.json"
 cp "$WORK_DIR/virtual-vibration-provenance.json" "$tmp/virtual-vibration-provenance.json"
 cp "$WORK_DIR/wifi-provenance.json" "$tmp/wifi-provenance.json"

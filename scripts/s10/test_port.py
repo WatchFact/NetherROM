@@ -21,6 +21,66 @@ from virtual_vibration import check_backend, digest, FIELD, HELPER, MANAGER, BOO
 
 
 class PortTests(unittest.TestCase):
+    def test_embedded_odm_becomes_physical_partition_without_losing_stock_data(self):
+        from odm_image_smoke import fixture
+        from odm_layout import prepare, finalize, check, RECORD
+        repo = Path(__file__).resolve().parents[2]
+        stage = (repo/'scripts/internal/create_work_dir.sh').read_text()
+        stage = stage[stage.index('\nCOPY_SOURCE_FIRMWARE\n'):stage.index('\nprintf', stage.index('\nCOPY_SOURCE_FIRMWARE\n'))]
+        for device in DEVICES:
+            with self.subTest(device=device), tempfile.TemporaryDirectory() as td:
+                work = Path(td)/'work'; fixture(work, device)
+                # Execute the actual work-directory stage, before any ROM mods.
+                script = 'set -e; SRC_DIR="$1"; WORK_DIR="$2"; TARGET_CODENAME="$3"; TARGET_PLATFORM=exynos9820; '\
+                    'COPY_SOURCE_FIRMWARE(){ :; }; COPY_TARGET_FIRMWARE(){ :; }; '\
+                    'COPY_TARGET_KERNEL(){ test -f "$WORK_DIR/odm/etc/build.prop"; };'+stage
+                subprocess.run(['bash', '-c', script, '--', str(repo), str(work), device], check=True)
+                prop = work/'odm/etc/build.prop'
+                prop.write_text(prop.read_text().replace('=mtp', '=mtp,adb'))
+                prepare(work, device)  # Idempotent; never erase module changes.
+                self.assertIn('=mtp,adb', prop.read_text())
+                finalize(work, device); check(work, device)
+                info = json.loads((work/RECORD).read_text())
+                self.assertEqual(info['source'].keys(), info['output'].keys())
+                self.assertEqual(info['source']['etc/passwd']['size'], 0)
+                self.assertIn('=mtp\n', (work/'vendor/odm/etc/build.prop').read_text())
+                for relative in ('odm/etc/build.prop', 'odm/etc/NOTICE.xml.gz', 'vendor/odm/etc/group',
+                                 'configs/fs_config-odm', 'configs/file_context-odm'):
+                    path = work/relative; saved = path.read_bytes()
+                    changed = (saved.replace(b'2000', b'1234') if 'fs_config' in relative else
+                               saved.replace(b'vendor_file', b'system_file') if 'file_context' in relative else
+                               saved+b'changed')
+                    path.write_bytes(changed)
+                    with self.assertRaises(ValueError): check(work, device)
+                    with self.assertRaises(ValueError): finalize(work, device)
+                    path.write_bytes(saved)
+                prop.unlink()
+                with self.assertRaises((ValueError, FileNotFoundError)): check(work, device)
+
+    def test_odm_rejects_wrong_hardware_missing_metadata_and_unreviewed_partition(self):
+        from odm_image_smoke import fixture
+        from odm_layout import prepare, finalize
+        for fault in ('wrong-device', 'missing-metadata', 'existing-partition', 'symlink', 'hardware-change'):
+            with self.subTest(fault=fault), tempfile.TemporaryDirectory() as td:
+                work = Path(td)/'work'; fixture(work, 'beyond2lte')
+                if fault == 'wrong-device':
+                    with self.assertRaisesRegex(ValueError, 'hardware identity'): prepare(work, 'beyond0lte')
+                elif fault == 'missing-metadata':
+                    (work/'configs/file_context-vendor').write_text('')
+                    with self.assertRaisesRegex(ValueError, 'metadata'): prepare(work, 'beyond2lte')
+                elif fault == 'existing-partition':
+                    (work/'odm').mkdir(); (work/'odm/keep').touch()
+                    with self.assertRaisesRegex(ValueError, 'existing physical'): prepare(work, 'beyond2lte')
+                    self.assertTrue((work/'odm/keep').exists())
+                elif fault == 'symlink':
+                    (work/'vendor/odm/etc/alias').symlink_to('build.prop')
+                    with self.assertRaisesRegex(ValueError, 'filesystem entry'): prepare(work, 'beyond2lte')
+                else:
+                    prepare(work, 'beyond2lte')
+                    prop = work/'odm/etc/build.prop'
+                    prop.write_text(prop.read_text().replace('SM-G975F', 'SM-G970F'))
+                    with self.assertRaisesRegex(ValueError, 'hardware identity'): finalize(work, 'beyond2lte')
+
     def test_portrait_models_survive_actual_platform_and_generic_camera_stages(self):
         import shutil
         from camera_portrait import PORTRAIT, LIBRARY, NEXUS, SINGLE, RECORD, SOURCE, BACKEND_TOKENS, weights, check_native_model, verify as portrait_verify
@@ -445,6 +505,12 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
             info={'device':device,'revision':KERNEL_REV,'ext4':True,'kernelsu':False,
                   'sha256':{n:hashlib.sha256(b).hexdigest() for n,b in images.items()}}
             members['kernel.json']=json.dumps(info)
+            from odm_image_smoke import fixture as odm_fixture
+            from odm_layout import prepare as odm_prepare, finalize as odm_finalize, RECORD as ODM_RECORD
+            odm_work = Path(td)/'odm-work'; odm_fixture(odm_work, device)
+            odm_prepare(odm_work, device); odm_finalize(odm_work, device)
+            members[ODM_RECORD] = (odm_work/ODM_RECORD).read_text()
+
             from camera_portrait import SOURCE, SINGLE, NEXUS, LIBRARY, RECORD
             members[RECORD] = json.dumps(dict(schema=2, device=device, source_firmware=SOURCE,
                 native_device_name='exynos9820_common', model_firmware=dict(model=DEVICES[device][0],version='fixture'),
@@ -470,6 +536,14 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
                 verify_zip(target, device)
             members['wifi-provenance.json'] = json.dumps(dict(legacy['migrations']['wifi'],
                 device=device, source_firmware=legacy['source_firmware'], mode='wifi'))
+            odm_record = members[ODM_RECORD]
+            wrong = json.loads(odm_record); wrong['device'] = 'beyond0lte'
+            members[ODM_RECORD] = json.dumps(wrong); write()
+            with self.assertRaisesRegex(ValueError, 'ODM provenance identity'): verify_zip(target, device)
+            wrong = json.loads(odm_record); wrong['output']['etc/passwd']['metadata'][1] = '1234'
+            members[ODM_RECORD] = json.dumps(wrong); write()
+            with self.assertRaisesRegex(ValueError, 'ODM provenance differs'): verify_zip(target, device)
+            members[ODM_RECORD] = odm_record
             portrait = json.loads(members[RECORD]); portrait['files'].pop(NEXUS)
             members[RECORD] = json.dumps(portrait); write()
             with self.assertRaisesRegex(ValueError, 'Incomplete S10 portrait'):

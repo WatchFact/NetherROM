@@ -2,7 +2,7 @@
 # Compare representative hardware files inside the actual sparse ext4 image.
 set -euo pipefail
 part="${1:?}"; image="${2:?}"
-case "$part" in system|vendor) ;; *) exit 0;; esac
+case "$part" in system|vendor|odm) ;; *) exit 0;; esac
 tmp="$(mktemp -d)"
 trap 'python3 -c "import shutil,sys; shutil.rmtree(sys.argv[1])" "$tmp"' EXIT
 simg2img "$image" "$tmp/raw.img"
@@ -12,11 +12,16 @@ from pathlib import Path
 sys.path.insert(0,str(Path(sys.argv[1])/'scripts/s10'))
 from audit_output import SYSTEM_FILES,VENDOR_FILES
 from camera_portrait import RECORD,validate_record
+from odm_layout import image_paths,verify_image_metadata
 import json,os
 work,tmp,part=Path(sys.argv[2]),Path(sys.argv[3]),sys.argv[4]
-portrait=validate_record(json.loads((work/RECORD).read_text()),os.environ['TARGET_CODENAME'])
-paths=list(SYSTEM_FILES if part=='system' else VENDOR_FILES)
-paths+=sorted(n.removeprefix(part+'/') for n in portrait if n.startswith(part+'/'))
+paths=[]
+if part in ('system','vendor'):
+    portrait=validate_record(json.loads((work/RECORD).read_text()),os.environ['TARGET_CODENAME'])
+    paths=list(SYSTEM_FILES if part=='system' else VENDOR_FILES)
+    paths+=sorted(n.removeprefix(part+'/') for n in portrait if n.startswith(part+'/'))
+if part in ('vendor','odm'):
+    paths+=image_paths(work,os.environ['TARGET_CODENAME'],part)
 paths=list(dict.fromkeys(paths))
 for i,relative in enumerate(paths):
     dest=tmp/f'dump-{i}'
@@ -25,5 +30,7 @@ for i,relative in enumerate(paths):
     expected=hashlib.sha256((work/part/relative).read_bytes()).hexdigest()
     if hashlib.sha256(dest.read_bytes()).hexdigest()!=expected:
         raise SystemExit('Hardware file differs in ext4: '+relative)
+if part in ('vendor','odm'):
+    verify_image_metadata(work,os.environ['TARGET_CODENAME'],part,tmp/'raw.img')
 print('Actual ext4 hardware contents verified:',part)
 PY

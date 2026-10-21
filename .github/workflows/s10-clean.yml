@@ -14,6 +14,7 @@ on:
       - 'scripts/utils/common_utils.sh'
       - 'scripts/utils/smali_utils.sh'
       - 'scripts/internal/build_flashable_zip.sh'
+      - 'scripts/internal/create_work_dir.sh'
       - 'unica/configs/essi.sh'
       - 'unica/patches/dvfs/**'
       - 'unica/patches/vintf/**'
@@ -131,6 +132,8 @@ jobs:
         run: bash scripts/s10/tools.sh
       - name: Verify stock thermal policies survive APK compilation and signing
         run: python3 scripts/s10/thermal_apk_smoke.py --repo "$PWD" --tools "$PWD/out/tools" --device '${{ matrix.target }}'
+      - name: Verify physical ODM image size, contents and metadata with pinned tools
+        run: python3 scripts/s10/odm_image_smoke.py --repo "$PWD" --tools "$PWD/out/tools" --device '${{ matrix.target }}'
       - name: Compile target S10 kernel from pinned source
         run: bash scripts/s10/kernel.sh '${{ matrix.target }}'
       - name: Download and extract firmware from scratch
@@ -200,6 +203,9 @@ jobs:
             out/target/${{ matrix.target }}/work_dir/vintf-provenance.json
             out/target/${{ matrix.target }}/work_dir/camera-compatibility.json
             out/target/${{ matrix.target }}/work_dir/camera-portrait-provenance.json
+            out/target/${{ matrix.target }}/work_dir/odm-provenance.json
+            out/target/${{ matrix.target }}/work_dir/configs/fs_config-odm
+            out/target/${{ matrix.target }}/work_dir/configs/file_context-odm
             out/target/${{ matrix.target }}/work_dir/face-hidl-provenance.json
             out/target/${{ matrix.target }}/work_dir/virtual-vibration-provenance.json
             out/target/${{ matrix.target }}/work_dir/fingerprint-provenance.json

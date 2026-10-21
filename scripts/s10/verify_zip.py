@@ -45,6 +45,8 @@ def verify(path, device):
         from legacy_features import manifest as legacy_manifest
         from camera_portrait import RECORD, validate_record
         validate_record(json.loads(z.read(RECORD)), device)
+        from odm_layout import RECORD as ODM_RECORD, validate_record as validate_odm
+        validate_odm(json.loads(z.read(ODM_RECORD)), device)
         legacy = legacy_manifest(Path(__file__).resolve().parents[2])
         for mode in ('wifi', 'fingerprint') if device == 'beyond0lte' else ('wifi',):
             expected = dict(legacy['migrations'][mode], device=device,
