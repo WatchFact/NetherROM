@@ -1,4 +1,4 @@
-name: S10 pinned framework compatibility review
+name: S10 pinned framework and portrait compatibility review
 on:
   push:
     branches: [port/s10-v4.0.1]
@@ -57,6 +57,24 @@ jobs:
           test "$(cat "$source_dir/.extracted")" = "$SOURCE_FIRMWARE_VERSION"
           mkdir framework-review
           cp "$source_dir/.extracted" framework-review/firmware.txt
+          # Keep exact portrait inputs for reviewing the model/backend contract.
+          mkdir -p framework-review/portrait
+          cp "$source_dir/system/system/cameradata/portrait_data/"*.json framework-review/portrait/
+          cp "$source_dir/system/system/lib64/libPortraitSolution.camera.samsung.so" framework-review/portrait/
+          readelf -d framework-review/portrait/libPortraitSolution.camera.samsung.so > framework-review/portrait/dynamic.txt
+          strings framework-review/portrait/libPortraitSolution.camera.samsung.so > framework-review/portrait/strings.txt
+          python3 - "$source_dir" <<'PY_REVIEW'
+          import hashlib,json,sys
+          from pathlib import Path
+          root=Path(sys.argv[1]); rows={}
+          for directory in ('system/system/cameradata/portrait_data','vendor/etc/portrait_data'):
+              for path in sorted((root/directory).rglob('*')):
+                  if path.is_file():
+                      rows[path.relative_to(root).as_posix()]={'size':path.stat().st_size,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+          Path('framework-review/portrait/inventory.json').write_text(json.dumps(rows,indent=2)+'\n')
+          print('Exact pinned source portrait feature configuration:')
+          print((root/'system/system/cameradata/portrait_data/single_bokeh_feature.json').read_text())
+          PY_REVIEW
           cp "$source_dir/system/system/framework/services.jar" framework-review/services.jar
           sha256sum framework-review/services.jar | tee framework-review/SHA256.txt
           apktool d --no-res --no-debug-info -o framework-review/decoded framework-review/services.jar
@@ -91,7 +109,7 @@ jobs:
           tag="s10-framework-review-${GITHUB_SHA:0:12}"
           gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
             --title 'S10 framework port review inputs - not installable' \
-            --notes 'Read-only framework, Settings, Wi-Fi and SystemUI inputs from pinned S926BXXSHDZI1/S926BOXMHDZI1/S926BXXSHDZI1 source firmware, decoded with the verified S10 build toolchain. These diagnostics support reviewing the legacy framework migrations together. This is not a flashable ROM or a successful ROM build.' \
+            --notes 'Read-only portrait model/backend, framework, Settings, Wi-Fi and SystemUI inputs from pinned S926BXXSHDZI1/S926BOXMHDZI1/S926BXXSHDZI1 source firmware, decoded with the verified S10 build toolchain. These diagnostics support reviewing the legacy framework migrations together. This is not a flashable ROM or a successful ROM build.' \
             s10-framework-review.tar.gz s10-framework-review.tar.gz.sha256
       - name: Preserve review diagnostics
         if: always()
