@@ -21,6 +21,55 @@ from virtual_vibration import check_backend, digest, FIELD, HELPER, MANAGER, BOO
 
 
 class PortTests(unittest.TestCase):
+    def test_virtual_migration_cli_uses_explicit_buildenv_decode_directory(self):
+        import re
+        import sys
+        repo = Path(__file__).resolve().parents[2]
+        exports = '\n'.join(re.findall(r'^export (?:APKTOOL_DIR|WORK_DIR)=.*$',
+                                     (repo/'buildenv.sh').read_text(), re.M))
+        self.assertEqual(len(exports.splitlines()), 2)
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            # Execute the actual buildenv assignments, rather than assuming a
+            # fixture layout that differs from GitHub Actions.
+            result = subprocess.check_output(['bash', '-c',
+                'OUT_DIR="$1"; SELECTED_TARGET=beyond2lte; '+exports+
+                '; printf "%s\\n%s\\n" "$WORK_DIR" "$APKTOOL_DIR"',
+                '--', str(root/'out')], text=True).splitlines()
+            work, decoded = map(Path, result)
+            self.assertNotEqual(decoded, work/'apktool')
+            relative = 'system/framework/services.jar'
+            name = 'com/example/Reviewed.smali'
+            original = b'.class public Lcom/example/Reviewed;\n.super Ljava/lang/Object;\n'
+            archive = work/'system'/relative
+            archive.parent.mkdir(parents=True)
+            archive.write_bytes(b'pinned input')
+            good = decoded/relative/'smali'/name
+            good.parent.mkdir(parents=True)
+            good.write_bytes(original)
+            stale = work/'apktool'/relative/'smali'/name
+            stale.parent.mkdir(parents=True)
+            stale.write_bytes(b'stale decoded class')
+            fixture = root/'repo/scripts/s10'
+            fixture.mkdir(parents=True)
+            (fixture/'virtual-vibration-v4.0.1.json').write_text(json.dumps({
+                'artifacts': {relative: {'source_sha256': digest(archive.read_bytes()),
+                                        'before': {name: digest(original)}}},
+                'patches': {}}))
+            command = [sys.executable, str(repo/'scripts/s10/virtual_vibration.py'),
+                       str(root/'repo'), str(work), str(decoded), 'beyond2lte', 'before']
+            subprocess.run(command, check=True, capture_output=True, text=True)
+            good.write_bytes(b'changed actual class')
+            rejected = subprocess.run(command, capture_output=True, text=True)
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn('Unreviewed virtual vibration migration class', rejected.stderr)
+            # A valid stale directory must never substitute for missing real output.
+            stale.write_bytes(original)
+            good.unlink()
+            rejected = subprocess.run(command, capture_output=True, text=True)
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn('Missing or ambiguous virtual vibration migration class', rejected.stderr)
+
     def test_virtual_sound_gate_preserves_motor_code_and_rejects_reactivation(self):
         import re
         with tempfile.TemporaryDirectory() as td:

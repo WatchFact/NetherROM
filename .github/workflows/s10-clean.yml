@@ -191,10 +191,10 @@ jobs:
             out/config.sh
             out/target/${{ matrix.target }}/*.log
             out/target/${{ matrix.target }}/firmware-inputs.json
-            out/target/${{ matrix.target }}/vintf-provenance.json
-            out/target/${{ matrix.target }}/camera-compatibility.json
-            out/target/${{ matrix.target }}/face-hidl-provenance.json
-            out/target/${{ matrix.target }}/virtual-vibration-provenance.json
+            out/target/${{ matrix.target }}/work_dir/vintf-provenance.json
+            out/target/${{ matrix.target }}/work_dir/camera-compatibility.json
+            out/target/${{ matrix.target }}/work_dir/face-hidl-provenance.json
+            out/target/${{ matrix.target }}/work_dir/virtual-vibration-provenance.json
             out/target/${{ matrix.target }}/apktool/system/framework/services.jar/smali/com/android/server/biometrics/sensors/face/
             out/target/${{ matrix.target }}/apktool/system/framework/services.jar/smali_classes2/vendor/samsung/hardware/biometrics/face/
             kernel-artifacts/${{ matrix.target }}/kernel.json

@@ -43,15 +43,15 @@ VENDOR_FILES = (
 )
 
 
-def audit(work, device):
+def audit(work, device, apktool):
     from storage_audit import audit as storage_audit
     storage_audit(work, device)
     from camera_native import output as native_camera_output
-    native_camera_output(Path(__file__).resolve().parents[2], work, device)
+    native_camera_output(Path(__file__).resolve().parents[2], work, device, apktool)
     from face_hidl import output as face_hidl_output
-    face_hidl_output(Path(__file__).resolve().parents[2], work, device)
+    face_hidl_output(Path(__file__).resolve().parents[2], work, device, apktool)
     from virtual_vibration import output as virtual_vibration_output
-    virtual_vibration_output(Path(__file__).resolve().parents[2], work, device)
+    virtual_vibration_output(Path(__file__).resolve().parents[2], work, device, apktool)
     from policies import output as policy_output
     policy_output(Path(__file__).resolve().parents[2], work, device)
     from camera_output_audit import check
@@ -91,4 +91,4 @@ def audit(work, device):
 
 
 if __name__ == '__main__':
-    audit(Path(sys.argv[1]), sys.argv[2])
+    audit(Path(sys.argv[1]), sys.argv[2], Path(sys.argv[3]))

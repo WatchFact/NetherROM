@@ -107,12 +107,12 @@ def check_contracts(decoded):
             raise ValueError('Wrong HIDL 2.0 interface hash chain: '+name)
 
 
-def output(repo, work, device):
+def output(repo, work, device, apktool):
     info = manifest(repo)
     record = json.loads((work/'face-hidl-provenance.json').read_text())
     if record != dict(info, device=device, mode='hidl-2.0'):
         raise ValueError('Missing or changed S10 face HAL migration provenance')
-    decoded = work/'apktool/system/framework/services.jar'
+    decoded = apktool/'system/framework/services.jar'
     check_classes(decoded, info['after'])
     check_no_v3(decoded)
     check_contracts(decoded)

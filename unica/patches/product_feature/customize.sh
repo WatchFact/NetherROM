@@ -149,7 +149,7 @@ if $SOURCE_AUDIO_SUPPORT_VIRTUAL_VIBRATION_SOUND; then
                 system/priv-app/SecSettings/SecSettings.apk system/priv-app/SettingsProvider/SettingsProvider.apk; do
                 DECODE_APK "system" "$VIRTUAL_VIB_APK" || return 1
             done
-            EVAL "python3 \"$SRC_DIR/scripts/s10/virtual_vibration.py\" \"$SRC_DIR\" \"$WORK_DIR\" \"$TARGET_CODENAME\" before" || return 1
+            EVAL "python3 \"$SRC_DIR/scripts/s10/virtual_vibration.py\" \"$SRC_DIR\" \"$WORK_DIR\" \"$APKTOOL_DIR\" \"$TARGET_CODENAME\" before" || return 1
             APPLY_PATCH "system" "system/framework/framework.jar" \
                 "$MODPATH/audio/virtual_vib/framework.jar/0001-Disable-virtual-vibration-support.patch"
             APPLY_PATCH "system" "system/framework/services.jar" \
@@ -159,7 +159,7 @@ if $SOURCE_AUDIO_SUPPORT_VIRTUAL_VIBRATION_SOUND; then
             # The pinned provider already initializes vibration_sound_enabled
             # to zero. Keep its reviewed defaults and normal haptic settings.
             LOG "Keeping the verified disabled virtual-sound provider default"
-            EVAL "python3 \"$SRC_DIR/scripts/s10/virtual_vibration.py\" \"$SRC_DIR\" \"$WORK_DIR\" \"$TARGET_CODENAME\" after" || return 1
+            EVAL "python3 \"$SRC_DIR/scripts/s10/virtual_vibration.py\" \"$SRC_DIR\" \"$WORK_DIR\" \"$APKTOOL_DIR\" \"$TARGET_CODENAME\" after" || return 1
         else
             APPLY_PATCH "system" "system/framework/framework.jar" \
                 "$MODPATH/audio/virtual_vib/framework.jar/0001-Disable-virtual-vibration-support.patch"

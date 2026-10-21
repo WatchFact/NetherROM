@@ -59,12 +59,12 @@ def verify(repo, work, decoded, device):
     print('Verified original S10 SceneDetection, SecondPicture and OMX surface encoders:', device)
 
 
-def output(repo, work, device):
+def output(repo, work, device, apktool):
     info = manifest(repo)
     record = json.loads((work/'camera-compatibility.json').read_text())
     if record != dict(info, device=device, mode='native-legacy-camera'):
         raise ValueError('Missing or changed camera compatibility provenance')
-    check_encoders(work/'apktool/system/priv-app/SamsungCamera/SamsungCamera.apk', info)
+    check_encoders(apktool/'system/priv-app/SamsungCamera/SamsungCamera.apk', info)
     with zipfile.ZipFile(work/'system'/CAMERA) as z:
         dex = [z.read(n) for n in z.namelist() if re.fullmatch(r'classes(?:[0-9]+)?\.dex', n)]
     strings = ['L'+n.removesuffix('.smali')+';' for n in (*info['classes'], *info['encoder_classes'])]

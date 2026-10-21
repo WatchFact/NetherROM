@@ -59,3 +59,21 @@ the clean Actions jobs still perform normal resource rebuilding and signing.
 Source inspection and successful assembly establish the scope and consistency
 of this migration. Boot, motor response, notification/call haptics, and audio
 behavior still require physical device testing.
+
+## Build-directory integration
+
+The migration and final camera/face/virtual-vibration output audits take the
+exported `APKTOOL_DIR` explicitly. In `buildenv.sh`, it is a sibling of
+`WORK_DIR` (`target/<device>/apktool` versus `target/<device>/work_dir`), not a
+subdirectory of it. Run 39564271889 exposed the incorrect nested-path assumption
+before applying the migration. The production shell block and packaging command
+now pass the actual decoded root, and diagnostic provenance paths point inside
+`work_dir` where those records are written.
+
+The regression executes the real buildenv directory assignments, invokes the
+migration CLI with a separate decoded root, rejects changed/missing classes in
+that root, and refuses to substitute a valid stale nested directory. The source
+and class digests, backend/null-read checks, camera/face checks, and image checks
+are retained. Validation also exercises the actual shell block against the exact
+pinned firmware in the split directory layout; all 13 regressions and four
+hardware preflights pass.

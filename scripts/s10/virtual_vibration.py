@@ -62,29 +62,29 @@ def check_backend(decoded, info):
         raise ValueError('Virtual sound entry points differ from the reviewed framework')
 
 
-def verify(repo, work, device, stage):
+def verify(repo, work, apktool, device, stage):
     if device not in DEVICES or stage not in ('before', 'after'):
         raise ValueError('Unsupported S10 virtual vibration migration')
     info = manifest(repo)
     for relative, item in info['artifacts'].items():
         if digest((work/'system'/relative).read_bytes()) != item['source_sha256']:
             raise ValueError('Virtual vibration input differs from the pinned firmware: '+relative)
-        check_classes(work/'apktool'/relative, item[stage])
+        check_classes(apktool/relative, item[stage])
     for relative, expected in info['patches'].items():
         if digest((repo/relative).read_bytes()) != expected:
             raise ValueError('Virtual vibration patch differs from the reviewed migration')
     if stage == 'after':
-        check_backend(work/'apktool'/SERVICE, info)
+        check_backend(apktool/SERVICE, info)
         (work/'virtual-vibration-provenance.json').write_text(json.dumps(dict(info,device=device),indent=2)+'\n')
     print('Verified unsupported virtual vibration migration:', device, stage)
 
 
-def output(repo, work, device):
+def output(repo, work, device, apktool):
     info = manifest(repo)
     if json.loads((work/'virtual-vibration-provenance.json').read_text()) != dict(info,device=device):
         raise ValueError('Missing or changed virtual vibration migration provenance')
     for relative, item in info['artifacts'].items():
-        check_classes(work/'apktool'/relative, item['after'])
+        check_classes(apktool/relative, item['after'])
         artifact = work/'system'/relative
         if item['before'] != item['after'] and digest(artifact.read_bytes()) == item['source_sha256']:
             raise ValueError('Changed virtual vibration artifact was not rebuilt: '+relative)
@@ -96,9 +96,9 @@ def output(repo, work, device):
             descriptor = ('L'+name.removesuffix('.smali')+';').encode()+b'\0'
             if not any(descriptor in data for data in dex):
                 raise ValueError('Rebuilt virtual vibration class is absent: '+name)
-    check_backend(work/'apktool'/SERVICE, info)
+    check_backend(apktool/SERVICE, info)
     print('Virtual sound is disabled and physical vibration code is preserved:', device)
 
 
 if __name__ == '__main__':
-    verify(Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3], sys.argv[4])
+    verify(Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3]), sys.argv[4], sys.argv[5])

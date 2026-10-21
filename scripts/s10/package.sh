@@ -11,7 +11,7 @@ test ! -e "$tmp"
 mkdir -p "$tmp/META-INF/com/google/android" "$tmp/META-INF/com/android"
 cp "$SRC_DIR/prebuilts/bootable/deprecated-ota/updater" "$tmp/META-INF/com/google/android/update-binary"
 chmod 755 "$tmp/META-INF/com/google/android/update-binary"
-python3 "$SRC_DIR/scripts/s10/audit_output.py" "$WORK_DIR" "$TARGET_CODENAME"
+python3 "$SRC_DIR/scripts/s10/audit_output.py" "$WORK_DIR" "$TARGET_CODENAME" "$APKTOOL_DIR"
 for part in system_ext vendor_dlkm odm_dlkm system_dlkm super; do
   test ! -e "$WORK_DIR/$part"
 done
