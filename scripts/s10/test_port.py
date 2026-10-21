@@ -21,6 +21,27 @@ from virtual_vibration import check_backend, digest, FIELD, HELPER, MANAGER, BOO
 
 
 class PortTests(unittest.TestCase):
+    def test_shared_ext4_is_opt_in_and_restricted_to_read_only_os_partitions(self):
+        repo=Path(__file__).resolve().parents[2]
+        source=(repo/'scripts/build_fs_image.sh').read_text()
+        parser=source[source.index('PREPARE_SCRIPT()\n'):source.index('\nPRINT_USAGE()\n')]
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); tree=root/'system'; tree.mkdir()
+            fc=root/'file_context'; fc.touch(); fs=root/'fs_config'; fs.touch()
+            script='set -e\nSRC_DIR="$1"; shift; source "$SRC_DIR/scripts/utils/common_utils.sh"\nTARGET_DISABLE_AVB_SIGNING=true; FORCE=false; FS_TYPE=""; AVB_SIGN=""; PARTITION=""\nSPARSE=false; SHARE_DUP_BLOCKS=false; MAP_FILE=false; INODES=""; OUTPUT_FILE=""\n'+parser+'\nPREPARE_SCRIPT "$@"\nprintf "shared=%s" "$SHARE_DUP_BLOCKS"'
+            base=['bash','-c',script,'--',str(repo)]
+            suffix=[str(tree),str(fc),str(fs)]
+            enabled=subprocess.run(base+['ext4','--share-dup-blocks']+suffix,capture_output=True,text=True)
+            self.assertEqual(enabled.returncode,0,enabled.stdout+enabled.stderr)
+            self.assertIn('shared=true',enabled.stdout)
+            normal=subprocess.run(base+['ext4']+suffix,capture_output=True,text=True)
+            self.assertEqual(normal.returncode,0,normal.stdout+normal.stderr)
+            self.assertIn('shared=false',normal.stdout)
+            for args in (['erofs','--share-dup-blocks'],['ext4','--share-dup-blocks','--partition-name','vendor_dlkm']):
+                rejected=subprocess.run(base+args+suffix,capture_output=True,text=True)
+                self.assertNotEqual(rejected.returncode,0)
+                self.assertIn('read-only',rejected.stdout+rejected.stderr)
+
     def test_embedded_odm_becomes_physical_partition_without_losing_stock_data(self):
         from odm_image_smoke import fixture
         from odm_layout import prepare, finalize, check, RECORD

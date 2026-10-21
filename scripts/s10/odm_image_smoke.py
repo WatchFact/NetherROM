@@ -44,7 +44,7 @@ def smoke(repo, tools, device):
                          source.index('\n# https://android.googlesource.com/platform/build/',
                                       source.index('BUILD_IMAGE_MKFS()\n'))]
         script = '''set -eo pipefail
-FS_TYPE=ext4; SPARSE=true; MAP_FILE=true; PARTITION=odm; MOUNT_POINT=odm
+FS_TYPE=ext4; SPARSE=true; SHARE_DUP_BLOCKS=true; MAP_FILE=true; PARTITION=odm; MOUNT_POINT=odm
 INPUT_DIR="$1/odm"; OUTPUT_FILE="$2"; IMAGE_SIZE=4194304; INODES=""
 FILE_CONTEXT_FILE="$1/configs/file_context-odm"; FS_CONFIG_FILE="$1/configs/fs_config-odm"
 EVAL(){ eval "$1"; }
@@ -67,8 +67,7 @@ EVAL(){ eval "$1"; }
         # Use the same OTA encoder as package.sh. Reconstruct its full-update
         # transfer commands and audit the resulting filesystem as an installer
         # would see it, including files and SELinux/ownership attributes.
-        encoded = subprocess.run([str(tools/'bin/img2sdat'), '-o', str(root), '-B',
-                                  str(image.with_suffix('.map')), str(image)],
+        encoded = subprocess.run([str(tools/'bin/img2sdat'), '-o', str(root), str(image)],
                                  capture_output=True, text=True)
         if encoded.returncode: raise RuntimeError(encoded.stdout+encoded.stderr)
         lines = (root/'odm.transfer.list').read_text().splitlines()

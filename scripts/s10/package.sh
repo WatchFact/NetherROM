@@ -18,7 +18,7 @@ for part in system_ext vendor_dlkm odm_dlkm system_dlkm super; do
 done
 printf '{}\n' > "$tmp/sizes.json"
 for part in system vendor product odm; do
-  image_args=()
+  image_args=(--share-dup-blocks)
   if [[ "$part" == odm ]]; then
     test "$TARGET_ODM_PARTITION_SIZE" = 4194304
     image_args+=(--partition-size "$TARGET_ODM_PARTITION_SIZE")
@@ -40,8 +40,11 @@ p=Path(sys.argv[1]); d=json.loads(p.read_text()); d[part]=size; p.write_text(jso
 PY
   # Check the actual sparse ext4 contents before encoding the block OTA.
   bash "$SRC_DIR/scripts/s10/verify_image.sh" "$part" "$tmp/$part.img"
-  img2sdat -o "$tmp" -B "$tmp/$part.map" "$tmp/$part.img"
+  # Shared ext4 files can refer to overlapping blocks. For this full OTA,
+  # encode the sparse image's actual ranges instead of an incremental file map.
+  img2sdat -o "$tmp" "$tmp/$part.img"
   test -s "$tmp/$part.transfer.list" && test -s "$tmp/$part.new.dat"
+  python3 "$SRC_DIR/scripts/s10/ext4_integrity.py" "$tmp/$part.img"
   brotli --quality=4 --output="$tmp/$part.new.dat.br" "$tmp/$part.new.dat"
   python3 - "$tmp" "$part" <<'PY'
 from pathlib import Path

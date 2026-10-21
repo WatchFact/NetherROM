@@ -8,6 +8,7 @@ source "$SRC_DIR/scripts/utils/build_utils.sh" || exit 1
 FORCE=false
 FS_TYPE=""
 SPARSE=false
+SHARE_DUP_BLOCKS=false
 AVB_SIGN=""
 MAP_FILE=false
 INPUT_DIR=""
@@ -57,6 +58,9 @@ BUILD_IMAGE_MKFS()
             BUILD_CMD+="-M \"0\" "
             # https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/tools/releasetools/build_image.py#331
             BUILD_CMD+="--inode_size \"256\" "
+            if $SHARE_DUP_BLOCKS; then
+                BUILD_CMD+="--share_dup_blocks "
+            fi
             BUILD_CMD+="\"$FILE_CONTEXT_FILE\""
 
             # Avoid build failures if lost+found entry is not in file_context/fs_config
@@ -302,6 +306,12 @@ PREPARE_SCRIPT()
                 LOGE "Partition size not valid: $IMAGE_SIZE"
                 exit 1
             fi
+        elif [[ "$1" == "--share-dup-blocks" ]]; then
+            if [[ "$FS_TYPE" != ext4 ]]; then
+                LOGE "Duplicate block sharing requires read-only ext4"
+                exit 1
+            fi
+            SHARE_DUP_BLOCKS=true
         elif [[ "$1" == "--sparse" ]] || [[ "$1" == "-S" ]]; then
             SPARSE=true
         else
@@ -337,6 +347,11 @@ PREPARE_SCRIPT()
             LOGE "\"$PARTITION\" is not a valid partition name. please set --partition-name manually"
             exit 1
         fi
+    fi
+
+    if $SHARE_DUP_BLOCKS && [[ ! "$PARTITION" =~ ^(system|system_ext|vendor|product|odm)$ ]]; then
+        LOGE "Duplicate block sharing is restricted to read-only OS partitions"
+        exit 1
     fi
 
     MOUNT_POINT="$PARTITION"
@@ -387,6 +402,7 @@ PRINT_USAGE()
     echo " -o, --output : Specify the output image path, defaults to the parent input directory" >&2
     echo " -p, --partition-name : Specify the partition name, defaults to the input directory name" >&2
     echo " -s, --partition-size : Specify the partition size, defaults to the smallest possible" >&2
+    echo " --share-dup-blocks : Share identical ext4 blocks (read-only OS images only)" >&2
     echo " -S, --sparse : Outputs an Android sparse image" >&2
 }
 
