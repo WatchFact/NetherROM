@@ -486,11 +486,18 @@ if [ "$TARGET_PLATFORM_SDK_VERSION" -lt "35" ]; then
                 'const v3, 0x7f420888' \
                 'const v3, 0x7f000789'
         fi
-        SMALI_PATCH "system" "system/priv-app/SamsungCamera/SamsungCamera.apk" \
-            "smali_classes3/com/samsung/android/sum/core/filter/EncoderFilter.smali" "replace" \
-            'configCodec(Lcom/samsung/android/sum/core/message/Message;)V' \
-            'const v4, 0x7f420888' \
-            'const v4, 0x7f000789'
+        if [[ "$TARGET_PLATFORM" == "exynos9820" ]]; then
+            # The pinned S10 camera has native OMX surface encoders and no SUM
+            # EncoderFilter. Verify its implementations instead of a modern
+            # camera patch targeting a different architecture.
+            EVAL "python3 \"$SRC_DIR/scripts/s10/camera_native.py\" \"$SRC_DIR\" \"$WORK_DIR\" \"$APKTOOL_DIR/system/priv-app/SamsungCamera/SamsungCamera.apk\" \"$TARGET_CODENAME\"" || return 1
+        else
+            SMALI_PATCH "system" "system/priv-app/SamsungCamera/SamsungCamera.apk" \
+                "smali_classes3/com/samsung/android/sum/core/filter/EncoderFilter.smali" "replace" \
+                'configCodec(Lcom/samsung/android/sum/core/message/Message;)V' \
+                'const v4, 0x7f420888' \
+                'const v4, 0x7f000789'
+        fi
         SMALI_PATCH "system" "system/priv-app/vexfwk_service/vexfwk_service.apk" \
             "smali/com/samsung/android/sum/core/filter/EncoderFilter.smali" "replace" \
             'configCodec(Lcom/samsung/android/sum/core/message/Message;)V' \

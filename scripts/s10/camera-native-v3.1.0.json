@@ -18,5 +18,66 @@
     "com/sec/android/app/camera/engine/request/PrepareMakerRequest.smali": "82c1657d2af19b4155b03b5a6c16036accbc17f45a84cef575fc53c6b1b03ac5",
     "com/sec/android/app/camera/engine/request/PrepareVideoMakerRequest.smali": "da82c3058e7811cb4eea81340afbf5f139259845fde7ec028bdb6fa727e9a7b5",
     "com/sec/android/app/camera/interfaces/Capability.smali": "bc4c0ce8d014d3c00dd9e87a7fc7ee6f94db1ebee17df13f0171df107d838167"
-  }
+  },
+  "encoder_classes": {
+    "d3/j.smali": "2d019bc561d0874175cc5e05449320039445ae3376aa426aa833a1bbd79e0923",
+    "f3/a.smali": "3ad79aa4d69df87f1d32c70da99bd05ffdfd4e5ae23fdaeba26071640fee0565",
+    "com/samsung/android/sdk/sgpl/pip/core/EncodeVideo.smali": "7c0e55394c23e983581069b02ed4a243552d1a7ff7899c509f22ddb9d1e0195e",
+    "com/samsung/android/sdk/sgpl/pip/surfaces/InputSurface.smali": "efb603449989ba3767734dd10e180ebd646308040cff3532b9805b02273e202c",
+    "com/sec/android/app/camera/engine/recordingsession/RecordingSession.smali": "99e330d27e263b0cdd88b89cee50819be64c0ef96e41af4ef6cad4d1ea1d23bc",
+    "com/sec/android/app/camera/engine/recordingsession/SessionContainer.smali": "50295584ec0a47e6878c45b52e3db1d007ffd4d45f3c263d53f60498681e088d"
+  },
+  "encoder_methods": [
+    {
+      "class": "d3/j.smali",
+      "method": "b()Landroid/media/MediaFormat;",
+      "requires": [
+        "\"color-format\"",
+        "0x7f000789",
+        "Landroid/media/MediaFormat;->setInteger(Ljava/lang/String;I)V"
+      ]
+    },
+    {
+      "class": "f3/a.smali",
+      "method": "y()V",
+      "requires": [
+        "Ld3/j;->e()Landroid/media/MediaFormat;",
+        "Landroid/media/MediaCodec;->configure("
+      ]
+    },
+    {
+      "class": "f3/a.smali",
+      "method": "z()V",
+      "requires": [
+        "Landroid/media/MediaCodec;->createInputSurface()Landroid/view/Surface;",
+        "Landroid/media/MediaCodec;->start()V"
+      ]
+    },
+    {
+      "class": "com/samsung/android/sdk/sgpl/pip/core/EncodeVideo.smali",
+      "method": "prepareVideoCodec()V",
+      "requires": [
+        "\"color-format\"",
+        "0x7f000789",
+        "Landroid/media/MediaCodec;->configure(",
+        "Landroid/media/MediaCodec;->createInputSurface()Landroid/view/Surface;"
+      ]
+    },
+    {
+      "class": "com/sec/android/app/camera/engine/recordingsession/RecordingSession.smali",
+      "method": "prepareMediaRecorder()V",
+      "requires": [
+        "Landroid/media/MediaRecorder;->setVideoEncoder(I)V",
+        "Landroid/media/MediaRecorder;->setInputSurface(Landroid/view/Surface;)V",
+        "Landroid/media/MediaRecorder;->prepare()V"
+      ]
+    },
+    {
+      "class": "com/sec/android/app/camera/engine/recordingsession/SessionContainer.smali",
+      "method": "<init>(Lcom/sec/android/app/camera/engine/recordingsession/RecordingSession$Builder;)V",
+      "requires": [
+        "Landroid/media/MediaRecorder;-><init>()V"
+      ]
+    }
+  ]
 }

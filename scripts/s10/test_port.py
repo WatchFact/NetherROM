@@ -14,12 +14,41 @@ from kernel_artifacts import KERNEL_REV, install
 from validate_midas import verify
 from optional_binary_patch import PATCHES, patch
 from policies import inputs as policy_inputs, output as policy_output, record_matrix, MATRIX, SDHMS
-from camera_native import check_classes
+from camera_native import check_classes, check_encoders
 from storage_audit import boot_fstab, check_fstab
 from verify_zip import verify as verify_zip
 
 
 class PortTests(unittest.TestCase):
+    def test_native_encoder_rejects_modern_format_and_wrong_method(self):
+        with tempfile.TemporaryDirectory() as td:
+            decoded=Path(td); relative='example/Encoder.smali'
+            path=decoded/'smali_classes2'/relative; path.parent.mkdir(parents=True)
+            original='''.class public Lexample/Encoder;
+.super Ljava/lang/Object;
+.method public configure()V
+    .locals 1
+    const v0, 0x7f000789
+    return-void
+.end method
+'''
+            info={'encoder_classes':{}, 'encoder_methods':[
+                {'class':relative,'method':'configure()V','requires':['0x7f000789']}]}
+            def write(text):
+                path.write_text(text)
+                info['encoder_classes'][relative]=hashlib.sha256(path.read_bytes()).hexdigest()
+            write(original); check_encoders(decoded,info)
+            # Even a new digest cannot authorize the incompatible format.
+            write(original.replace('0x7f000789','0x7f420888'))
+            with self.assertRaises(ValueError): check_encoders(decoded,info)
+            # A compatible value in an unrelated method is insufficient.
+            write(original.replace('configure()V','unrelated()V'))
+            with self.assertRaises(ValueError): check_encoders(decoded,info)
+            write(original)
+            other=decoded/'smali_classes2/example/Unexpected.smali'
+            other.write_text('.class Lexample/Unexpected;\n# 0x7f420888\n')
+            with self.assertRaises(ValueError): check_encoders(decoded,info)
+
     def test_native_camera_classes_reject_changed_or_duplicate_implementations(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td); relative='com/example/Camera.smali'
