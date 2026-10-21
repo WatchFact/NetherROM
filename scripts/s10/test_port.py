@@ -23,7 +23,7 @@ from virtual_vibration import check_backend, digest, FIELD, HELPER, MANAGER, BOO
 class PortTests(unittest.TestCase):
     def test_portrait_models_survive_actual_platform_and_generic_camera_stages(self):
         import shutil
-        from camera_portrait import PORTRAIT, LIBRARY, NEXUS, SINGLE, RECORD, SOURCE, verify as portrait_verify
+        from camera_portrait import PORTRAIT, LIBRARY, NEXUS, SINGLE, RECORD, SOURCE, BACKEND_TOKENS, weights, check_native_model, verify as portrait_verify
         from camera_path_patch import OLD, NEW
         repo = Path(__file__).resolve().parents[2]
         platform = (repo/'platform/exynos9820/patches/camera/customize.sh').read_text()
@@ -38,30 +38,56 @@ class PortTests(unittest.TestCase):
                 source = fw/'SM-S926B_EUX'
                 (source/PORTRAIT).mkdir(parents=True)
                 (source/'.extracted').write_text(SOURCE)
-                model = {'capture_segmentation': {
-                    'Weightfile': '/system/cameradata/portrait_data/donor.snf',
-                    'ModelType': 'MODEL_TYPE_INSTANCE_CAPTURE'}}
+                # Model the actual failure: the modern donor requires an
+                # Exynos2400 vendor NPU weight absent from all S10 vendors.
+                model = {'deviceName': 'exynos2400', 'preview_1st_segmentation': {
+                    'Weightfile': '/vendor/etc/portrait_data/SRIB_ClatNetLite_FP16_V005_ex2400_enn2318b.nnc'}}
                 (source/SINGLE).write_text(json.dumps(model))
-                (source/PORTRAIT/'donor.snf').write_bytes(b'original donor model weights')
+                (source/PORTRAIT/'exynos2400.nnc').write_bytes(b'incompatible donor NPU model')
                 (source/LIBRARY).parent.mkdir(parents=True)
-                (source/LIBRARY).write_bytes(b'\x7fELF'+b'\0'*64+OLD+b'\0unrelated native code')
+                (source/LIBRARY).write_bytes(b'\x7fELF'+b'\0'*64+OLD+b'\0unrelated native code\0'+
+                    b'\0'.join(t.encode() for t in BACKEND_TOKENS)+b'\0')
+                model_name = DEVICES[device][0]
+                target = fw/(model_name+'_TEST')
+                (target/PORTRAIT).mkdir(parents=True)
+                (target/'.extracted').write_text('test S10 stock firmware identity')
+                # SDK31 JSON content from the immutable public S10 dump, with
+                # LF/whitespace normalization. Weights below are test fixtures.
+                fixture = repo/'scripts/s10/fixtures/exynos9820-single-bokeh.json'
+                self.assertEqual(hashlib.sha256(fixture.read_bytes()).hexdigest(),
+                    'b6b4f0300845d090c6c5d45f56c22d71b19901bf4192096da7920af1b6fda289')
+                (target/SINGLE).write_bytes(fixture.read_bytes())
+                for name in weights(json.loads(fixture.read_bytes())):
+                    (target/name).parent.mkdir(parents=True, exist_ok=True)
+                    (target/name).write_bytes(b'S10 stock model weight fixture')
                 shutil.copytree(source, work)
                 script = '''set -eo pipefail
 SRC_DIR="$1"; WORK_DIR="$2"; FW_DIR="$3"; TARGET_CODENAME="$4"
 SOURCE_FIRMWARE=SM-S926B/EUX/350330051234562; TARGET_PLATFORM=exynos9820
+TARGET_FIRMWARE="$5/TEST"
 LOG_STEP_IN(){ :; }; LOG_STEP_OUT(){ :; }
 SET_METADATA(){ printf '%s\\n' "$*" > "$WORK_DIR/metadata"; }
+DELETE_FROM_WORK_DIR(){ rm -rf "$WORK_DIR/$1/$2"; }
+ADD_TO_WORK_DIR(){ cp -a "$FW_DIR/${1%/*}_${1#*/}/$2/$3" "$WORK_DIR/$2/$3"; }
+'''+platform+'''
 DELETE_FROM_WORK_DIR(){ echo 'generic camera deleted S10 models' >&2; exit 90; }
 ADD_TO_WORK_DIR(){ echo 'generic camera replaced S10 models' >&2; exit 91; }
-'''+platform+generic
-                subprocess.run(['bash', '-c', script, '--', str(repo), str(work), str(fw), device],
+'''+generic
+                subprocess.run(['bash', '-c', script, '--', str(repo), str(work), str(fw), device, model_name],
                                check=True, capture_output=True, text=True)
                 portrait_verify(work, device)
-                self.assertEqual((work/NEXUS).read_bytes(), (source/SINGLE).read_bytes())
+                self.assertEqual((work/NEXUS).read_bytes(), (target/SINGLE).read_bytes())
+                self.assertFalse((work/PORTRAIT/'exynos2400.nnc').exists())
+                with self.assertRaisesRegex(ValueError, 'not for Exynos9820'):
+                    check_native_model(model)
+                native = json.loads(fixture.read_bytes())
+                native['preview_1st_segmentation']['Weightfile'] = model['preview_1st_segmentation']['Weightfile']
+                with self.assertRaisesRegex(ValueError, 'Exynos2400 model cannot run'):
+                    check_native_model(native)
                 self.assertIn('system/cameradata/portrait_data/nexus_bokeh_feature.json 0 0 644',
                               (work/'metadata').read_text())
                 self.assertEqual((work/LIBRARY).read_bytes(), (source/LIBRARY).read_bytes().replace(OLD, NEW, 1))
-                for path in (NEXUS, PORTRAIT+'/donor.snf', LIBRARY, SINGLE):
+                for path in (NEXUS, PORTRAIT+'/SRIB_HumanInsSeg_FP16_V210.snf', LIBRARY, SINGLE):
                     saved = (work/path).read_bytes()
                     (work/path).unlink()
                     with self.assertRaises((ValueError, FileNotFoundError)):
@@ -70,6 +96,11 @@ ADD_TO_WORK_DIR(){ echo 'generic camera replaced S10 models' >&2; exit 91; }
                     with self.assertRaises((ValueError, json.JSONDecodeError)):
                         portrait_verify(work, device)
                     (work/path).write_bytes(saved)
+                library = (work/LIBRARY).read_bytes()
+                (work/LIBRARY).write_bytes(library.replace(b'COMPUTE_GPU\0', b'UNKNOWN_GPU\0'))
+                with self.assertRaisesRegex(ValueError, 'parser contract'):
+                    portrait_verify(work, device)
+                (work/LIBRARY).write_bytes(library)
                 info = json.loads((work/RECORD).read_text())
                 info['device'] = 'wrong-device'
                 (work/RECORD).write_text(json.dumps(info))
@@ -415,7 +446,8 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
                   'sha256':{n:hashlib.sha256(b).hexdigest() for n,b in images.items()}}
             members['kernel.json']=json.dumps(info)
             from camera_portrait import SOURCE, SINGLE, NEXUS, LIBRARY, RECORD
-            members[RECORD] = json.dumps(dict(schema=1, device=device, source_firmware=SOURCE,
+            members[RECORD] = json.dumps(dict(schema=2, device=device, source_firmware=SOURCE,
+                native_device_name='exynos9820_common', model_firmware=dict(model=DEVICES[device][0],version='fixture'),
                 files={name: '0'*64 for name in (SINGLE, NEXUS, LIBRARY)}))
             from legacy_features import manifest as legacy_manifest
             legacy = legacy_manifest(Path(__file__).resolve().parents[2])

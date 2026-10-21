@@ -86,6 +86,10 @@ DELETE_FROM_WORK_DIR "system" "system/app/FilterProvider/oat"
 LOG_STEP_OUT
 
 LOG_STEP_IN "- Fixing AI Photo Editor"
+# Use the S10 GPU/EDEN model set. The Android 16 donor's Exynos2400 .nnc
+# models require a different NPU and cannot be used with the S10 vendor stack.
+DELETE_FROM_WORK_DIR "system" "system/cameradata/portrait_data"
+ADD_TO_WORK_DIR "$TARGET_FIRMWARE" "system" "system/cameradata/portrait_data" 0 0 755 "u:object_r:system_file:s0"
 cp -a --preserve=all \
     "$WORK_DIR/system/system/cameradata/portrait_data/single_bokeh_feature.json" \
     "$WORK_DIR/system/system/cameradata/portrait_data/nexus_bokeh_feature.json"
@@ -95,7 +99,8 @@ sed -i "s/MODEL_TYPE_INSTANCE_CAPTURE/MODEL_TYPE_OBJ_INSTANCE_CAPTURE/g" \
 python3 "$SRC_DIR/scripts/s10/camera_path_patch.py" \
     "$WORK_DIR/system/system/lib64/libPortraitSolution.camera.samsung.so"
 python3 "$SRC_DIR/scripts/s10/camera_portrait.py" record "$WORK_DIR" "$TARGET_CODENAME" \
-    "$FW_DIR/$(cut -d / -f 1 <<< "$SOURCE_FIRMWARE")_$(cut -d / -f 2 <<< "$SOURCE_FIRMWARE")"
+    "$FW_DIR/$(cut -d / -f 1 <<< "$SOURCE_FIRMWARE")_$(cut -d / -f 2 <<< "$SOURCE_FIRMWARE")" \
+    "$FW_DIR/$(cut -d / -f 1 <<< "$TARGET_FIRMWARE")_$(cut -d / -f 2 <<< "$TARGET_FIRMWARE")"
 LOG_STEP_OUT
 
 LOG_STEP_IN "- Adding S21 FE (r9sxxx) SingleTake models"

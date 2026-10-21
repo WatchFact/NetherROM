@@ -38,7 +38,7 @@
     "platform/exynos9820/patches/camera/assets/face_unlocking_cutout_ic_bx.json": "22708169cf5cff6e6588a89bf434acb9b9d15709",
     "platform/exynos9820/patches/camera/assets/lottie_camera_punchcut_timer_b2.json": "ca42ea06b688351a2e245ef39783d04351b2bfa2",
     "platform/exynos9820/patches/camera/assets/lottie_camera_punchcut_timer_bx.json": "3bd0781cdbbf3a74bef4ebf30dd4946aba1b56ac",
-    "platform/exynos9820/patches/camera/customize.sh": "9d099ca9c4ae28588ca453592c8149d2a26509bc",
+    "platform/exynos9820/patches/camera/customize.sh": "9953b5245a0cd73eb6910eae0c2ab5c82804414d",
     "platform/exynos9820/patches/camera/module.prop": "67e890d8f3c99a57fa153005bd6c6eaa03996a15",
     "platform/exynos9820/patches/camera/system/app/FilterProvider/FilterProvider.apk": "fe580bee6617c35fd1eb07b06d49ca2532597931",
     "platform/exynos9820/patches/camera/system/lib64/libImageTagger.camera.samsung.so": "8e39123e03704af8b19017e30111db6993e1d443",

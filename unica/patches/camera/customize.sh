@@ -17,7 +17,7 @@ SOURCE_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$SOURCE_FIRMWARE")_$(cut -d "/" 
 TARGET_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$TARGET_FIRMWARE")_$(cut -d "/" -f 2 -s <<< "$TARGET_FIRMWARE")"
 
 if [[ "$TARGET_PLATFORM" == exynos9820 ]]; then
-    # The platform camera module already adapts the donor's single-bokeh
+    # The platform camera module already adapts the S10's single-bokeh
     # model, preserves its original nexus model and redirects PortraitSolution.
     # Replacing this directory would delete that model and its matching weights.
     python3 "$SRC_DIR/scripts/s10/camera_portrait.py" verify "$WORK_DIR" "$TARGET_CODENAME"

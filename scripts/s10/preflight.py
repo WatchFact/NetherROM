@@ -73,6 +73,9 @@ def audit(device, firmware=False):
     if firmware:
         model, region = __import__('os').environ['TARGET_FIRMWARE'].split('/')[:2]
         check_matrix(ROOT/'out/fw'/f'{model}_{region}'/'system/system/etc/vintf/compatibility_matrix.device.xml')
+        from camera_portrait import inputs as portrait_inputs
+        source_model, source_region = __import__('os').environ['SOURCE_FIRMWARE'].split('/')[:2]
+        portrait_inputs(ROOT/'out/fw'/f'{source_model}_{source_region}', ROOT/'out/fw'/f'{model}_{region}', device)
     count = 0
     for script in sorted((ROOT/'platform/exynos9820/patches').glob('*/customize.sh')):
         module = script.parent.name
