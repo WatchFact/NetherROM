@@ -7,6 +7,7 @@ import zipfile
 from pathlib import Path
 
 SYSTEM_FILES = (
+    'system/framework/services.jar',
     'system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk',
     'system/etc/vintf/compatibility_matrix.device.xml',
     'system/priv-app/SamsungCamera/SamsungCamera.apk',
@@ -44,6 +45,8 @@ def audit(work, device):
     storage_audit(work, device)
     from camera_native import output as native_camera_output
     native_camera_output(Path(__file__).resolve().parents[2], work, device)
+    from face_hidl import output as face_hidl_output
+    face_hidl_output(Path(__file__).resolve().parents[2], work, device)
     from policies import output as policy_output
     policy_output(Path(__file__).resolve().parents[2], work, device)
     from camera_output_audit import check

@@ -191,9 +191,13 @@ jobs:
             out/target/${{ matrix.target }}/firmware-inputs.json
             out/target/${{ matrix.target }}/vintf-provenance.json
             out/target/${{ matrix.target }}/camera-compatibility.json
+            out/target/${{ matrix.target }}/face-hidl-provenance.json
+            out/target/${{ matrix.target }}/apktool/system/framework/services.jar/smali/com/android/server/biometrics/sensors/face/
+            out/target/${{ matrix.target }}/apktool/system/framework/services.jar/smali_classes2/vendor/samsung/hardware/biometrics/face/
             kernel-artifacts/${{ matrix.target }}/kernel.json
             kernel-artifacts/${{ matrix.target }}/kernel.config
             kernel-artifacts/${{ matrix.target }}/clang-version.txt
             scripts/s10/hardware-lock.json
             scripts/s10/dvfs-stock.json
             scripts/s10/camera-native-v3.1.0.json
+            scripts/s10/face-hidl-v4.0.1.json
