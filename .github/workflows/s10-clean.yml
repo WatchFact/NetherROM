@@ -57,6 +57,7 @@ jobs:
             /unica/patches/dvfs/
             /unica/patches/vintf/
             /unica/patches/fs/
+            /unica/patches/camera/customize.sh
             /unica/patches/legacy/customize.sh
             /unica/patches/product_feature/customize.sh
             /security/
