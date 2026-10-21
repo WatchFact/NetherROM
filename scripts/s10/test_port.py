@@ -5,14 +5,93 @@ import json
 import subprocess
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from installer import BUDGET, DEVICES, generate
 from kernel_artifacts import KERNEL_REV, install
 from validate_midas import verify
 from optional_binary_patch import PATCHES, patch
+from policies import inputs as policy_inputs, output as policy_output, record_matrix, MATRIX, SDHMS
 
 
 class PortTests(unittest.TestCase):
+    def test_stock_policies_reach_all_four_sdhms_outputs(self):
+        repo = Path(__file__).resolve().parents[2]
+        for device, models in DEVICES.items():
+            with self.subTest(device=device), tempfile.TemporaryDirectory() as td:
+                work = Path(td); decoded = work/'apktool'/SDHMS
+                (decoded/'assets').mkdir(parents=True)
+                (decoded/'res/raw').mkdir(parents=True)
+                for name in ('siop_default', 'siop_model', 'ssrm_default'):
+                    (decoded/'assets'/name).write_bytes(b'encrypted source policy')
+                subprocess.run(['bash', '-c', '''
+                    set -e
+                    SRC_DIR="$1"; WORK_DIR="$2"; APKTOOL_DIR="$WORK_DIR/apktool"
+                    source "$SRC_DIR/target/$3/config.sh"
+                    MODPATH="$SRC_DIR/unica/patches/dvfs"; DEBUG=false
+                    SOURCE_PLATFORM_SDK_VERSION=36
+                    SOURCE_DVFSAPP_CONFIG_DVFS_POLICY_FILENAME=dvfs_policy_default
+                    SOURCE_DVFSAPP_CONFIG_SSRM_POLICY_FILENAME=siop_e2s_s5e9945
+                    LOG() { :; }; LOGW() { :; }; ABORT() { echo "$1" >&2; exit 1; }
+                    EVAL() { eval "$1"; }; SMALI_PATCH() { :; }; DECODE_APK() { :; }
+                    SET_FLOATING_FEATURE_CONFIG() { printf '%s' "$2" > "$WORK_DIR/selector"; }
+                    source "$MODPATH/customize.sh"
+                    ''', '--', str(repo), str(work), device], check=True, capture_output=True, text=True)
+                policy, files = policy_inputs(repo, device)
+                self.assertEqual((work/'selector').read_text(), policy)
+                self.assertEqual((decoded/'assets'/f'{policy}.xml').read_bytes(), files['siop_model.xml'].read_bytes())
+                installed_apk = work/'system'/SDHMS
+                installed_apk.parent.mkdir(parents=True)
+                members = {str(p.relative_to(decoded)): p.read_bytes() for p in decoded.rglob('*') if p.is_file()}
+                def write_apk():
+                    with zipfile.ZipFile(installed_apk, 'w') as z:
+                        for name, data in members.items(): z.writestr(name, data)
+                write_apk()
+                features = work/'system/system/etc/floating_feature.xml'
+                features.parent.mkdir(parents=True, exist_ok=True)
+                features.write_text('<SecFloatingFeatureSet><SEC_FLOATING_FEATURE_SYSTEM_CONFIG_SIOP_POLICY_FILENAME>'+policy+'</SEC_FLOATING_FEATURE_SYSTEM_CONFIG_SIOP_POLICY_FILENAME></SecFloatingFeatureSet>')
+                source = work/'stock-matrix.xml'; source.write_text(self.stock_matrix())
+                installed_matrix = work/'system'/MATRIX
+                installed_matrix.parent.mkdir(parents=True, exist_ok=True)
+                installed_matrix.write_bytes(source.read_bytes())
+                record_matrix(source, work, device, models[0]+'/TEST')
+                policy_output(repo, work, device)
+                members['assets/'+policy+'.xml'] = b'<siop_document/>'
+                write_apk()
+                with self.assertRaises(ValueError): policy_output(repo, work, device)
+
+    @staticmethod
+    def stock_matrix():
+        return '''<compatibility-matrix version="1.0" type="framework">
+          <hal format="hidl" optional="true"><name>android.hardware.biometrics.fingerprint</name><version>2.1</version><interface><name>IBiometricsFingerprint</name><instance>default</instance></interface></hal>
+          <hal format="hidl" optional="true"><name>vendor.samsung.hardware.radio</name><version>2.0</version><interface><name>ISehRadio</name><instance>slot1</instance></interface></hal>
+          <hal format="hidl" optional="true"><name>vendor.samsung_slsi.hardware.ExynosHWCServiceTW</name><version>1.0</version><interface><name>IExynosHWCServiceTW</name><instance>default</instance></interface></hal>
+        </compatibility-matrix>'''
+
+    def test_vintf_import_keeps_target_firmware_requirements(self):
+        repo = Path(__file__).resolve().parents[2]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td); work = root/'work'; fw = root/'fw'
+            source = fw/'SM-G975F_TEST/system'/MATRIX
+            source.parent.mkdir(parents=True); source.write_text(self.stock_matrix())
+            destination = work/'system'/MATRIX
+            destination.parent.mkdir(parents=True)
+            subprocess.run(['bash', '-c', '''
+                set -e; SRC_DIR="$1"; WORK_DIR="$2"; FW_DIR="$3"; DEBUG=false
+                TARGET_CODENAME=beyond2lte; TARGET_PLATFORM=exynos9820
+                SOURCE_PLATFORM_SDK_VERSION=36; TARGET_PLATFORM_SDK_VERSION=31
+                TARGET_FIRMWARE=SM-G975F/TEST
+                LOG() { :; }; LOGW() { :; }; ABORT() { echo "$1" >&2; exit 1; }
+                EVAL() { eval "$1"; }
+                ADD_TO_WORK_DIR() { cp "$FW_DIR/SM-G975F_TEST/system/$3" "$WORK_DIR/system/$3"; }
+                source "$SRC_DIR/unica/patches/vintf/customize.sh"
+                ''', '--', str(repo), str(work), str(fw)], check=True, capture_output=True, text=True)
+            self.assertEqual(source.read_bytes(), destination.read_bytes())
+            self.assertEqual(json.loads((work/'vintf-provenance.json').read_text())['sha256'], hashlib.sha256(source.read_bytes()).hexdigest())
+            with self.assertRaises(ValueError): record_matrix(source, work, 'beyond2lte', 'SM-G970F/TEST')
+            destination.write_text('<compatibility-matrix/>')
+            with self.assertRaises(ValueError): record_matrix(source, work, 'beyond2lte', 'SM-G975F/TEST')
+
     def test_import_preserves_modes_labels_and_merged_system_ext(self):
         repo=Path(__file__).resolve().parents[2]
         for part in ('system', 'system_ext'):

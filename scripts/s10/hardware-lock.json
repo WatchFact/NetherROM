@@ -547,7 +547,16 @@
     "target/beyondx/overlay/values/strings.xml": "effa3002cf7ba9362170f2535fdb00a8e0cc7e21",
     "target/beyondx/patches/edge_lighting/module.prop": "cbb5e3b08107de5f08a8a5279de7ffe7b38e871c",
     "target/beyondx/patches/edge_lighting/system.prop": "9d907aefc4b0b8e1f87122ad806b3cb951991af0",
-    "target/beyondx/sff.sh": "6c513e5a9ff831326beccfdd5af999691e9f7b2a"
+    "target/beyondx/sff.sh": "6c513e5a9ff831326beccfdd5af999691e9f7b2a",
+    "target/beyond0lte/dvfs/siop_model.xml": "0ebf696dd461bd79dc0523e46d0da20d6deb348c",
+    "target/beyond0lte/dvfs/dvfs_policy_makalu_xx.xml": "5d59ef611690e2fe92c07b6f393bd7c8ac790b2c",
+    "target/beyond1lte/dvfs/siop_model.xml": "16badd0761ef34261c5739a3993d86664793507e",
+    "target/beyond1lte/dvfs/dvfs_policy_makalu_xx.xml": "5d59ef611690e2fe92c07b6f393bd7c8ac790b2c",
+    "target/beyond2lte/dvfs/siop_model.xml": "14f66c622d2d5e7a50d3ff0e4b07bc75b9342300",
+    "target/beyond2lte/dvfs/dvfs_policy_makalu_xx.xml": "5d59ef611690e2fe92c07b6f393bd7c8ac790b2c",
+    "target/beyondx/dvfs/siop_model.xml": "f6493ca99eeb91ea75386bf6ce05689e7bb74665",
+    "target/beyondx/dvfs/dvfs_policy_makalu_xx.xml": "5d59ef611690e2fe92c07b6f393bd7c8ac790b2c"
   },
-  "previous_port": "dbde7278f5931a4ff6d14d43c841037def50a348"
+  "previous_port": "dbde7278f5931a4ff6d14d43c841037def50a348",
+  "thermal_policy_provenance": "scripts/s10/dvfs-stock.json"
 }

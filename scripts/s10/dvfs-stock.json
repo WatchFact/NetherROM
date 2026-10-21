@@ -1,0 +1,41 @@
+{
+  "repository": "leddaz-dump-stash/samsung_beyond2_dump",
+  "commit": "ed4c525d91f1c7f708296f345732a21935f28da8",
+  "apk": "system/system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk",
+  "apk_git_blob": "471a29e57d41426e1e2e80baf6313cf2659d6f4f",
+  "apk_sha256": "1f8028cac6284635fc499fa24836606cf5125e76e6b829cd8f5912158ef54d11",
+  "files": {
+    "target/beyond0lte/dvfs/siop_model.xml": {
+      "resource": "res/raw/siop_beyond0_exynos9820.xml",
+      "sha256": "86b51836075fc5b8fcc8e1beb7ac6a0eac19725548a564e080cda29bd1b623c4"
+    },
+    "target/beyond0lte/dvfs/dvfs_policy_makalu_xx.xml": {
+      "resource": "res/raw/dvfs_policy_makalu_xx.xml",
+      "sha256": "4833c6eb039e36c56a2eb02cb3e81cf1b5d7c9b773b14c80fd0e384a8eda9350"
+    },
+    "target/beyond1lte/dvfs/siop_model.xml": {
+      "resource": "res/raw/siop_beyond1_exynos9820.xml",
+      "sha256": "db91e052e737a48f041553bc45c1d75f36c0cb3266c518a1764b0e11a70be7ba"
+    },
+    "target/beyond1lte/dvfs/dvfs_policy_makalu_xx.xml": {
+      "resource": "res/raw/dvfs_policy_makalu_xx.xml",
+      "sha256": "4833c6eb039e36c56a2eb02cb3e81cf1b5d7c9b773b14c80fd0e384a8eda9350"
+    },
+    "target/beyond2lte/dvfs/siop_model.xml": {
+      "resource": "res/raw/siop_beyond2_exynos9820.xml",
+      "sha256": "13dc37a30e372be6756eeeb4f51fd827f04f22622284cb901a59070f60487d41"
+    },
+    "target/beyond2lte/dvfs/dvfs_policy_makalu_xx.xml": {
+      "resource": "res/raw/dvfs_policy_makalu_xx.xml",
+      "sha256": "4833c6eb039e36c56a2eb02cb3e81cf1b5d7c9b773b14c80fd0e384a8eda9350"
+    },
+    "target/beyondx/dvfs/siop_model.xml": {
+      "resource": "res/raw/siop_beyondx_exynos9820.xml",
+      "sha256": "67afbfb607ab04f3df523f2333faa6c1e801a4a20de08381718ad1c9b7fed653"
+    },
+    "target/beyondx/dvfs/dvfs_policy_makalu_xx.xml": {
+      "resource": "res/raw/dvfs_policy_makalu_xx.xml",
+      "sha256": "4833c6eb039e36c56a2eb02cb3e81cf1b5d7c9b773b14c80fd0e384a8eda9350"
+    }
+  }
+}

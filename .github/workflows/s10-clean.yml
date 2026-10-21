@@ -13,6 +13,8 @@ on:
       - 'scripts/utils/common_utils.sh'
       - 'scripts/internal/build_flashable_zip.sh'
       - 'unica/configs/essi.sh'
+      - 'unica/patches/dvfs/**'
+      - 'unica/patches/vintf/**'
       - '.github/workflows/s10-clean.yml'
   workflow_dispatch:
     inputs:
@@ -46,6 +48,8 @@ jobs:
             /platform/exynos9820/patches/**/customize.sh
             /platform/exynos9820/patches/**/module.prop
             /unica/configs/
+            /unica/patches/dvfs/
+            /unica/patches/vintf/
             /security/
       - name: Test physical installer, kernel guards and firmware patch boundaries
         run: python3 scripts/s10/test_port.py
@@ -181,7 +185,9 @@ jobs:
             out/config.sh
             out/target/${{ matrix.target }}/*.log
             out/target/${{ matrix.target }}/firmware-inputs.json
+            out/target/${{ matrix.target }}/vintf-provenance.json
             kernel-artifacts/${{ matrix.target }}/kernel.json
             kernel-artifacts/${{ matrix.target }}/kernel.config
             kernel-artifacts/${{ matrix.target }}/clang-version.txt
             scripts/s10/hardware-lock.json
+            scripts/s10/dvfs-stock.json

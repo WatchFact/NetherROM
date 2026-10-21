@@ -50,6 +50,8 @@ done
 python3 "$SRC_DIR/scripts/s10/installer.py" "$tmp" "$TARGET_CODENAME"
 cp "$WORK_DIR/kernel/kernel.json" "$tmp/kernel.json"
 cp "$SRC_DIR/scripts/s10/hardware-v3.1.0.json" "$tmp/hardware-provenance.json"
+cp "$SRC_DIR/scripts/s10/dvfs-stock.json" "$tmp/dvfs-provenance.json"
+cp "$WORK_DIR/vintf-provenance.json" "$tmp/vintf-provenance.json"
 printf 'ota-type=BLOCK\npre-device=%s\npost-timestamp=%s\n' "$TARGET_CODENAME" "$(date +%s)" > "$tmp/META-INF/com/android/metadata"
 printf 'device=%s\nversion=%s\nlayout=physical-ext4\n' "$TARGET_CODENAME" "$ROM_VERSION" > "$tmp/build_info.txt"
 unsigned="$OUT_DIR/s10-unsigned-$TARGET_CODENAME.zip"

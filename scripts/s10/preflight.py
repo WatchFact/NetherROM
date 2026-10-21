@@ -7,6 +7,7 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from policies import inputs as policy_inputs, matrix as check_matrix
 
 ROOT = Path(__file__).resolve().parents[2]
 DEVICES = ('beyond0lte', 'beyond1lte', 'beyond2lte', 'beyondx')
@@ -58,10 +59,14 @@ def audit(device, firmware=False):
     if len(lock['files']) < 380:
         raise ValueError('Hardware inventory is incomplete')
     for d in DEVICES:
+        policy_inputs(ROOT, d)
         root = ET.parse(ROOT/'target'/d/'camera/camera-feature.xml').getroot()
         modes = [e.get('name') for e in root if e.get('name','').startswith('SHOOTING_MODE_')]
         if root.tag != 'resources' or len(modes) != len(set(modes)) or 'SHOOTING_MODE_PHOTO' not in modes or 'SHOOTING_MODE_VIDEO' not in modes:
             raise ValueError('Invalid camera modes for '+d)
+    if firmware:
+        model, region = __import__('os').environ['TARGET_FIRMWARE'].split('/')[:2]
+        check_matrix(ROOT/'out/fw'/f'{model}_{region}'/'system/system/etc/vintf/compatibility_matrix.device.xml')
     count = 0
     for script in sorted((ROOT/'platform/exynos9820/patches').glob('*/customize.sh')):
         module = script.parent.name
