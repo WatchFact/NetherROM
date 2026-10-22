@@ -677,6 +677,17 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
             self.assertLess(edify.index('run_program('), edify.index('block_image_update('))
             self.assertNotIn('map_partition', edify)
             for model in models: self.assertIn(model, edify)
+        # The system/vendor/product partitions can be enlarged by the
+        # user's legacy S10 repartitioner; the installer must compare against
+        # the actual recovery block devices rather than old stock budgets.
+        expanded = dict(sizes, system=8500*1048576, vendor=2000*1048576,
+                        product=2100*1048576)
+        expanded_shell, expanded_edify = generate('beyond2lte', expanded)
+        self.assertIn('[ "$capacity" -ge 8912896000 ]', expanded_shell)
+        self.assertIn('[ "$capacity" -ge 2097152000 ]', expanded_shell)
+        self.assertIn('[ "$capacity" -ge 2202009600 ]', expanded_shell)
+        self.assertLess(expanded_edify.index('run_program('),
+                        expanded_edify.index('block_image_update('))
         with self.assertRaises(ValueError): generate('beyond2lte',dict(sizes,odm=5*1048576))
         with self.assertRaises(ValueError): generate('beyond2lte',dict(sizes,super=1))
         with self.assertRaisesRegex(ValueError, 'only supports'): generate('beyond1lte',sizes)

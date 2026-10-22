@@ -22,9 +22,14 @@ def generate(device, sizes):
             raise ValueError(f"Invalid expanded image size for {part}")
         minimum = 0
         if part in BUDGET:
-            if size > BUDGET[part] * 1048576:
-                raise ValueError(f"{part} exceeds the ArtisanROM S10 physical layout")
-            minimum = (BUDGET[part] - (2 if BUDGET[part] > 8 else 0)) * 1048576
+            # System/vendor/product sizes depend on the user's installed
+            # repartitioner layout. Check their *actual* block capacity in
+            # recovery before any write instead of assuming stock sizes.
+            # ODM is deliberately fixed to the reviewed physical 4 MiB layout.
+            if part == 'odm':
+                if size > BUDGET['odm'] * 1048576:
+                    raise ValueError("odm exceeds the reviewed 4 MiB physical partition")
+                minimum = BUDGET['odm'] * 1048576
         preflight.extend([f'device=/dev/block/by-name/{part}',
             '[ -b "$device" ] || { echo "Missing $device"; exit 1; }',
             'capacity=$(blockdev --getsize64 "$device")',

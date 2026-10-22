@@ -37,8 +37,10 @@ from pathlib import Path
 sys.path.insert(0,str(Path(sys.argv[4])/'scripts/s10'))
 from installer import BUDGET
 size=int(sys.argv[3]); part=sys.argv[2]
-if size <= 0 or size > BUDGET[part]*1048576:
-    raise ValueError('Expanded ext4 image exceeds the physical S10 capacity: '+part)
+if size <= 0 or (part == 'odm' and size > BUDGET['odm']*1048576):
+    raise ValueError('Invalid expanded ext4 image size or ODM exceeds 4 MiB: '+part)
+# Repartitioned system/vendor/product capacity is checked against the real
+# block device at install time, before writing any partition.
 p=Path(sys.argv[1]); d=json.loads(p.read_text()); d[part]=size; p.write_text(json.dumps(d))
 PY
   # Check the actual sparse ext4 contents before encoding the block OTA.
