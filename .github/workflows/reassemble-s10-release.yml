@@ -1,0 +1,155 @@
+name: Reassemble and compact S10 experimental release
+
+on:
+  push:
+    branches:
+      - packaging/reassemble-s10-release-20261023
+    paths:
+      - .github/workflows/reassemble-s10-release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  assemble:
+    name: Verify and merge four original signed ROM parts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Free temporary runner disk space
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/hostedtoolcache
+          df -h .
+
+      - name: Install Zstandard if unavailable
+        shell: bash
+        run: |
+          if ! command -v zstd >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y zstd
+          fi
+
+      - name: Download original parts, verify each part, and reassemble signed installer
+        id: merge
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ROM_TAG: netherrom-4.0.2-beyond2lte-6
+        run: |
+          set -euo pipefail
+          mkdir -p work output
+          gh release download "$ROM_TAG" --repo "$GH_REPO" --dir work \
+            --pattern 'PARTS-SHA256.txt' --pattern 'ROM-SHA256.txt'
+          python3 - <<'PY'
+          import hashlib
+          import os
+          import pathlib
+          import subprocess
+          import zipfile
+
+          tag = os.environ["ROM_TAG"]
+          repo = os.environ["GH_REPO"]
+          work = pathlib.Path("work")
+          rom_name = "NetherROM_4.0.2_beyond2lte_EXPERIMENTAL.zip"
+          dest = pathlib.Path("output") / rom_name
+          def checksums(path):
+              entries = {}
+              for row in path.read_text().splitlines():
+                  digest, name = row.strip().split(maxsplit=1)
+                  name = name.lstrip("*")
+                  if len(digest) != 64 or name in entries:
+                      raise ValueError("Invalid checksum manifest entry")
+                  entries[name] = digest.lower()
+              return entries
+          part_hashes = checksums(work / "PARTS-SHA256.txt")
+          rom_hashes = checksums(work / "ROM-SHA256.txt")
+          expected_names = [f"{rom_name}.part-{i:03}" for i in range(4)]
+          if set(part_hashes) != set(expected_names):
+              raise ValueError("Release must have exactly four known numbered parts")
+          if rom_name not in rom_hashes:
+              raise ValueError("Missing signed ROM SHA256")
+          full_hash = hashlib.sha256()
+          with dest.open("wb") as output:
+              for name in expected_names:
+                  subprocess.run([
+                      "gh", "release", "download", tag,
+                      "--repo", repo, "--dir", str(work),
+                      "--pattern", name
+                  ], check=True)
+                  src = work / name
+                  if not src.is_file() or src.stat().st_size == 0:
+                      raise ValueError(f"Missing or empty part: {name}")
+                  part_hash = hashlib.sha256()
+                  with src.open("rb") as stream:
+                      while chunk := stream.read(8 * 1024 * 1024):
+                          part_hash.update(chunk)
+                          full_hash.update(chunk)
+                          output.write(chunk)
+                  if part_hash.hexdigest() != part_hashes[name]:
+                      raise ValueError(f"Part checksum mismatch: {name}")
+                  print(f"Verified {name}: {src.stat().st_size:,} bytes", flush=True)
+                  src.unlink()
+          digest = full_hash.hexdigest()
+          if digest != rom_hashes[rom_name]:
+              dest.unlink(missing_ok=True)
+              raise ValueError("Reassembled ROM differs from release SHA-256")
+          if not zipfile.is_zipfile(dest):
+              dest.unlink(missing_ok=True)
+              raise ValueError("Merged file is not a valid ZIP container")
+          print(f"Verified signed original ROM: {dest} ({dest.stat().st_size:,} bytes)")
+          print(f"SHA256: {digest}", flush=True)
+          (pathlib.Path("output") / "ROM-SHA256.txt").write_text(
+              f"{digest}  {rom_name}\n"
+          )
+          PY
+
+      - name: Try compression without changing the signed ZIP bytes
+        id: compress
+        shell: bash
+        run: |
+          set -euo pipefail
+          rom='output/NetherROM_4.0.2_beyond2lte_EXPERIMENTAL.zip'
+          size=$(stat -c '%s' "$rom")
+          # The installer contains Brotli-compressed blocks. A sample avoids
+          # hours of recompressing near-random data when 5x is not attainable.
+          dd if="$rom" of=work/sample bs=1M skip=256 count=64 status=none
+          zstd -q -15 -T2 -f work/sample -o work/sample.zst
+          sample=$(stat -c '%s' work/sample)
+          compressed=$(stat -c '%s' work/sample.zst)
+          echo "Sample Zstandard compression: $sample -> $compressed bytes"
+          if (( compressed * 10 <= sample * 9 )); then
+            zstd -q -15 -T2 --long=27 -f "$rom" -o "$rom.zst"
+            target="$rom.zst"
+            echo 'The compressed .zst is NOT directly flashable; decompress it first.' >> "$GITHUB_STEP_SUMMARY"
+            rm -f "$rom"
+          else
+            target="$rom"
+            echo 'ROM already contains Brotli-compressed data; sample savings below 10%. Preserved the original, directly flashable ZIP.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          actual=$(stat -c '%s' "$target")
+          {
+            echo "asset=$target"
+            echo "size=$actual"
+          } >> "$GITHUB_OUTPUT"
+          python3 - "$size" "$actual" "$target" <<'PY'
+          import sys
+          original, actual = map(int, sys.argv[1:3])
+          ratio = original / actual
+          print(f"Actual compression factor: {ratio:.3f}x")
+          with open(__import__('os').environ['GITHUB_STEP_SUMMARY'], 'a') as out:
+              print(f"\nOriginal: {original:,} bytes. Output: {actual:,} bytes. Compression factor: **{ratio:.3f}x**.\n", file=out)
+              print(f"Output: `{sys.argv[3]}`. Original ZIP SHA-256 retained in `ROM-SHA256.txt` from the release.", file=out)
+          PY
+
+      - name: Upload one merged downloadable file
+        uses: actions/upload-artifact@v7
+        with:
+          name: NetherROM-4.0.2-beyond2lte-MERGED
+          archive: false
+          path: ${{ steps.compress.outputs.asset }}
+          retention-days: 3
+          if-no-files-found: error
