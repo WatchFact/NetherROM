@@ -27,15 +27,21 @@ prerequisites. Never flash a PIT for another phone variant.
 
 ## Pipeline
 
-`.github/workflows/s10-aether.yml` performs read-only hardware preflight,
-regression tests and exactly one clean S10+ (beyond2lte) build. It compiles the pinned Exynos9820
-kernel and generates signed physical-partition installer ZIPs with image,
-metadata, full ext4 filesystem checks (including product), OTA reconstruction,
-partition-size validation and duplicate-device safeguards before any writes.
-The immutable installer/preflight scripts are checked against the package's
-sizes.json before signing. A source prerelease is tagged only after independent
-hardware/source regression preflight; ROM assets are published only if all
-on-run build/package checks and split-volume reconstruction hashes pass.
+`.github/workflows/s10-aether.yml` uses **CPU-only preflight**:
+one quick check of the GitHub Actions build runner CPU architecture and online
+core count. This is NOT a check of the S10+ Exynos9820 phone CPU. There is no
+source checkout, firmware validation or regression testing in the preflight job.
+
+The actual S10+ (beyond2lte) build starts after that runner CPU check. The
+build compiles a pinned Exynos9820 kernel, downloads and checks the device
+firmware, assembles the modified OS, and runs source/hardware regression checks
+**in the build job before installer packaging**, not in preflight. It generates
+a signed legacy physical-partition installer ZIP with ext4 filesystem,
+metadata, OTA reconstruction, capacity and duplicate-device safeguards.
+The packaged installer/preflight scripts are checked against sizes.json
+before signing. Source prereleases require the runner CPU check; ROM assets
+publish only after ROM build and packaging verification, including split-volume
+reconstruction checksum validation.
 
 The updater requires both the beyond2lte device codename and the approved SM-G975F model property; it aborts on wrong or unidentifiable models. The build checks the SM-G975F target firmware and refuses other device IDs.
 
