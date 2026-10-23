@@ -1,0 +1,118 @@
+name: Benchmark 7-Zip Ultra against verified S10 ROM
+
+on:
+  push:
+    branches: [packaging/reassemble-s10-release-20261023]
+    paths: ['.github/workflows/test-7zip-compression.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sevenzip:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 95
+    steps:
+      - name: Free runner disk for full ROM and 7z output
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/hostedtoolcache
+          sudo apt-get update -qq
+          sudo apt-get install -y p7zip-full
+          df -h .
+
+      - name: Fetch the four split assets and verify original signed ZIP
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mkdir -p parts output
+          tag=netherrom-4.0.2-beyond2lte-6
+          gh release download "$tag" --repo "$GH_REPO" --dir parts \
+            --pattern 'ROM-SHA256.txt' --pattern 'PARTS-SHA256.txt'
+          gh release download "$tag" --repo "$GH_REPO" --dir parts \
+            --pattern 'NetherROM_4.0.2_beyond2lte_EXPERIMENTAL.zip.part-*'
+          (cd parts && sha256sum -c PARTS-SHA256.txt)
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          root=Path('parts')
+          out=Path('output/NetherROM_4.0.2_beyond2lte_EXPERIMENTAL.zip')
+          expected_name=out.name
+          parts=sorted(root.glob(expected_name+'.part-*'))
+          assert [p.name for p in parts] == [f'{expected_name}.part-{i:03d}' for i in range(4)], 'Unexpected split part names'
+          h=hashlib.sha256()
+          with out.open('wb') as f:
+              for p in parts:
+                  with p.open('rb') as data:
+                      while chunk:=data.read(8*1024*1024):
+                          f.write(chunk)
+                          h.update(chunk)
+                  p.unlink()
+          digest=h.hexdigest()
+          checks={k.strip().lstrip('*'):v for v,k in (row.split(maxsplit=1) for row in (root/'ROM-SHA256.txt').read_text().splitlines())}
+          assert digest==checks[expected_name], 'Signed original ROM checksum mismatch'
+          print('Reassembled signed ROM SHA-256 verified:',digest)
+          print('Original size:',out.stat().st_size,'bytes')
+          PY
+          rm -rf parts
+
+      - name: 7-Zip Ultra LZMA2 full-file compression
+        shell: bash
+        run: |
+          set -euo pipefail
+          input=output/NetherROM_4.0.2_beyond2lte_EXPERIMENTAL.zip
+          out=output/NetherROM_4.0.2_beyond2lte_EXPERIMENTAL.7z
+          # This 7z is a transport archive containing the identical signed ZIP;
+          # it MUST be extracted before flashing, never flashed directly.
+          7z a -t7z -m0=lzma2 -mx=9 -md=128m -mfb=273 -mmt=2 -ms=on "$out" "$input" -bb0
+          7z t "$out" >/dev/null
+          python3 - <<'PY'
+          from pathlib import Path
+          orig=Path('output/NetherROM_4.0.2_beyond2lte_EXPERIMENTAL.zip')
+          compressed=Path('output/NetherROM_4.0.2_beyond2lte_EXPERIMENTAL.7z')
+          old,new=orig.stat().st_size,compressed.stat().st_size
+          ratio=old/new
+          report=f'7-Zip Ultra LZMA2 result: {old:,} bytes -> {new:,} bytes; factor {ratio:.4f}x; saving {(1-new/old)*100:.3f}%'
+          print(report)
+          Path('7zip-results.txt').write_text(report+'\n'
+              'Original signed ROM SHA-256 remains authoritative.\n'
+              'A .7z file must be extracted to obtain the flashable ROM ZIP.\n')
+          with open(__import__('os').environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              print('## Full-ROM 7-Zip Ultra compression\n\n'+report+'\n\nThe .7z is NOT directly flashable.',file=f)
+          PY
+
+      - name: Upload benchmark report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s10-7zip-ultra-results
+          path: 7zip-results.txt
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload one compressed transport archive if meaningfully smaller
+        shell: bash
+        id: decision
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          a=Path('output/NetherROM_4.0.2_beyond2lte_EXPERIMENTAL.zip').stat().st_size
+          b=Path('output/NetherROM_4.0.2_beyond2lte_EXPERIMENTAL.7z').stat().st_size
+          with open(__import__('os').environ['GITHUB_OUTPUT'],'a') as out:
+              out.write(f'worthwhile={str(b<=a*0.9).lower()}\n')
+          PY
+
+      - name: Upload improved 7z as one GitHub Actions artifact
+        if: steps.decision.outputs.worthwhile == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: NetherROM-4.0.2-beyond2lte-7Zip-Ultra
+          archive: false
+          path: output/NetherROM_4.0.2_beyond2lte_EXPERIMENTAL.7z
+          retention-days: 3
+          if-no-files-found: error
