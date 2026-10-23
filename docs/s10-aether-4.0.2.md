@@ -38,8 +38,11 @@ firmware, assembles the modified OS, and runs source/hardware regression checks
 **in the build job before installer packaging**, not in preflight. It generates
 a signed legacy physical-partition installer ZIP with ext4 filesystem,
 metadata, OTA reconstruction, capacity and duplicate-device safeguards.
-The packaged installer/preflight scripts are checked against sizes.json
-before signing. Source prereleases require the runner CPU check; ROM assets
+The flashable ZIP has **no preflight shell script**. Its CPU gate is a single
+Exynos9820 property check in the updater-script. An independent installer write
+guard checks partition capacity, aliases and mounted state before writing;
+that guard is not called preflight. The packaged updater and guard are checked
+against sizes.json before signing. Source prereleases require the runner CPU check; ROM assets
 publish only after ROM build and packaging verification, including split-volume
 reconstruction checksum validation.
 

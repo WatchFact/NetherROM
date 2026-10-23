@@ -503,7 +503,7 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
             shell,edify=generate(device,sizes)
             members=dict(images); members['META-INF/com/google/android/updater-script']=edify
             members['META-INF/com/google/android/update-binary']=b'updater binary test fixture'
-            members['s10-preflight.sh']=shell
+            members['s10-install-guard.sh']=shell
             members['sizes.json']=json.dumps(sizes)
             info={'device':device,'revision':KERNEL_REV,'ext4':True,'kernelsu':False,
                   'sha256':{n:hashlib.sha256(b).hexdigest() for n,b in images.items()}}
@@ -529,11 +529,16 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
                 with zipfile.ZipFile(target,'w') as z:
                     for name,data in members.items(): z.writestr(name,data)
             write(); verify_zip(target,device)
-            members['s10-preflight.sh']=shell.replace('command -v readlink >/dev/null', ':')
+            members['s10-install-guard.sh']=shell.replace('command -v readlink >/dev/null', ':')
             write()
-            with self.assertRaisesRegex(ValueError, 'preflight was modified'):
+            with self.assertRaisesRegex(ValueError, 'installer write guard was modified'):
                 verify_zip(target,device)
-            members['s10-preflight.sh']=shell
+            members['s10-install-guard.sh']=shell
+            members['s10-preflight.sh']=b'obsolete'
+            write()
+            with self.assertRaisesRegex(ValueError, 'Unexpected legacy device preflight'):
+                verify_zip(target,device)
+            del members['s10-preflight.sh']
             members['META-INF/com/google/android/updater-script']=edify.replace('run_program(', 'run_program_bypassed(')
             write()
             with self.assertRaisesRegex(ValueError, 'updater does not match'):
@@ -711,6 +716,11 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
             subprocess.run(['sh','-n'], input=shell, text=True, check=True)
             self.assertLess(edify.index('run_program('), edify.index('block_image_update('))
             self.assertNotIn('map_partition', edify)
+            # The only pre-install CPU gate checks Exynos9820 properties.
+            self.assertIn('Unsupported CPU: Exynos9820 required', edify)
+            self.assertLess(edify.index('Exynos9820 required'), edify.index('s10-install-guard.sh'))
+            self.assertNotIn('s10-preflight.sh', edify)
+            self.assertIn('s10-install-guard.sh', edify)
             self.assertIn('resolved=$(readlink -f "$device")', shell)
             self.assertIn('Aliased partitions:', shell)
             self.assertIn('Partition is mounted:', shell)

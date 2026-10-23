@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""Generate a physical S10 block installer; capacity checks precede all writes."""
+"""Generate Exynos9820 CPU-only gate and separate S10 write-safety guard."""
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -15,7 +14,7 @@ def generate(device, sizes):
     models = DEVICES[device]
     if set(sizes) != set(BUDGET) | {"boot", "dtb", "dtbo"}:
         raise ValueError("Unexpected or missing partition")
-    preflight = ['#!/sbin/sh', 'set -eu', 'PATH=/sbin:/system/bin:/bin:/usr/bin:$PATH',
+    install_guard = ['#!/sbin/sh', 'set -eu', 'PATH=/sbin:/system/bin:/bin:/usr/bin:$PATH',
                  'command -v blockdev >/dev/null',
                  'command -v readlink >/dev/null',
                  'seen_devices="|"']
@@ -32,7 +31,7 @@ def generate(device, sizes):
                 if size > BUDGET['odm'] * 1048576:
                     raise ValueError("odm exceeds the reviewed 4 MiB physical partition")
                 minimum = BUDGET['odm'] * 1048576
-        preflight.extend([f'device=/dev/block/by-name/{part}',
+        install_guard.extend([f'device=/dev/block/by-name/{part}',
             '[ -b "$device" ] || { echo "Missing $device"; exit 1; }',
             'resolved=$(readlink -f "$device")',
             '[ -n "$resolved" ] || { echo "Cannot resolve $device"; exit 1; }',
@@ -56,11 +55,15 @@ def generate(device, sizes):
                     for key in ("ro.boot.em.model", "ro.product.model", "ro.product.vendor.model")
                     for model in models]
     checks = f'(getprop("ro.product.device") == "{device}") && (' + ' || '.join(model_checks) + ')'
+    # The flashable ZIP's CPU gate checks ONLY the Exynos9820 chipset.
+    # Model/device validation and block-device safeguards are separate install operations.
+    cpu = '(getprop("ro.board.platform") == "exynos9820" || getprop("ro.hardware") == "exynos9820" || getprop("ro.boot.hardware") == "exynos9820")'
     updater = [f'ui_print("NetherROM 4.0.2 for {device} - legacy ext4 OTA");',
+               'assert(' + cpu + ' || abort("Unsupported CPU: Exynos9820 required"));',
                'assert(' + checks + ' || abort("Wrong S10+ model/codename; expected SM-G975F (beyond2lte)"));',
-               'assert(package_extract_file("s10-preflight.sh", "/tmp/s10-preflight.sh"));',
-               'set_perm(0, 0, 0755, "/tmp/s10-preflight.sh");',
-               'assert(run_program("/tmp/s10-preflight.sh") == 0);',
+               'assert(package_extract_file("s10-install-guard.sh", "/tmp/s10-install-guard.sh"));',
+               'set_perm(0, 0, 0755, "/tmp/s10-install-guard.sh");',
+               'assert(run_program("/tmp/s10-install-guard.sh") == 0);',
                'show_progress(0.90, 300);']
     for part in BUDGET:
         updater += [f'ui_print("Installing {part}...");',
@@ -68,12 +71,12 @@ def generate(device, sizes):
     for part in ("boot", "dtb", "dtbo"):
         updater.append(f'assert(package_extract_file("{part}.img", "/dev/block/by-name/{part}"));')
     updater += ['set_progress(1.0);', 'ui_print("Installation complete.");']
-    return '\n'.join(preflight) + '\n', '\n'.join(updater) + '\n'
+    return '\n'.join(install_guard) + '\n', '\n'.join(updater) + '\n'
 
 
 if __name__ == "__main__":
     directory = Path(sys.argv[1])
-    preflight, updater = generate(sys.argv[2], json.loads((directory / "sizes.json").read_text()))
-    (directory / "s10-preflight.sh").write_text(preflight)
-    (directory / "s10-preflight.sh").chmod(0o755)
+    install_guard, updater = generate(sys.argv[2], json.loads((directory / "sizes.json").read_text()))
+    (directory / "s10-install-guard.sh").write_text(install_guard)
+    (directory / "s10-install-guard.sh").chmod(0o755)
     (directory / "META-INF/com/google/android/updater-script").write_text(updater)

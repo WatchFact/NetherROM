@@ -29,9 +29,11 @@ def verify(path, device):
         z.getinfo('META-INF/com/google/android/update-binary')
         updater = z.read('META-INF/com/google/android/updater-script').decode()
         sizes = json.loads(z.read('sizes.json'))
-        expected_preflight, expected_updater = generate(device, sizes)
-        if z.read('s10-preflight.sh').decode() != expected_preflight:
-            raise ValueError('Packaged device/capacity/alias preflight was modified')
+        expected_guard, expected_updater = generate(device, sizes)
+        if 's10-preflight.sh' in names:
+            raise ValueError('Unexpected legacy device preflight in the ROM ZIP')
+        if z.read('s10-install-guard.sh').decode() != expected_guard:
+            raise ValueError('Packaged installer write guard was modified')
         if updater != expected_updater:
             raise ValueError('Packaged updater does not match audited generator')
         if any(w in updater for w in ('map_partition', 'update_dynamic_partitions', 'repartition')):
@@ -39,8 +41,8 @@ def verify(path, device):
         for part in BUDGET:
             if f'block_image_update("/dev/block/by-name/{part}"' not in updater:
                 raise ValueError("Missing physical block installation")
-        if updater.index('run_program("/tmp/s10-preflight.sh")') > updater.index('block_image_update'):
-            raise ValueError("Partition preflight occurs after block writes")
+        if updater.index('run_program("/tmp/s10-install-guard.sh")') > updater.index('block_image_update'):
+            raise ValueError("Installer write guard occurs after block writes")
         for model in DEVICES[device]:
             if model not in updater:
                 raise ValueError("Missing model assertion")
