@@ -502,6 +502,9 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
             sizes={p:4000000 for p in BUDGET}; sizes.update({n.removesuffix('.img'):len(b) for n,b in images.items()})
             shell,edify=generate(device,sizes)
             members=dict(images); members['META-INF/com/google/android/updater-script']=edify
+            members['META-INF/com/google/android/update-binary']=b'updater binary test fixture'
+            members['s10-preflight.sh']=shell
+            members['sizes.json']=json.dumps(sizes)
             info={'device':device,'revision':KERNEL_REV,'ext4':True,'kernelsu':False,
                   'sha256':{n:hashlib.sha256(b).hexdigest() for n,b in images.items()}}
             members['kernel.json']=json.dumps(info)
@@ -520,10 +523,27 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
             members['wifi-provenance.json'] = json.dumps(dict(legacy['migrations']['wifi'],
                 device=device, source_firmware=legacy['source_firmware'], mode='wifi'))
             for part in BUDGET:
-                for suffix in ('.transfer.list','.new.dat.br','.patch.dat'): members[part+suffix]=b''
+                for suffix in ('.transfer.list','.new.dat.br','.patch.dat'):
+                    members[part+suffix]=b'' if suffix == '.patch.dat' else b'fixture payload'
             def write():
                 with zipfile.ZipFile(target,'w') as z:
                     for name,data in members.items(): z.writestr(name,data)
+            write(); verify_zip(target,device)
+            members['s10-preflight.sh']=shell.replace('command -v readlink >/dev/null', ':')
+            write()
+            with self.assertRaisesRegex(ValueError, 'preflight was modified'):
+                verify_zip(target,device)
+            members['s10-preflight.sh']=shell
+            members['META-INF/com/google/android/updater-script']=edify.replace('run_program(', 'run_program_bypassed(')
+            write()
+            with self.assertRaisesRegex(ValueError, 'updater does not match'):
+                verify_zip(target,device)
+            members['META-INF/com/google/android/updater-script']=edify
+            members['vendor.new.dat.br']=b''
+            write()
+            with self.assertRaisesRegex(ValueError, 'Empty OTA partition payload'):
+                verify_zip(target,device)
+            members['vendor.new.dat.br']=b'fixture payload'
             write(); verify_zip(target,device)
             members['dtbo.img']=b'y'*4096; write()
             with self.assertRaises(ValueError): verify_zip(target,device)
@@ -676,6 +696,9 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
             subprocess.run(['sh','-n'], input=shell, text=True, check=True)
             self.assertLess(edify.index('run_program('), edify.index('block_image_update('))
             self.assertNotIn('map_partition', edify)
+            self.assertIn('resolved=$(readlink -f "$device")', shell)
+            self.assertIn('Aliased partitions:', shell)
+            self.assertEqual(shell.count('capacity=$(blockdev --getsize64 "$device")'), 7)
             for model in models: self.assertIn(model, edify)
         # The system/vendor/product partitions can be enlarged by the
         # user's legacy S10 repartitioner; the installer must compare against
