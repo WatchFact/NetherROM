@@ -1,0 +1,196 @@
+name: Publish S10 ROM Ultra and remove other releases
+
+on:
+  push:
+    branches: [packaging/reassemble-s10-release-20261023]
+    paths: ['.github/workflows/publish-s10-ultra.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s10-ultra-release-publication
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SOURCE_TAG: netherrom-4.0.2-beyond2lte-6
+      NEW_TAG: netherrom-4.0.2-beyond2lte-ultra-20261023
+      ORIGINAL_NAME: NetherROM_4.0.2_beyond2lte_EXPERIMENTAL.zip
+      ARCHIVE_NAME: NetherROM_4.0.2_beyond2lte_ULTRA.7z
+    steps:
+      - name: Reclaim space and install 7-Zip
+        run: |
+          set -euo pipefail
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/hostedtoolcache
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y 7zip
+          7zz i | head -n 15
+          df -h .
+
+      - name: Fetch four original parts, verify hashes and assemble signed ROM
+        run: |
+          set -euo pipefail
+          mkdir -p work out
+          gh release download "$SOURCE_TAG" --repo "$GH_REPO" --dir work \
+            --pattern 'PARTS-SHA256.txt' --pattern 'ROM-SHA256.txt'
+          python3 - <<'PY'
+          import hashlib, os, re, subprocess, zipfile
+          from pathlib import Path
+          root=Path('work')
+          name=os.environ['ORIGINAL_NAME']
+          def manifest(path):
+              result={}
+              for row in path.read_text().splitlines():
+                  digest, filename=row.strip().split(maxsplit=1)
+                  filename=filename.lstrip('*')
+                  if not re.fullmatch('[0-9a-fA-F]{64}',digest) or '/' in filename or '\\' in filename or filename in result:
+                      raise ValueError('Invalid or unsafe checksum manifest')
+                  result[filename]=digest.lower()
+              return result
+          hashes=manifest(root/'PARTS-SHA256.txt')
+          rom_hash=manifest(root/'ROM-SHA256.txt')
+          parts=[f'{name}.part-{i:03}' for i in range(4)]
+          if set(hashes)!=set(parts) or set(rom_hash)!={name}:
+              raise ValueError('Unexpected source manifests')
+          full=hashlib.sha256()
+          with (root/name).open('wb') as output:
+              for part in parts:
+                  subprocess.run(['gh','release','download',os.environ['SOURCE_TAG'],
+                                  '--repo',os.environ['GH_REPO'],'--dir',str(root),'--pattern',part],check=True)
+                  p=root/part
+                  partial=hashlib.sha256()
+                  with p.open('rb') as input_file:
+                      while chunk:=input_file.read(8*1024*1024):
+                          partial.update(chunk)
+                          full.update(chunk)
+                          output.write(chunk)
+                  if partial.hexdigest()!=hashes[part]:
+                      raise ValueError('Source part hash mismatch: '+part)
+                  print('Verified source part:',part,flush=True)
+                  p.unlink()
+          if full.hexdigest()!=rom_hash[name]:
+              raise ValueError('Signed ROM SHA256 mismatch')
+          with zipfile.ZipFile(root/name) as z:
+              if not z.infolist(): raise ValueError('Empty signed ROM ZIP')
+          print('Verified original signed ROM:',full.hexdigest(),flush=True)
+          (Path('out')/'ROM-SHA256.txt').write_bytes((root/'ROM-SHA256.txt').read_bytes())
+          PY
+
+      - name: 7-Zip Ultra LZMA2 compress original ZIP into release-safe volumes
+        run: |
+          set -euo pipefail
+          (
+            cd work
+            7zz a -t7z -mx=9 -m0=LZMA2 -md=128m -mfb=273 -ms=on -mmt=2 \
+              -v1800m "../out/$ARCHIVE_NAME" "$ORIGINAL_NAME"
+          )
+          shopt -s nullglob
+          parts=(out/"$ARCHIVE_NAME".[0-9][0-9][0-9])
+          (("${#parts[@]}" > 0)) || { echo 'No .7z volumes generated' >&2; exit 1; }
+          for file in "${parts[@]}"; do
+            test -s "$file"
+            test "$(stat -c '%s' "$file")" -lt 2147483648
+          done
+          7zz t -bd -y "${parts[0]}"
+          (cd out && sha256sum "$ARCHIVE_NAME".[0-9][0-9][0-9] > 7Z-PARTS-SHA256.txt)
+          cat > out/README-EXTRACT.txt <<'EOF'
+          NetherROM 4.0.2 S10+ SM-G975F/DS — EXPERIMENTAL
+          This is lossless 7-Zip Ultra compression of the original signed ROM ZIP.
+          Place all numbered .7z volumes in one folder; extract .7z.001 with 7-Zip.
+          Verify the extracted ZIP using ROM-SHA256.txt. Only the extracted ZIP is flashable.
+          Do not flash the 7z volumes. Requires S10+ legacy EXT4 repartition layout,
+          compatible recovery and appropriate backups. Physical boot is NOT confirmed.
+          EOF
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          orig=(Path('work')/os.environ['ORIGINAL_NAME']).stat().st_size
+          parts=list(Path('out').glob(os.environ['ARCHIVE_NAME']+'.[0-9][0-9][0-9]'))
+          compressed=sum(x.stat().st_size for x in parts)
+          factor=orig/compressed
+          print(f'Original: {orig:,} bytes. 7-Zip Ultra: {compressed:,} bytes. Ratio: {factor:.4f}x. Volumes: {len(parts)}')
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write(f'**7-Zip Ultra:** {compressed:,} bytes in {len(parts)} volume(s), {factor:.4f}x compression versus {orig:,}-byte signed ZIP.\n\n')
+          PY
+          rm -f "work/$ORIGINAL_NAME"
+
+      - name: Publish new prerelease and verified assets
+        run: |
+          set -euo pipefail
+          cat > notes.md <<'EOF'
+          NetherROM 4.0.2 S10+ SM-G975F/DS (beyond2lte) — EXPERIMENTAL.
+          Original source commit: 45efb8eebb0f27ae419bce6269cef1a6e4e99fa9.
+          The byte-identical signed ROM ZIP is inside a 7-Zip Ultra LZMA2 container.
+          Download ALL numbered .7z volumes, put them together, and extract .7z.001.
+          Check the extracted ROM ZIP with ROM-SHA256.txt. Never flash the .7z files.
+          GitHub has a 2 GiB per-asset limit, so volumes may still be necessary.
+          Flash only with compatible S10+ recovery and correct legacy physical EXT4 layout.
+          Physical boot and hardware functionality remain UNTESTED.
+          EOF
+          if ! gh release view "$NEW_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release create "$NEW_TAG" --repo "$GH_REPO" \
+              --target 45efb8eebb0f27ae419bce6269cef1a6e4e99fa9 \
+              --title 'NetherROM 4.0.2 S10+ Ultra (experimental)' \
+              --notes-file notes.md --prerelease
+          fi
+          for file in out/"$ARCHIVE_NAME".[0-9][0-9][0-9] \
+                      out/7Z-PARTS-SHA256.txt out/ROM-SHA256.txt out/README-EXTRACT.txt; do
+            uploaded=false
+            for attempt in 1 2 3; do
+              if gh release upload "$NEW_TAG" "$file" --repo "$GH_REPO" --clobber; then
+                uploaded=true
+                break
+              fi
+              echo "Retrying upload $attempt: $file"
+              sleep 20
+            done
+            if [[ "$uploaded" != true ]]; then
+              echo "Publish failure, retaining all older releases" >&2
+              exit 1
+            fi
+          done
+
+      - name: Validate published asset inventory and byte lengths
+        run: |
+          set -euo pipefail
+          gh api "repos/$GH_REPO/releases/tags/$NEW_TAG" > published.json
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          j=json.loads(Path('published.json').read_text())
+          want={x.name:x.stat().st_size for x in Path('out').iterdir() if x.is_file()}
+          got={x['name']:x['size'] for x in j['assets']}
+          if j['tag_name']!=os.environ['NEW_TAG'] or j['draft'] or want!=got:
+              raise RuntimeError(f'Release assets not fully published. Expected={want}; remote={got}')
+          base=os.environ['ARCHIVE_NAME']
+          volumes=sorted(x for x in want if x.startswith(base+'.'))
+          if not volumes or volumes != [f'{base}.{i:03}' for i in range(1,len(volumes)+1)]:
+              raise RuntimeError('Missing 7z volume')
+          print(f'Verified published release: {len(want)} assets ({len(volumes)} 7z volumes)')
+          PY
+
+      - name: Delete all other GitHub Releases only after verification
+        run: |
+          set -euo pipefail
+          # Release records and assets are removed; Git tags are intentionally retained.
+          mapfile -t tags < <(gh api --paginate "repos/$GH_REPO/releases?per_page=100" --jq '.[].tag_name')
+          for old in "${tags[@]}"; do
+            [[ -n "$old" && "$old" != "$NEW_TAG" ]] || continue
+            echo "Removing obsolete release, retaining Git tag: $old"
+            gh release delete "$old" --yes --repo "$GH_REPO"
+          done
+          mapfile -t remaining < <(gh api --paginate "repos/$GH_REPO/releases?per_page=100" --jq '.[].tag_name')
+          if [[ "${#remaining[@]}" -ne 1 || "${remaining[0]}" != "$NEW_TAG" ]]; then
+            printf 'Unexpected releases remaining: %s\n' "${remaining[@]}" >&2
+            exit 1
+          fi
+          gh release view "$NEW_TAG" --repo "$GH_REPO" --json url,assets \
+            --jq '{url,assets:(.assets|map(.name))}'
+          echo "All other releases removed after verified Ultra release publication." >> "$GITHUB_STEP_SUMMARY"
