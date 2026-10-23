@@ -39,6 +39,15 @@ def generate(device, sizes):
             'case "$resolved" in /dev/block/*) ;; *) echo "Unexpected block path: $resolved"; exit 1 ;; esac',
             'case "$seen_devices" in *"|$resolved|"*) echo "Aliased partitions: $device and $resolved"; exit 1 ;; esac',
             'seen_devices="${seen_devices}${resolved}|"',
+            # Flashing a mounted partition can corrupt it. Check all mounted
+            # source aliases now, before the first block_image_update call.
+            '[ -r /proc/mounts ] || { echo "Cannot inspect recovery mounts"; exit 1; }',
+            'while read -r mount_source mount_rest; do',
+            '  case "$mount_source" in /dev/block/*)',
+            '    mount_resolved=$(readlink -f "$mount_source" 2>/dev/null || true)',
+            '    [ "$mount_resolved" != "$resolved" ] || { echo "Partition is mounted: $device"; exit 1; }',
+            '    ;; esac',
+            'done < /proc/mounts',
             'capacity=$(blockdev --getsize64 "$device")',
             f'[ "$capacity" -ge {max(size, minimum)} ] || {{ echo "Partition too small: $device"; exit 1; }}'])
     # Require BOTH the proper device codename and an SM-G975F/DS model.
