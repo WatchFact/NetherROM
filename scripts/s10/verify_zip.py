@@ -4,7 +4,7 @@ import hashlib
 import sys
 import zipfile
 from pathlib import Path
-from installer import BUDGET, DEVICES
+from installer import BUDGET, DEVICES, generate
 from kernel_artifacts import KERNEL_REV
 
 
@@ -20,11 +20,20 @@ def verify(path, device):
                 raise ValueError("Dynamic partition data in legacy S10 ZIP")
         for part in BUDGET:
             for suffix in ('.transfer.list', '.new.dat.br', '.patch.dat'):
-                z.getinfo(part + suffix)
+                member = z.getinfo(part + suffix)
+                if suffix != '.patch.dat' and member.file_size == 0:
+                    raise ValueError('Empty OTA partition payload: '+part+suffix)
         for part in ('boot', 'dtb', 'dtbo'):
             if z.getinfo(part+'.img').file_size < 2048:
                 raise ValueError("Missing kernel image")
+        z.getinfo('META-INF/com/google/android/update-binary')
         updater = z.read('META-INF/com/google/android/updater-script').decode()
+        sizes = json.loads(z.read('sizes.json'))
+        expected_preflight, expected_updater = generate(device, sizes)
+        if z.read('s10-preflight.sh').decode() != expected_preflight:
+            raise ValueError('Packaged device/capacity/alias preflight was modified')
+        if updater != expected_updater:
+            raise ValueError('Packaged updater does not match audited generator')
         if any(w in updater for w in ('map_partition', 'update_dynamic_partitions', 'repartition')):
             raise ValueError("Invalid S10 installer")
         for part in BUDGET:
