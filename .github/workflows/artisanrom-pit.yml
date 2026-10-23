@@ -1,0 +1,105 @@
+name: Inspect ArtisanROM Exynos9820 repartitioner
+on:
+  push:
+    branches: [port/exynos9820-s10]
+    paths: ['.github/workflows/artisanrom-pit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Download official ArtisanROM v3.1.0 repartitioner, without executing it
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p pit-audit
+          urls=(
+            'https://pixeldrain.com/api/file/zFuXCEpb'
+            'https://downloads.sourceforge.net/project/pulse-free/s10e/ExrtemeXT%20ROM/Exynos9820_Repartition.zip'
+          )
+          for url in "${urls[@]}"; do
+            echo "Trying $url"
+            if curl -fLsS --retry 2 --connect-timeout 20 --max-time 120 -A 'Mozilla/5.0' \
+                 -o repartitioner.zip "$url" && \
+                 python3 -m zipfile -t repartitioner.zip >/dev/null 2>&1; then
+              printf '%s\n' "$url" > pit-audit/SOURCE.txt
+              break
+            fi
+            rm -f repartitioner.zip
+          done
+          test -s repartitioner.zip || { echo "ERROR: Repartitioner download unavailable"; exit 1; }
+          sha256sum repartitioner.zip | tee pit-audit/SHA256SUMS.txt
+      - name: Audit internal partition script and any embedded PIT
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, io, json, re, zipfile
+          from pathlib import Path, PurePosixPath
+          output = Path("pit-audit")
+          records = []
+          magic = bytes.fromhex("76983412")
+          pattern = re.compile(r"(?i)pit|parted|sgdisk|sfdisk|gdisk|blockdev|dd\s|sector|resize2fs|by-name|mkfs|repartition|partition|mmcblk")
+          def inspect(data, prefix="", depth=0):
+              if depth > 2:
+                  return
+              with zipfile.ZipFile(io.BytesIO(data)) as z:
+                  files = z.infolist()
+                  assert len(files) < 5000 and sum(f.file_size for f in files) < 250_000_000, "Excessively large archive"
+                  assert z.testzip() is None, "Bad ZIP CRC"
+                  for entry in files:
+                      path = PurePosixPath(entry.filename)
+                      if entry.is_dir():
+                          continue
+                      assert not path.is_absolute() and ".." not in path.parts and "\\" not in entry.filename, "Unsafe filename"
+                      blob = z.read(entry)
+                      name = prefix + entry.filename
+                      item = dict(name=name, bytes=len(blob), sha256=hashlib.sha256(blob).hexdigest())
+                      records.append(item)
+                      print(f"ENTRY {name} ({len(blob)} bytes)")
+                      if name.lower().endswith(".pit"):
+                          target = output / f"{len(records):04d}_{path.name}"
+                          target.write_bytes(blob)
+                          item["pit"] = target.name
+                      if entry.filename.lower().endswith(".zip"):
+                          inspect(blob, name + "::", depth + 1)
+                      if len(blob) < 2_000_000 and b"\0" not in blob[:1024]:
+                          head = blob[:1024]
+                          if sum(c < 32 and c not in (9, 10, 13) for c in head) < 5:
+                              source = blob.decode("utf-8", "replace")
+                              target = output / f"{len(records):04d}_script.txt"
+                              target.write_text("# " + name + "\n" + source)
+                              item["script"] = target.name
+                              lines = source.splitlines()
+                              hits = [f"{i}: {line}" for i, line in enumerate(lines, 1) if pattern.search(line)]
+                              item["partition_commands"] = hits[:200]
+                              print(f"\n--- SCRIPT {name} ({len(lines)} lines, {len(hits)} layout matches) ---")
+                              print(source[:20000] if entry.filename.lower().endswith("repartition.sh") else ("\n".join(hits[:100])[:18000] if hits else source[:2500]))
+                      where = blob.find(magic)
+                      if where != -1:
+                          item["possible_pit_signature_offset"] = where
+                          print("POTENTIAL EMBEDDED PIT SIGNATURE:", name, "offset", where)
+          with open("repartitioner.zip", "rb") as f:
+              archive = f.read()
+          inspect(archive)
+          (output / "inventory.json").write_text(json.dumps({"source_sha256":hashlib.sha256(archive).hexdigest(),"entries":records}, indent=2))
+          with open("pit-audit/REPORT.md", "w") as f:
+              f.write("# Read-only Exynos9820 repartitioner inspection\n\n")
+              f.write("This is **not** a flashable PIT and does not execute any disk-writing command.\n\n")
+              for item in records:
+                  f.write(f"- {item['name']} ({item['bytes']} bytes)")
+                  for key in ("pit","script","possible_pit_signature_offset"):
+                      if key in item:
+                          f.write(f" | {key}: {item[key]}")
+                  f.write("\n")
+          print("\n" + (output / "REPORT.md").read_text())
+          PY
+          cat pit-audit/REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Save extracted layout scripts for comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: artisanrom-s10-pit-script-audit
+          path: pit-audit/
+          if-no-files-found: error

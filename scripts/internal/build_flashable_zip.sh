@@ -6,6 +6,11 @@
 source "$SRC_DIR/scripts/utils/build_utils.sh" || exit 1
 source "$SRC_DIR/scripts/utils/install_utils.sh" || exit 1
 
+# The S10 family uses physical ext4 PIT partitions, not Exynos990 super.
+if [[ "${TARGET_PLATFORM:-}" == exynos9820 ]]; then
+    exec bash "$SRC_DIR/scripts/port_s10/build_legacy_zip.sh"
+fi
+
 SOURCE_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$SOURCE_FIRMWARE")_$(cut -d "/" -f 2 -s <<< "$SOURCE_FIRMWARE")"
 TARGET_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$TARGET_FIRMWARE")_$(cut -d "/" -f 2 -s <<< "$TARGET_FIRMWARE")"
 
@@ -252,6 +257,18 @@ GENERATE_OTA_METADATA()
     } > "$TMP_DIR/META-INF/com/android/metadata"
 }
 
+# Emit a logical mapping on dynamic-partition devices and a physical block path
+# on legacy devices such as the Galaxy S10 family.
+OTA_BLOCK_DEVICE()
+{
+    local partition="$1"
+    if $TARGET_USE_DYNAMIC_PARTITIONS; then
+        printf 'map_partition("%s")' "$partition"
+    else
+        GET_DEVICE_FROM_MOUNTPOINT "/$partition"
+    fi
+}
+
 GENERATE_UPDATER_SCRIPT()
 {
     local SCRIPT_FILE="$TMP_DIR/META-INF/com/google/android/updater-script"
@@ -294,6 +311,13 @@ GENERATE_UPDATER_SCRIPT()
     {
         if [ -n "$TARGET_ASSERT_MODEL" ]; then
             IFS=':' read -r -a TARGET_ASSERT_MODEL <<< "$TARGET_ASSERT_MODEL"
+            if ! $TARGET_USE_DYNAMIC_PARTITIONS; then
+                # Older Samsung recoveries may not export ro.boot.em.model.
+                # Require a device codename match instead of aborting a valid S10.
+                echo -n 'getprop("ro.product.device") == "'
+                echo -n "$TARGET_CODENAME"
+                echo -n '" || '
+            fi
             for i in "${TARGET_ASSERT_MODEL[@]}"; do
                 echo -n 'getprop("ro.boot.em.model") == "'
                 echo -n "$i"
@@ -317,22 +341,32 @@ GENERATE_UPDATER_SCRIPT()
         PRINT_HEADER
 
         # https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/tools/releasetools/common.py#4007
-        echo -e "\n# --- Start patching dynamic partitions ---\n\n"
-        echo -e "# Update dynamic partition metadata\n"
-        echo -n 'assert(update_dynamic_partitions(package_extract_file("dynamic_partitions_op_list")'
-        if $HAS_SUPER_EMPTY; then
-            # https://github.com/LineageOS/android_build/commit/98549f6893c3a93057e2d4cdd1015a93e9473b16
-            # https://github.com/LineageOS/android_bootable_deprecated-ota/commit/e97be4333bd3824b8561c9637e9e6de28bc29da0
-            echo -n ', package_extract_file("unsparse_super_empty.img")'
+        if $TARGET_USE_DYNAMIC_PARTITIONS; then
+            echo -e "\n# --- Start patching dynamic partitions ---\n\n"
+            echo -e "# Update dynamic partition metadata\n"
+            echo -n 'assert(update_dynamic_partitions(package_extract_file("dynamic_partitions_op_list")'
+            if $HAS_SUPER_EMPTY; then
+                # https://github.com/LineageOS/android_build/commit/98549f6893c3a93057e2d4cdd1015a93e9473b16
+                # https://github.com/LineageOS/android_bootable_deprecated-ota/commit/e97be4333bd3824b8561c9637e9e6de28bc29da0
+                echo -n ', package_extract_file("unsparse_super_empty.img")'
+            fi
+            echo    '));'
+        else
+            # Fail closed on legacy layout if recovery cannot prove all target
+            # partitions are large enough. No repartitioning is done implicitly.
+            echo 'package_extract_file("s10-preflight.sh", "/tmp/s10-preflight.sh");'
+            echo 'set_perm(0, 0, 0755, "/tmp/s10-preflight.sh");'
+            echo 'assert(run_program("/tmp/s10-preflight.sh") == 0);'
         fi
-        echo    '));'
         if $HAS_SYSTEM; then
             echo -e "\n# Patch partition system\n"
             echo    'ui_print("Patching system image unconditionally...");'
             echo -n 'show_progress(0.'
             echo -n "$(bc -l <<< "9 - $PARTITION_COUNT")"
             echo    '00000, 0);'
-            echo -n 'block_image_update(map_partition("system"), package_extract_file("system.transfer.list"), "'
+            echo -n 'block_image_update('
+            OTA_BLOCK_DEVICE "system"
+            echo -n ', package_extract_file("system.transfer.list"), "'
             echo -n "system.new.dat${BROTLI_EXTENSION}"
             echo    '", "system.patch.dat") ||'
             echo    '  abort("E1001: Failed to update system image.");'
@@ -341,7 +375,9 @@ GENERATE_UPDATER_SCRIPT()
             echo -e "\n# Patch partition vendor\n"
             echo    'ui_print("Patching vendor image unconditionally...");'
             echo    'show_progress(0.100000, 0);'
-            echo -n 'block_image_update(map_partition("vendor"), package_extract_file("vendor.transfer.list"), "'
+            echo -n 'block_image_update('
+            OTA_BLOCK_DEVICE "vendor"
+            echo -n ', package_extract_file("vendor.transfer.list"), "'
             echo -n "vendor.new.dat${BROTLI_EXTENSION}"
             echo    '", "vendor.patch.dat") ||'
             echo    '  abort("E2001: Failed to update vendor image.");'
@@ -350,7 +386,9 @@ GENERATE_UPDATER_SCRIPT()
             echo -e "\n# Patch partition product\n"
             echo    'ui_print("Patching product image unconditionally...");'
             echo    'show_progress(0.100000, 0);'
-            echo -n 'block_image_update(map_partition("product"), package_extract_file("product.transfer.list"), "'
+            echo -n 'block_image_update('
+            OTA_BLOCK_DEVICE "product"
+            echo -n ', package_extract_file("product.transfer.list"), "'
             echo -n "product.new.dat${BROTLI_EXTENSION}"
             echo    '", "product.patch.dat") ||'
             echo    '  abort("E2001: Failed to update product image.");'
@@ -359,7 +397,9 @@ GENERATE_UPDATER_SCRIPT()
             echo -e "\n# Patch partition system_ext\n"
             echo    'ui_print("Patching system_ext image unconditionally...");'
             echo    'show_progress(0.100000, 0);'
-            echo -n 'block_image_update(map_partition("system_ext"), package_extract_file("system_ext.transfer.list"), "'
+            echo -n 'block_image_update('
+            OTA_BLOCK_DEVICE "system_ext"
+            echo -n ', package_extract_file("system_ext.transfer.list"), "'
             echo -n "system_ext.new.dat${BROTLI_EXTENSION}"
             echo    '", "system_ext.patch.dat") ||'
             echo    '  abort("E2001: Failed to update system_ext image.");'
@@ -368,7 +408,9 @@ GENERATE_UPDATER_SCRIPT()
             echo -e "\n# Patch partition odm\n"
             echo    'ui_print("Patching odm image unconditionally...");'
             echo    'show_progress(0.100000, 0);'
-            echo -n 'block_image_update(map_partition("odm"), package_extract_file("odm.transfer.list"), "'
+            echo -n 'block_image_update('
+            OTA_BLOCK_DEVICE "odm"
+            echo -n ', package_extract_file("odm.transfer.list"), "'
             echo -n "odm.new.dat${BROTLI_EXTENSION}"
             echo    '", "odm.patch.dat") ||'
             echo    '  abort("E2001: Failed to update odm image.");'
@@ -377,7 +419,9 @@ GENERATE_UPDATER_SCRIPT()
             echo -e "\n# Patch partition vendor_dlkm\n"
             echo    'ui_print("Patching vendor_dlkm image unconditionally...");'
             echo    'show_progress(0.100000, 0);'
-            echo -n 'block_image_update(map_partition("vendor_dlkm"), package_extract_file("vendor_dlkm.transfer.list"), "'
+            echo -n 'block_image_update('
+            OTA_BLOCK_DEVICE "vendor_dlkm"
+            echo -n ', package_extract_file("vendor_dlkm.transfer.list"), "'
             echo -n "vendor_dlkm.new.dat${BROTLI_EXTENSION}"
             echo    '", "vendor_dlkm.patch.dat") ||'
             echo    '  abort("E2001: Failed to update vendor_dlkm image.");'
@@ -386,7 +430,9 @@ GENERATE_UPDATER_SCRIPT()
             echo -e "\n# Patch partition odm_dlkm\n"
             echo    'ui_print("Patching odm_dlkm image unconditionally...");'
             echo    'show_progress(0.100000, 0);'
-            echo -n 'block_image_update(map_partition("odm_dlkm"), package_extract_file("odm_dlkm.transfer.list"), "'
+            echo -n 'block_image_update('
+            OTA_BLOCK_DEVICE "odm_dlkm"
+            echo -n ', package_extract_file("odm_dlkm.transfer.list"), "'
             echo -n "odm_dlkm.new.dat${BROTLI_EXTENSION}"
             echo    '", "odm_dlkm.patch.dat") ||'
             echo    '  abort("E2001: Failed to update odm_dlkm image.");'
@@ -395,12 +441,16 @@ GENERATE_UPDATER_SCRIPT()
             echo -e "\n# Patch partition system_dlkm\n"
             echo    'ui_print("Patching system_dlkm image unconditionally...");'
             echo    'show_progress(0.100000, 0);'
-            echo -n 'block_image_update(map_partition("system_dlkm"), package_extract_file("system_dlkm.transfer.list"), "'
+            echo -n 'block_image_update('
+            OTA_BLOCK_DEVICE "system_dlkm"
+            echo -n ', package_extract_file("system_dlkm.transfer.list"), "'
             echo -n "system_dlkm.new.dat${BROTLI_EXTENSION}"
             echo    '", "system_dlkm.patch.dat") ||'
             echo    '  abort("E2001: Failed to update system_dlkm image.");'
         fi
-        echo -e "\n# --- End patching dynamic partitions ---\n"
+        if $TARGET_USE_DYNAMIC_PARTITIONS; then
+            echo -e "\n# --- End patching dynamic partitions ---\n"
+        fi
         if $HAS_DTBO; then
             echo    'ui_print("Full Patching dtbo.img img...");'
             echo -n 'package_extract_file("dtbo.img", '
@@ -554,11 +604,36 @@ while IFS= read -r f; do
 done < <(find "$WORK_DIR" -maxdepth 1 -type d)
 LOG_STEP_OUT
 
-LOG "- Building unsparse_super_empty.img"
-BUILD_SUPER_EMPTY
-
-LOG "- Generating dynamic_partitions_op_list"
-GENERATE_OP_LIST
+if $TARGET_USE_DYNAMIC_PARTITIONS; then
+    LOG "- Building unsparse_super_empty.img"
+    BUILD_SUPER_EMPTY
+    LOG "- Generating dynamic_partitions_op_list"
+    GENERATE_OP_LIST
+else
+    # Build a physical-partition capacity guard from the actual generated images.
+    # The script is executed by recovery BEFORE writing any OS blocks.
+    cat > "$TMP_DIR/s10-preflight.sh" <<'S10_PREAMBLE'
+#!/sbin/sh
+set -eu
+PATH=/sbin:/system/bin:/bin:/usr/bin:${PATH:-}
+command -v blockdev >/dev/null 2>&1 || { echo "ERROR: recovery lacks blockdev"; exit 1; }
+S10_PREAMBLE
+    for PARTITION in system vendor product system_ext odm vendor_dlkm odm_dlkm system_dlkm; do
+        [ -f "$TMP_DIR/$PARTITION.img" ] || continue
+        BLOCK_DEVICE="$(GET_DEVICE_FROM_MOUNTPOINT "/$PARTITION")"
+        BLOCK_DEVICE="${BLOCK_DEVICE#\"}"
+        BLOCK_DEVICE="${BLOCK_DEVICE%\"}"
+        SIZE="$(stat -c%s "$TMP_DIR/$PARTITION.img")"
+        printf 'device="%s"\n' "$BLOCK_DEVICE" >> "$TMP_DIR/s10-preflight.sh"
+        printf 'required="%s"\n' "$SIZE" >> "$TMP_DIR/s10-preflight.sh"
+        cat >> "$TMP_DIR/s10-preflight.sh" <<'S10_CHECK'
+[ -b "$device" ] || { echo "ERROR: missing $device"; exit 1; }
+actual=$(blockdev --getsize64 "$device") || exit 1
+[ "$actual" -ge "$required" ] || { echo "ERROR: $device needs $required bytes, has $actual"; exit 1; }
+S10_CHECK
+    done
+    chmod 0755 "$TMP_DIR/s10-preflight.sh"
+fi
 
 if ! $DEBUG; then
     if ! [[ "$BROTLI_QUALITY" =~ ^([0-9]|1[01])$ ]]; then

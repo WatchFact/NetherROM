@@ -1,0 +1,167 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -euo pipefail
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$root"
+for target in beyond0lte beyond1lte beyond2lte beyondx; do
+    bash -n "target/$target/config.sh"
+    bash -n "target/$target/sff.sh"
+    grep -q 'TARGET_PLATFORM="exynos9820"' "target/$target/config.sh"
+    grep -q '^TARGET_USE_DYNAMIC_PARTITIONS=false' "target/$target/config.sh"
+    grep -q '^TARGET_LCD_CONFIG_HFR_DEFAULT_REFRESH_RATE="60"' "target/$target/config.sh"
+    for partition in system vendor product odm boot dtb dtbo; do
+        grep -q "/dev/block/by-name/$partition " "target/$target/installer/recovery.fstab"
+    done
+    TARGET_MODEL="$(sed -n 's/^TARGET_FIRMWARE="\([^/]*\).*/\1/p' "target/$target/config.sh")"
+    test -n "$TARGET_MODEL" || exit 1
+    echo "Configuration OK: $target ($TARGET_MODEL)"
+done
+bash -n scripts/internal/build_flashable_zip.sh
+bash -n scripts/port_s10/compat.sh
+bash -n scripts/port_s10/build_legacy_zip.sh
+bash -n scripts/port_s10/kernel.sh
+bash -n scripts/port_s10/restore_tools.sh
+grep -q 'exynos9820' scripts/internal/build_flashable_zip.sh
+grep -q 'block_image_update' scripts/port_s10/build_legacy_zip.sh
+grep -q 'GET_IMAGE_SIZE' scripts/port_s10/build_legacy_zip.sh
+grep -q 'dtb.img' scripts/port_s10/build_legacy_zip.sh
+grep -q 'for img in boot dtb dtbo' scripts/port_s10/kernel.sh
+# KernelSU requires an explicit decision and cannot be silently enabled.
+grep -q '\-k n -r n' scripts/port_s10/kernel.sh
+grep -q 's10-preflight.sh' scripts/port_s10/build_legacy_zip.sh
+# All source assets required by ExtremeROM's Exynos9820 camera must be
+# provided by a vetted local donor or explicitly imported into the build.
+# Check the committed implementation, not obsolete generated compat text.
+grep -Fq 'ADD_TO_WORK_DIR "a73xqxx" "system" "system/lib64/libBestComposition.polarr.so"' platform/exynos9820/patches/camera/customize.sh
+grep -Fq 'ADD_TO_WORK_DIR "p3sxxx" "vendor" "etc/singletake"' platform/exynos9820/patches/camera/customize.sh
+grep -Fq 'ADD_TO_WORK_DIR "p3sxxx" "system" "system/lib64/libmidas_core.camera.samsung.so"' platform/exynos9820/patches/midas/customize.sh
+# Pinned partition geometry extracted from official ArtisanROM Exynos9820_Repartition.zip.
+layout=scripts/port_s10/artisanrom_partition_layout.tsv
+test -s "$layout"
+for row in 'system 7000 required' 'vendor 1500 required' 'product 1500 required' 'odm 4 required' \
+           'prism 600 required' 'optics 30 required' 'cache 600 required' 'omr 50 required' \
+           'cp_debug 5 required' 'cp2_debug 5 optional' 'spu 50 optional' 'userdata remaining required'; do
+    grep -Fxq "$row" "$layout" || { echo "Missing pinned GPT row: $row" >&2; exit 1; }
+done
+grep -Fq '802cc8c10acbcd3c7f2b1b73f14fd8f7b26ca4ef9cb6dc12f76f958c030d4e45' "$layout"
+grep -q 'layout_minimum' scripts/port_s10/build_legacy_zip.sh
+# Unit-test every legacy firmware patch without shipping an unreviewed donor.
+python3 - <<'PY'
+import importlib.util, tempfile
+from pathlib import Path
+spec = importlib.util.spec_from_file_location(
+    "optional_patch", "scripts/port_s10/optional_binary_patch.py")
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+with tempfile.TemporaryDirectory() as d:
+    f = Path(d) / "firmware.so"
+    for feature, (old, new) in mod.PATCHES.items():
+        f.write_bytes(b"\x7fELF" + bytes.fromhex(old) + b"TEST")
+        assert mod.patch(f, feature) == "patched"
+        assert mod.patch(f, feature) == "already-patched"
+        assert f.read_bytes() == b"\x7fELF" + bytes.fromhex(new) + b"TEST"
+        f.write_bytes(b"\x7fELF" + b"\x00" * 128)
+        assert mod.patch(f, feature) == "unsupported-donor"
+        assert f.read_bytes() == b"\x7fELF" + b"\x00" * 128
+        f.write_bytes(bytes.fromhex(old) * 2)
+        try:
+            mod.patch(f, feature)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"{feature}: ambiguous patch did not fail")
+print("Optional binary patch unit tests passed")
+PY
+python3 -m py_compile scripts/port_s10/strict_preflight.py
+python3 scripts/port_s10/strict_preflight.py --stage index
+python3 -m py_compile scripts/port_s10/camera_path_patch.py scripts/port_s10/camera_output_audit.py
+python3 - <<'PY'
+import importlib.util
+from pathlib import Path
+import tempfile
+path = "scripts/port_s10/camera_path_patch.py"
+spec = importlib.util.spec_from_file_location("camerapath", path)
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+with tempfile.TemporaryDirectory() as d:
+    f = Path(d) / "camera.so"
+    f.write_bytes(b"\x7fELF" + m.OLD + b"tail")
+    assert m.apply(f) == "patched"
+    assert m.apply(f) == "already-patched"
+    assert f.read_bytes() == b"\x7fELF" + m.NEW + b"tail"
+    f.write_bytes(b"\x7fELF" + b"\x00" * 128)
+    assert m.apply(f) == "unsupported-donor"
+    f.write_bytes(b"\x7fELF" + m.OLD * 2)
+    try:
+        m.apply(f)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Ambiguous binary rewrite not rejected")
+print("Camera photo editor binary path tests passed")
+PY
+# Assert that the tracked camera code, not a temporary CI-generated rewrite,
+# is installed and called during ROM construction.
+bash -n platform/exynos9820/patches/camera/customize.sh
+bash -n platform/exynos9820/patches/midas/customize.sh
+bash -n scripts/port_s10/verify_camera_partition.sh
+grep -Fq "for module in camera midas; do" scripts/port_s10/compat.sh
+grep -Fq "tar --exclude='./customize.sh'" scripts/port_s10/compat.sh
+test -s platform/exynos9820/patches/camera/module.prop
+test -s platform/exynos9820/patches/midas/module.prop
+grep -Fq '"$SRC_DIR/scripts/internal/apply_modules.sh" "$SRC_DIR/platform/$TARGET_PLATFORM/patches"' scripts/make_rom.sh
+grep -Fq 'verify_camera_partition.sh' scripts/port_s10/build_legacy_zip.sh
+echo "Tracked camera patch -> ROM work tree -> final ext4 image linked"
+# Regression guard: legacy buildenv.sh dereferences SRC_DIR before assigning it,
+# so sourcing under "set -u" fails before any build/tool verification starts.
+# Catch that workflow error during the inexpensive preflight job.
+python3 - <<'PY'
+import re
+import subprocess
+# The preflight job uses sparse checkout and excludes .github/. Read the
+# committed workflow directly instead of assuming the YAML is checked out.
+workflow = subprocess.check_output(
+    ["git", "show", "HEAD:.github/workflows/s10-port.yml"], text=True
+)
+blocks = re.split(r'(?m)^      - (?:name:|uses:)', workflow)
+for block in blocks:
+    if "source ./buildenv.sh" not in block:
+        continue
+    for match in re.finditer(r'(?m)^\s+source ./buildenv\.sh\b', block):
+        prefix = block[:match.start()]
+        set_options = re.findall(r'(?m)^\s*set\s+(-[^\n]+)', prefix)
+        if set_options and "-u" in set_options[-1].split()[0]:
+            raise SystemExit("S10 workflow sources legacy buildenv under Bash nounset")
+print("S10 legacy environment sourcing check passed")
+PY
+# Prevent regressions of the undefined SOURCE_CODENAME MIDAS sed failure.
+python3 -m py_compile scripts/port_s10/validate_midas.py
+python3 - <<'PY'
+import importlib.util, json, tempfile
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("midas", "scripts/port_s10/validate_midas.py")
+midas = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(midas)
+with tempfile.TemporaryDirectory() as temp:
+    config = Path(temp) / "midas.json"
+    prop = Path(temp) / "build.prop"
+    config.write_text(json.dumps({
+        "device_property": "ro.product.device",
+        "midasSR_devices": ["e1s", "e2s", "r9s"],
+    }))
+    prop.write_text("ro.product.device=e2s\n")
+    before = config.read_bytes()
+    assert midas.verify(config, prop) == "e2s"
+    assert config.read_bytes() == before
+    for payload in ("", "ro.product.device=wrong_device\n",
+                    "ro.product.device=e2s\nro.product.device=r9s\n"):
+        prop.write_text(payload)
+        try:
+            midas.verify(config, prop)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("MIDAS check accepted unsupported/ambiguous build.prop")
+print("MIDAS donor validation and no-rewrite tests passed")
+PY
+echo "S10 static-partition safety checks passed"
