@@ -16,7 +16,9 @@ def generate(device, sizes):
     if set(sizes) != set(BUDGET) | {"boot", "dtb", "dtbo"}:
         raise ValueError("Unexpected or missing partition")
     preflight = ['#!/sbin/sh', 'set -eu', 'PATH=/sbin:/system/bin:/bin:/usr/bin:$PATH',
-                 'command -v blockdev >/dev/null']
+                 'command -v blockdev >/dev/null',
+                 'command -v readlink >/dev/null',
+                 'seen_devices="|"']
     for part, size in sizes.items():
         if type(size) is not int or size <= 0:
             raise ValueError(f"Invalid expanded image size for {part}")
@@ -32,6 +34,11 @@ def generate(device, sizes):
                 minimum = BUDGET['odm'] * 1048576
         preflight.extend([f'device=/dev/block/by-name/{part}',
             '[ -b "$device" ] || { echo "Missing $device"; exit 1; }',
+            'resolved=$(readlink -f "$device")',
+            '[ -n "$resolved" ] || { echo "Cannot resolve $device"; exit 1; }',
+            'case "$resolved" in /dev/block/*) ;; *) echo "Unexpected block path: $resolved"; exit 1 ;; esac',
+            'case "$seen_devices" in *"|$resolved|"*) echo "Aliased partitions: $device and $resolved"; exit 1 ;; esac',
+            'seen_devices="${seen_devices}${resolved}|"',
             'capacity=$(blockdev --getsize64 "$device")',
             f'[ "$capacity" -ge {max(size, minimum)} ] || {{ echo "Partition too small: $device"; exit 1; }}'])
     # Require BOTH the proper device codename and an SM-G975F/DS model.
