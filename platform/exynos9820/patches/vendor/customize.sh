@@ -47,7 +47,7 @@ done
 LOG_STEP_OUT
 
 LOG "- Fixing SNAP AIDL SELinux rule"
-sed -i "s/(allow snap_hidl hal_snap_service (service_manager (find)))/(allow snap_hidl hal_snap_service (service_manager (add find)))/g" "$WORK_DIR/vendor/etc/selinux/vendor_sepolicy.cil"
+python3 "$SRC_DIR/scripts/s10/vendor_sepolicy.py" "$WORK_DIR/vendor/etc/selinux/vendor_sepolicy.cil"
 
 LOG "- Fixing JSQZ node permission"
 echo "/dev/jsqz                 0660   mediacodec     camera" >> $WORK_DIR/vendor/ueventd.rc
