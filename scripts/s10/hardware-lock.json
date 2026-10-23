@@ -73,7 +73,7 @@
     "platform/exynos9820/patches/stock_blobs/module.prop": "1bef1e7005ae0d6565099c335221922f65d1643d",
     "platform/exynos9820/patches/storage_compat/customize.sh": "ec2716a35e5be8f825380bb08e9be52dca69e7b7",
     "platform/exynos9820/patches/storage_compat/module.prop": "7a71fae32458016be35efb2e6df899648906eb26",
-    "platform/exynos9820/patches/vendor/customize.sh": "47b5a9dd1ce7aaaad4acadee2874c6202a27a5d2",
+    "platform/exynos9820/patches/vendor/customize.sh": "365ca282ee9131c477a839a57a89347236a90559",
     "platform/exynos9820/patches/vendor/file_context-vendor": "1d4ec68abb07c4dae775987bf5affeb1c337a9dd",
     "platform/exynos9820/patches/vendor/fs_config-vendor": "d71163488776674e9122763766341c2785e0d451",
     "platform/exynos9820/patches/vendor/module.prop": "5cd4ae6462220a16dbe02336dd3aaed8ad23f80f",
