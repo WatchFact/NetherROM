@@ -688,6 +688,21 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
                 self.assertIn('/'+relative+'/driver\\.so u:object_r:system_lib_file:s0',contexts)
                 self.assertNotIn('system/system/system_ext/',fs+contexts)
 
+    def test_vendor_snap_sepolicy_patch_is_exact_and_idempotent(self):
+        from vendor_sepolicy import OLD, NEW, patch as patch_vendor_policy
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td)/'vendor_sepolicy.cil'
+            path.write_bytes(b'(type snap_hidl)\\n'+OLD+b'\\n')
+            self.assertEqual(patch_vendor_policy(path), 'patched')
+            self.assertIn(NEW, path.read_bytes())
+            self.assertEqual(patch_vendor_policy(path), 'already-patched')
+            path.write_bytes(b'(type snap_hidl)\\n')
+            with self.assertRaisesRegex(ValueError, 'Unknown or ambiguous'):
+                patch_vendor_policy(path)
+            path.write_bytes(OLD+b'\\n'+OLD)
+            with self.assertRaisesRegex(ValueError, 'Unknown or ambiguous'):
+                patch_vendor_policy(path)
+
     def test_capacity_and_device_guards(self):
         sizes = {p: min(m*1048576, 5000000) for p,m in BUDGET.items()}
         sizes.update(boot=16000000, dtb=800000, dtbo=800000)
