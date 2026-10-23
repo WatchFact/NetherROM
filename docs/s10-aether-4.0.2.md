@@ -30,9 +30,12 @@ prerequisites. Never flash a PIT for another phone variant.
 `.github/workflows/s10-aether.yml` performs read-only hardware preflight,
 regression tests and exactly one clean S10+ (beyond2lte) build. It compiles the pinned Exynos9820
 kernel and generates signed physical-partition installer ZIPs with image,
-metadata, OTA reconstruction and partition-size validation. A source
-prerelease is tagged after preflight; ROM assets are published only if all
-on-run build/package checks pass.
+metadata, full ext4 filesystem checks (including product), OTA reconstruction,
+partition-size validation and duplicate-device safeguards before any writes.
+The immutable installer/preflight scripts are checked against the package's
+sizes.json before signing. A source prerelease is tagged only after independent
+hardware/source regression preflight; ROM assets are published only if all
+on-run build/package checks and split-volume reconstruction hashes pass.
 
 The updater requires both the beyond2lte device codename and the approved SM-G975F model property; it aborts on wrong or unidentifiable models. The build checks the SM-G975F target firmware and refuses other device IDs.
 
@@ -43,3 +46,13 @@ logs. Static validation alone cannot establish that this ROM will boot.
 Provenance: https://github.com/ArtisanROM/ArtisanROM (Aether);
 ArtisanROM 3.1.0 S10 snapshot `4d30365b4452a651cc87af8e91733ec1c862f716`;
 audit baseline `WatchFact/NetherROM:port/s10-v4.0.1`.
+
+## Release safety
+
+The published ROM uses the AOSP test signing key (not a private production key).
+Do not mistake a GitHub Actions success or intact ZIP for a bootable ROM.
+The full hardware/OS compatibility matrix—including enforcing SELinux, IMS,
+camera, Wi-Fi, Bluetooth, GPU, userdata and recovery—remains **unverified on
+physical hardware** until S10+ boot/recovery logs and hands-on tests pass.
+For installing, preserve a complete verified stock firmware and personal-data
+backup; never repartition or flash another model's PIT based on this build.
