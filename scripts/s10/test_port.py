@@ -698,6 +698,8 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
             self.assertNotIn('map_partition', edify)
             self.assertIn('resolved=$(readlink -f "$device")', shell)
             self.assertIn('Aliased partitions:', shell)
+            self.assertIn('Partition is mounted:', shell)
+            self.assertIn('done < /proc/mounts', shell)
             self.assertEqual(shell.count('capacity=$(blockdev --getsize64 "$device")'), 7)
             for model in models: self.assertIn(model, edify)
         # The system/vendor/product partitions can be enlarged by the
