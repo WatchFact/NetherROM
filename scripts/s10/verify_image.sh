@@ -2,10 +2,17 @@
 # Compare representative hardware files inside the actual sparse ext4 image.
 set -euo pipefail
 part="${1:?}"; image="${2:?}"
-case "$part" in system|vendor|odm) ;; *) exit 0;; esac
+case "$part" in system|vendor|product|odm) ;; *) echo "Unsupported S10 partition: $part" >&2; exit 1;; esac
 tmp="$(mktemp -d)"
 trap 'python3 -c "import shutil,sys; shutil.rmtree(sys.argv[1])" "$tmp"' EXIT
 simg2img "$image" "$tmp/raw.img"
+# Verify the complete ext4 superblock, inode tables and directory structure,
+# including product (which has no individual legacy hardware blob checks).
+if ! e2fsck -fn "$tmp/raw.img" > "$tmp/e2fsck.log" 2>&1; then
+  cat "$tmp/e2fsck.log" >&2
+  echo "Invalid generated ext4 filesystem: $part" >&2
+  exit 1
+fi
 python3 - "$SRC_DIR" "$WORK_DIR" "$tmp" "$part" <<'PY'
 import hashlib,subprocess,sys
 from pathlib import Path
