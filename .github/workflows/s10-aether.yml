@@ -178,6 +178,11 @@ jobs:
           split -b 1800M -d -a 3 "$zip" "release-parts/$(basename "$zip").part-"
           cp "$zip.sha256" release-parts/ROM-SHA256.txt
           (cd release-parts && sha256sum *.part-* > PARTS-SHA256.txt)
+          # Prove the downloadable volumes reconstruct exactly the signed ZIP.
+          (cd release-parts && sha256sum -c PARTS-SHA256.txt)
+          expected=$(awk '{print $1}' release-parts/ROM-SHA256.txt)
+          actual=$(cat release-parts/"$(basename "$zip")".part-* | sha256sum | awk '{print $1}')
+          test "$actual" = "$expected" || { echo 'Split ROM reconstruction hash mismatch' >&2; exit 1; }
           tag='netherrom-4.0.2-${{ matrix.target }}-${{ github.run_number }}'
           if ! gh release view "$tag" >/dev/null 2>&1; then
             gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
