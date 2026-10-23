@@ -36,24 +36,20 @@ concurrency:
 jobs:
   preflight:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 3
     permissions:
       contents: read
     steps:
-      - name: Checkout S10 port for independent source validation
-        uses: actions/checkout@v4
-        with:
-          submodules: false
-          fetch-depth: 1
-      - name: Validate Python and shell source syntax
+      - name: CPU check only (CI runner, not target phone)
+        shell: bash
         run: |
           set -euo pipefail
-          python3 -m compileall -q scripts/s10
-          bash -n scripts/s10/package.sh scripts/s10/kernel.sh scripts/s10/verify_image.sh
-      - name: Enforce locked Exynos9820 inputs and model-specific contracts
-        run: python3 scripts/s10/preflight.py --device beyond2lte
-      - name: Run S10 installer, camera, storage and ROM regression suite
-        run: python3 scripts/s10/test_port.py
+          cpu_arch="$(uname -m)"
+          online_cores="$(nproc)"
+          echo "GitHub Actions runner CPU architecture: $cpu_arch"
+          echo "Online logical CPU cores: $online_cores"
+          [[ "$cpu_arch" == "x86_64" ]] || { echo 'Unsupported build-runner CPU architecture' >&2; exit 1; }
+          [[ "$online_cores" -ge 2 ]] || { echo 'Build runner has too few CPU cores' >&2; exit 1; }
 
   cancel-obsolete:
     runs-on: ubuntu-24.04
@@ -148,6 +144,14 @@ jobs:
           set -eo pipefail
           source ./buildenv.sh '${{ matrix.target }}'
           ./scripts/make_rom.sh --force --no-rom-zip 2>&1 | tee "out/target/${{ matrix.target }}/build.log"
+      - name: Validate built ROM before installer packaging
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m compileall -q scripts/s10
+          bash -n scripts/s10/package.sh scripts/s10/kernel.sh scripts/s10/verify_image.sh
+          python3 scripts/s10/preflight.py --device '${{ matrix.target }}'
+          python3 scripts/s10/test_port.py
       - name: Build, sign and verify physical ext4 installer
         shell: bash
         run: |
