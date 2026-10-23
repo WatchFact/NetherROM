@@ -34,6 +34,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout S10 port for independent source validation
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+      - name: Validate Python and shell source syntax
+        run: |
+          set -euo pipefail
+          python3 -m compileall -q scripts/s10
+          bash -n scripts/s10/package.sh scripts/s10/kernel.sh scripts/s10/verify_image.sh
+      - name: Enforce locked Exynos9820 inputs and model-specific contracts
+        run: python3 scripts/s10/preflight.py --device beyond2lte
+      - name: Run S10 installer, camera, storage and ROM regression suite
+        run: python3 scripts/s10/test_port.py
+
   cancel-obsolete:
     runs-on: ubuntu-24.04
     steps:
@@ -55,6 +76,7 @@ jobs:
             done
 
   source-release:
+    needs: [preflight]
     runs-on: ubuntu-24.04
     steps:
       - name: Publish reviewed port source snapshot
@@ -70,6 +92,7 @@ jobs:
           fi
 
   build:
+    needs: [preflight]
     runs-on: ubuntu-24.04
     timeout-minutes: 350
     strategy:
