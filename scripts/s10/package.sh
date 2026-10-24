@@ -53,6 +53,27 @@ for name, limit in limits.items():
     # Filesystem metadata, inode tables and alignment need additional room.
     reserve = max(64 * 1024 * 1024, total // 20) if name != 'odm' else 0
     if name != 'odm' and total + reserve > limit:
+        # Explain which payloads consume the partition budget so subsequent
+        # debloat decisions can be evidence-based and preserve hardware.
+        from collections import defaultdict
+        groups = defaultdict(int)
+        largest = []
+        for p in tree.rglob('*'):
+            if not p.is_file() or p.is_symlink():
+                continue
+            size = p.stat().st_size
+            rel = p.relative_to(tree)
+            for depth in (1, 2, 3, 4):
+                if len(rel.parts) > depth:
+                    groups['/'.join(rel.parts[:depth])] += size
+            if size >= 16 * 1024 * 1024:
+                largest.append((size, str(rel)))
+        print(f'Largest {name} directories (logical bytes):', flush=True)
+        for size, dirname in sorted(((size, dirname) for dirname, size in groups.items()), reverse=True)[:40]:
+            print(f'  {size:>14,}  {dirname}', flush=True)
+        print(f'Largest {name} files:', flush=True)
+        for size, filename in sorted(largest, reverse=True)[:40]:
+            print(f'  {size:>14,}  {filename}', flush=True)
         raise SystemExit(
             f'Partition {name} cannot fit: files={total:,} bytes, '
             f'estimated overhead={reserve:,}, physical limit={limit:,}. '
