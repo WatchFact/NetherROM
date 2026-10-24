@@ -67,7 +67,8 @@ def trim(work):
                for p in PROTECTED):
             raise ValueError('Optional path overlaps protected component: ' + name)
     before = {name: (root / name).is_file() for name in PROTECTED}
-    removed = {}
+    # Validate every target before removing any data, avoiding partial trims.
+    candidates = {}
     for name in OPTIONAL:
         dest = root / name
         if not dest.exists() and not dest.is_symlink():
@@ -76,8 +77,10 @@ def trim(work):
             raise ValueError('Unexpected optional payload type: ' + name)
         if any(parent.is_symlink() for parent in dest.parents if parent != root.parent):
             raise ValueError('Symlinked optional payload parent: ' + name)
-        size = size_of(dest)
-        shutil.rmtree(dest)
+        candidates[name] = size_of(dest)
+    removed = {}
+    for name, size in candidates.items():
+        shutil.rmtree(root / name)
         removed[name] = size
         print(f'S10 optional payload removed: {name}: {size:,} bytes', flush=True)
     for name, present in before.items():
