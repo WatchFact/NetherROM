@@ -1,73 +1,67 @@
 #!/usr/bin/env python3
-import json
+"""Fail-closed validation of the signed S10+ physical-partition ROM ZIP."""
 import hashlib
+import json
 import sys
 import zipfile
 from pathlib import Path
-from installer import BUDGET, DEVICES, generate
+
+from installer import DEVICE, PARTS, RAW, GUARD, UPDATER, generate
 from kernel_artifacts import KERNEL_REV
 
 
 def verify(path, device):
+    if device != DEVICE:
+        raise ValueError('Wrong S10+ device')
     with zipfile.ZipFile(path) as z:
         names = z.namelist()
-        if len(names) != len(set(names)):
-            raise ValueError("Duplicate ZIP entries")
-        for name in names:
-            if name.startswith('/') or '..' in Path(name).parts:
-                raise ValueError("Unsafe ZIP member")
-            if 'super' in name or 'dynamic_partitions' in name:
-                raise ValueError("Dynamic partition data in legacy S10 ZIP")
-        for part in BUDGET:
-            for suffix in ('.transfer.list', '.new.dat.br', '.patch.dat'):
-                member = z.getinfo(part + suffix)
-                if suffix != '.patch.dat' and member.file_size == 0:
-                    raise ValueError('Empty OTA partition payload: '+part+suffix)
-        for part in ('boot', 'dtb', 'dtbo'):
-            if z.getinfo(part+'.img').file_size < 2048:
-                raise ValueError("Missing kernel image")
-        z.getinfo('META-INF/com/google/android/update-binary')
-        updater = z.read('META-INF/com/google/android/updater-script').decode()
-        sizes = json.loads(z.read('sizes.json'))
-        expected_guard, expected_updater = generate(device, sizes)
+        if len(set(names)) != len(names) or any(
+                n.startswith('/') or '\\' in n or '..' in Path(n).parts for n in names):
+            raise ValueError('Unsafe or duplicated ZIP member')
+        if any('super' in n or 'dynamic_partitions' in n for n in names):
+            raise ValueError('Dynamic partition data in legacy S10 ZIP')
         if 's10-preflight.sh' in names:
-            raise ValueError('Unexpected legacy device preflight in the ROM ZIP')
-        if z.read('s10-install-guard.sh').decode() != expected_guard:
+            raise ValueError('Unexpected legacy device preflight')
+        for part in PARTS:
+            for suffix in ('.transfer.list', '.new.dat.br', '.patch.dat'):
+                name = part + suffix
+                if suffix != '.patch.dat' and not z.getinfo(name).file_size:
+                    raise ValueError('Empty OTA partition payload: ' + name)
+        for name in RAW:
+            if z.getinfo(name + '.img').file_size < 2048:
+                raise ValueError('Missing kernel image: ' + name)
+        if not z.getinfo('META-INF/com/google/android/update-binary').file_size:
+            raise ValueError('Missing recovery updater binary')
+        sizes = json.loads(z.read('sizes.json'))
+        guard, updater = generate(device, sizes)
+        if z.read(GUARD).decode() != guard:
             raise ValueError('Packaged installer write guard was modified')
-        if updater != expected_updater:
+        if z.read(UPDATER).decode() != updater:
             raise ValueError('Packaged updater does not match audited generator')
-        if any(w in updater for w in ('map_partition', 'update_dynamic_partitions', 'repartition')):
-            raise ValueError("Invalid S10 installer")
-        for part in BUDGET:
-            if f'block_image_update("/dev/block/by-name/{part}"' not in updater:
-                raise ValueError("Missing physical block installation")
-        if updater.index('run_program("/tmp/s10-install-guard.sh")') > updater.index('block_image_update'):
-            raise ValueError("Installer write guard occurs after block writes")
-        for model in DEVICES[device]:
-            if model not in updater:
-                raise ValueError("Missing model assertion")
+
         info = json.loads(z.read('kernel.json'))
-        if (info['device'] != device or info['revision'] != KERNEL_REV
-                or info['kernelsu'] is not False or info['ext4'] is not True):
-            raise ValueError("Wrong kernel variant, revision or configuration")
-        for name in ('boot.img', 'dtb.img', 'dtbo.img'):
-            if hashlib.sha256(z.read(name)).hexdigest() != info['sha256'][name]:
-                raise ValueError('Kernel image changed during packaging: '+name)
+        if (info.get('device') != device or info.get('revision') != KERNEL_REV
+                or info.get('kernelsu') is not False or info.get('ext4') is not True):
+            raise ValueError('Wrong S10 kernel variant, revision or configuration')
+        for name in RAW:
+            data = z.read(name + '.img')
+            if len(data) != sizes[name] or hashlib.sha256(data).hexdigest() != info['sha256'][name + '.img']:
+                raise ValueError('Kernel image changed during packaging: ' + name)
+
+        from camera_portrait import RECORD as CAMERA, validate_record as validate_camera
+        from odm_layout import RECORD as ODM, validate_record as validate_odm
         from legacy_features import manifest as legacy_manifest
-        from camera_portrait import RECORD, validate_record
-        validate_record(json.loads(z.read(RECORD)), device)
-        from odm_layout import RECORD as ODM_RECORD, validate_record as validate_odm
-        validate_odm(json.loads(z.read(ODM_RECORD)), device)
+        validate_camera(json.loads(z.read(CAMERA)), device)
+        validate_odm(json.loads(z.read(ODM)), device)
         legacy = legacy_manifest(Path(__file__).resolve().parents[2])
-        for mode in ('wifi', 'fingerprint') if device == 'beyond0lte' else ('wifi',):
-            expected = dict(legacy['migrations'][mode], device=device,
-                            source_firmware=legacy['source_firmware'], mode=mode)
-            if json.loads(z.read(mode+'-provenance.json')) != expected:
-                raise ValueError('Wrong packaged S10 '+mode+' migration provenance')
-        bad = z.testzip()
-        if bad:
-            raise ValueError("Corrupted ZIP member: " + bad)
-    print('ZIP structure and CRC passed:', path)
+        expected = dict(legacy['migrations']['wifi'], device=device,
+                        source_firmware=legacy['source_firmware'], mode='wifi')
+        if json.loads(z.read('wifi-provenance.json')) != expected:
+            raise ValueError('Wrong packaged S10 wifi migration provenance')
+        damaged = z.testzip()
+        if damaged:
+            raise ValueError('Corrupted ZIP member: ' + damaged)
+    print('Signed S10+ ZIP structure, provenance, digests and CRC passed:', path)
 
 
 if __name__ == '__main__':

@@ -1,82 +1,81 @@
 #!/usr/bin/env python3
-"""Generate Exynos9820 CPU-only gate and separate S10 write-safety guard."""
+"""S10+ legacy ext4 updater: CPU gate and a separate block-write guard."""
 import json
 import sys
 from pathlib import Path
 
-BUDGET = {"system": 7000, "vendor": 1500, "product": 1500, "odm": 4}
-DEVICES = {"beyond2lte": ("SM-G975F", "SM-G975F/DS")}
+DEVICE = 'beyond2lte'
+DEVICES = {DEVICE: ('SM-G975F', 'SM-G975F/DS')}
+BUDGET = {'system': 7000, 'vendor': 1500, 'product': 1500, 'odm': 4}
+PARTS = tuple(BUDGET)
+RAW = ('boot', 'dtb', 'dtbo')
+GUARD = 's10-install-guard.sh'
+UPDATER = 'META-INF/com/google/android/updater-script'
 
 
 def generate(device, sizes):
-    if device != 'beyond2lte':
-        raise ValueError('This branch only supports Galaxy S10+ SM-G975F/DS (beyond2lte)')
-    models = DEVICES[device]
-    if set(sizes) != set(BUDGET) | {"boot", "dtb", "dtbo"}:
-        raise ValueError("Unexpected or missing partition")
-    install_guard = ['#!/sbin/sh', 'set -eu', 'PATH=/sbin:/system/bin:/bin:/usr/bin:$PATH',
-                 'command -v blockdev >/dev/null',
-                 'command -v readlink >/dev/null',
-                 'seen_devices="|"']
-    for part, size in sizes.items():
-        if type(size) is not int or size <= 0:
-            raise ValueError(f"Invalid expanded image size for {part}")
-        minimum = 0
-        if part in BUDGET:
-            # System/vendor/product sizes depend on the user's installed
-            # repartitioner layout. Check their *actual* block capacity in
-            # recovery before any write instead of assuming stock sizes.
-            # ODM is deliberately fixed to the reviewed physical 4 MiB layout.
-            if part == 'odm':
-                if size > BUDGET['odm'] * 1048576:
-                    raise ValueError("odm exceeds the reviewed 4 MiB physical partition")
-                minimum = BUDGET['odm'] * 1048576
-        install_guard.extend([f'device=/dev/block/by-name/{part}',
-            '[ -b "$device" ] || { echo "Missing $device"; exit 1; }',
-            'resolved=$(readlink -f "$device")',
-            '[ -n "$resolved" ] || { echo "Cannot resolve $device"; exit 1; }',
-            'case "$resolved" in /dev/block/*) ;; *) echo "Unexpected block path: $resolved"; exit 1 ;; esac',
-            'case "$seen_devices" in *"|$resolved|"*) echo "Aliased partitions: $device and $resolved"; exit 1 ;; esac',
-            'seen_devices="${seen_devices}${resolved}|"',
-            # Flashing a mounted partition can corrupt it. Check all mounted
-            # source aliases now, before the first block_image_update call.
-            '[ -r /proc/mounts ] || { echo "Cannot inspect recovery mounts"; exit 1; }',
-            'while read -r mount_source mount_rest; do',
-            '  case "$mount_source" in /dev/block/*)',
-            '    mount_resolved=$(readlink -f "$mount_source" 2>/dev/null || true)',
-            '    [ "$mount_resolved" != "$resolved" ] || { echo "Partition is mounted: $device"; exit 1; }',
-            '    ;; esac',
-            'done < /proc/mounts',
-            'capacity=$(blockdev --getsize64 "$device")',
-            f'[ "$capacity" -ge {max(size, minimum)} ] || {{ echo "Partition too small: $device"; exit 1; }}'])
-    # Require BOTH the proper device codename and an SM-G975F/DS model.
-    # Refuse recovery environments that cannot establish both identities.
-    model_checks = [f'getprop("{key}") == "{model}"'
-                    for key in ("ro.boot.em.model", "ro.product.model", "ro.product.vendor.model")
-                    for model in models]
-    checks = f'(getprop("ro.product.device") == "{device}") && (' + ' || '.join(model_checks) + ')'
-    # The flashable ZIP's CPU gate checks ONLY the Exynos9820 chipset.
-    # Model/device validation and block-device safeguards are separate install operations.
-    cpu = '(getprop("ro.board.platform") == "exynos9820" || getprop("ro.hardware") == "exynos9820" || getprop("ro.boot.hardware") == "exynos9820")'
-    updater = [f'ui_print("NetherROM 4.0.2 for {device} - legacy ext4 OTA");',
-               'assert(' + cpu + ' || abort("Unsupported CPU: Exynos9820 required"));',
-               'assert(' + checks + ' || abort("Wrong S10+ model/codename; expected SM-G975F (beyond2lte)"));',
-               'assert(package_extract_file("s10-install-guard.sh", "/tmp/s10-install-guard.sh"));',
-               'set_perm(0, 0, 0755, "/tmp/s10-install-guard.sh");',
-               'assert(run_program("/tmp/s10-install-guard.sh") == 0);',
-               'show_progress(0.90, 300);']
-    for part in BUDGET:
-        updater += [f'ui_print("Installing {part}...");',
-            f'assert(block_image_update("/dev/block/by-name/{part}", package_extract_file("{part}.transfer.list"), "{part}.new.dat.br", "{part}.patch.dat"));']
-    for part in ("boot", "dtb", "dtbo"):
+    if device != DEVICE:
+        raise ValueError('This ROM only supports Galaxy S10+ beyond2lte')
+    if set(sizes) != set(PARTS + RAW) or any(type(v) is not int or v <= 0 for v in sizes.values()):
+        raise ValueError('Missing, unexpected, or invalid partition size')
+    if sizes['odm'] > BUDGET['odm'] * 1048576 or any(sizes[p] % 4096 for p in PARTS):
+        raise ValueError('ODM exceeds 4 MiB or ext4 image is unaligned')
+
+    limits = ''.join(f'{p} {max(sizes[p], 4194304 if p == "odm" else 0)}\n' for p in PARTS + RAW)
+    guard = '''#!/sbin/sh
+set -eu
+PATH=/sbin:/system/bin:/bin:/usr/bin:$PATH
+command -v blockdev >/dev/null
+command -v readlink >/dev/null
+[ -r /proc/mounts ] || { echo 'Cannot inspect recovery mounts'; exit 1; }
+seen='|'
+while read -r part minimum; do
+  device=/dev/block/by-name/$part
+  [ -b "$device" ] || { echo "Missing $device"; exit 1; }
+  resolved=$(readlink -f "$device")
+  case "$resolved" in /dev/block/*) ;; *) echo "Unexpected block path: $resolved"; exit 1 ;; esac
+  case "$seen" in *"|$resolved|"*) echo "Aliased partitions: $device"; exit 1 ;; esac
+  seen="$seen$resolved|"
+  while read -r source rest; do
+    case "$source" in /dev/block/*)
+      mounted=$(readlink -f "$source" 2>/dev/null || true)
+      [ "$mounted" != "$resolved" ] || { echo "Partition is mounted: $device"; exit 1; }
+    ;; esac
+  done < /proc/mounts
+  capacity=$(blockdev --getsize64 "$device")
+  [ "$capacity" -ge "$minimum" ] || { echo "Partition too small: $device"; exit 1; }
+done <<'CAPACITIES'
+''' + limits + 'CAPACITIES\n'
+
+    cpu = ' || '.join(f'getprop("{key}") == "exynos9820"' for key in
+                     ('ro.board.platform', 'ro.hardware', 'ro.boot.hardware', 'ro.hardware.chipname'))
+    models = ' || '.join(f'getprop("{key}") == "{model}"' for key in
+                         ('ro.boot.em.model', 'ro.product.model', 'ro.product.vendor.model')
+                         for model in DEVICES[device])
+    identity = f'(getprop("ro.product.device") == "{device}") && ({models})'
+    updater = [
+        'ui_print("NetherROM 4.0.2 - S10+ physical ext4");',
+        f'assert(({cpu}) || abort("Unsupported CPU: Exynos9820 required"));',
+        f'assert({identity} || abort("Wrong S10+ model/codename"));',
+        f'assert(package_extract_file("{GUARD}", "/tmp/{GUARD}"));',
+        f'set_perm(0, 0, 0755, "/tmp/{GUARD}");',
+        f'assert(run_program("/tmp/{GUARD}") == 0);',
+        'show_progress(0.90, 300);',
+    ]
+    for part in PARTS:
+        updater.extend((f'ui_print("Installing {part}...");',
+                        f'assert(block_image_update("/dev/block/by-name/{part}", '
+                        f'package_extract_file("{part}.transfer.list"), '
+                        f'"{part}.new.dat.br", "{part}.patch.dat"));'))
+    for part in RAW:
         updater.append(f'assert(package_extract_file("{part}.img", "/dev/block/by-name/{part}"));')
-    updater += ['set_progress(1.0);', 'ui_print("Installation complete.");']
-    return '\n'.join(install_guard) + '\n', '\n'.join(updater) + '\n'
+    updater.extend(('set_progress(1.0);', 'ui_print("Installation complete.");'))
+    return guard, '\n'.join(updater) + '\n'
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     directory = Path(sys.argv[1])
-    install_guard, updater = generate(sys.argv[2], json.loads((directory / "sizes.json").read_text()))
-    (directory / "s10-install-guard.sh").write_text(install_guard)
-    (directory / "s10-install-guard.sh").chmod(0o755)
-    (directory / "META-INF/com/google/android/updater-script").write_text(updater)
+    guard, updater = generate(sys.argv[2], json.loads((directory / 'sizes.json').read_text()))
+    (directory / GUARD).write_text(guard)
+    (directory / GUARD).chmod(0o755)
+    (directory / UPDATER).write_text(updater)
