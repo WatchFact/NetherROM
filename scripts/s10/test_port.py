@@ -499,7 +499,7 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
         with tempfile.TemporaryDirectory() as td:
             target=Path(td)/'rom.zip'; device='beyond2lte'
             images={n:b'x'*4096 for n in ('boot.img','dtb.img','dtbo.img')}
-            sizes={p:4000000 for p in BUDGET}; sizes.update({n.removesuffix('.img'):len(b) for n,b in images.items()})
+            sizes={p:4*1048576 for p in BUDGET}; sizes.update({n.removesuffix('.img'):len(b) for n,b in images.items()})
             shell,edify=generate(device,sizes)
             members=dict(images); members['META-INF/com/google/android/updater-script']=edify
             members['META-INF/com/google/android/update-binary']=b'updater binary test fixture'
@@ -709,7 +709,7 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
                 patch_vendor_policy(path)
 
     def test_capacity_and_device_guards(self):
-        sizes = {p: min(m*1048576, 5000000) for p,m in BUDGET.items()}
+        sizes = {p: min(m*1048576, 4*1048576) for p,m in BUDGET.items()}
         sizes.update(boot=16000000, dtb=800000, dtbo=800000)
         for device, models in DEVICES.items():
             shell, edify = generate(device, sizes)
@@ -725,7 +725,7 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
             self.assertIn('Aliased partitions:', shell)
             self.assertIn('Partition is mounted:', shell)
             self.assertIn('done < /proc/mounts', shell)
-            self.assertEqual(shell.count('capacity=$(blockdev --getsize64 "$device")'), 7)
+            self.assertEqual(shell.count('capacity=$(blockdev --getsize64 "$device")'), 1)
             for model in models: self.assertIn(model, edify)
         # The system/vendor/product partitions can be enlarged by the
         # user's legacy S10 repartitioner; the installer must compare against
@@ -733,9 +733,9 @@ SMALI_PATCH system system/framework/service.jar smali/com/example/Large.smali re
         expanded = dict(sizes, system=8500*1048576, vendor=2000*1048576,
                         product=2100*1048576)
         expanded_shell, expanded_edify = generate('beyond2lte', expanded)
-        self.assertIn('[ "$capacity" -ge 8912896000 ]', expanded_shell)
-        self.assertIn('[ "$capacity" -ge 2097152000 ]', expanded_shell)
-        self.assertIn('[ "$capacity" -ge 2202009600 ]', expanded_shell)
+        self.assertIn('system 8912896000', expanded_shell)
+        self.assertIn('vendor 2097152000', expanded_shell)
+        self.assertIn('product 2202009600', expanded_shell)
         self.assertLess(expanded_edify.index('run_program('),
                         expanded_edify.index('block_image_update('))
         with self.assertRaises(ValueError): generate('beyond2lte',dict(sizes,odm=5*1048576))

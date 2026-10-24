@@ -101,6 +101,11 @@ jobs:
         with:
           submodules: false
           fetch-depth: 1
+      - name: Unit-test rewritten flashable package inside build
+        run: |
+          python3 scripts/s10/test_flashable.py -v
+          python3 -m py_compile scripts/s10/installer.py scripts/s10/verify_zip.py
+          bash -n scripts/s10/package.sh
       - name: Reclaim runner space
         uses: jlumbroso/free-disk-space@main
         with:

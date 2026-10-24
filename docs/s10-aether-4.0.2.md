@@ -65,3 +65,14 @@ camera, Wi-Fi, Bluetooth, GPU, userdata and recovery—remains **unverified on
 physical hardware** until S10+ boot/recovery logs and hands-on tests pass.
 For installing, preserve a complete verified stock firmware and personal-data
 backup; never repartition or flash another model's PIT based on this build.
+
+## Simplified flashable ZIP implementation
+
+The flashable package uses three maintained components:
+- scripts/s10/installer.py generates only the Exynos9820 CPU compatibility gate and a separate small write guard.
+- scripts/s10/package.sh stages physical ext4 OTA payloads, records seven partition sizes, signs and verifies the ZIP.
+- scripts/s10/verify_zip.py validates the generated scripts, OTA payloads, kernel digests, hardware provenance and ZIP CRC.
+
+The write guard iterates the physical partitions once and rejects missing, aliased, mounted or undersized devices before any write. It does not repartition or touch userdata. The CPU gate remains separate from developer/source validation.
+Quick tests: python3 scripts/s10/test_flashable.py. The existing test_port.py regression suite still runs inside the build before packaging.
+Previously published ROM releases do not automatically gain this rewrite; they require a new signed build.

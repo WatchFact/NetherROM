@@ -1,0 +1,32 @@
+name: S10 flashable package unit tests
+on:
+  push:
+    branches: [port/artisan-aether-s10-clean-20261021]
+    paths:
+      - 'scripts/s10/installer.py'
+      - 'scripts/s10/package.sh'
+      - 'scripts/s10/verify_zip.py'
+      - 'scripts/s10/test_flashable.py'
+      - 'scripts/s10/test_port.py'
+      - '.github/workflows/s10-package-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: scripts/s10
+      - name: Validate scripts and test updater
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/s10/installer.py scripts/s10/verify_zip.py
+          bash -n scripts/s10/package.sh
+          python3 scripts/s10/test_flashable.py -v
