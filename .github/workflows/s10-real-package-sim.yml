@@ -21,6 +21,11 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            audit
+          sparse-checkout-cone-mode: true
+          fetch-depth: 1
       - name: Validate remote audit source before downloading ROM
         run: python3 -m py_compile audit/s10_real_zip.py
       - name: Install audit tools and free space for real 6 GiB package
