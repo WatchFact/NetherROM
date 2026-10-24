@@ -9,6 +9,7 @@ set -euo pipefail
 
 source "$SRC_DIR/scripts/utils/build_utils.sh"
 python3 "$SRC_DIR/scripts/s10/odm_layout.py" finalize "$WORK_DIR" "$TARGET_CODENAME"
+python3 "$SRC_DIR/scripts/s10/trim_optional.py" "$WORK_DIR"
 python3 "$SRC_DIR/scripts/s10/audit_output.py" "$WORK_DIR" "$TARGET_CODENAME" "$APKTOOL_DIR"
 for forbidden in system_ext vendor_dlkm odm_dlkm system_dlkm super; do
   [[ ! -e "$WORK_DIR/$forbidden" ]] || { echo "Unexpected partition: $forbidden" >&2; exit 1; }
@@ -117,6 +118,7 @@ for part in boot dtb dtbo; do
 done
 python3 "$SRC_DIR/scripts/s10/installer.py" "$stage" "$TARGET_CODENAME"
 cp "$WORK_DIR/kernel/kernel.json" "$stage/kernel.json"
+cp "$WORK_DIR/optional-trim-provenance.json" "$stage/optional-trim-provenance.json"
 cp "$SRC_DIR/scripts/s10/hardware-v3.1.0.json" "$stage/hardware-provenance.json"
 cp "$SRC_DIR/scripts/s10/dvfs-stock.json" "$stage/dvfs-provenance.json"
 for name in vintf camera-compatibility camera-portrait odm face-hidl virtual-vibration wifi; do
