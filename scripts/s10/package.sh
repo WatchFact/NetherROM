@@ -84,9 +84,17 @@ cp "$WORK_DIR/kernel/kernel.json" "$stage/kernel.json"
 cp "$WORK_DIR/optional-trim-provenance.json" "$stage/optional-trim-provenance.json"
 cp "$SRC_DIR/scripts/s10/hardware-v3.1.0.json" "$stage/hardware-provenance.json"
 cp "$SRC_DIR/scripts/s10/dvfs-stock.json" "$stage/dvfs-provenance.json"
-for name in vintf camera-compatibility camera-portrait odm face-hidl virtual-vibration wifi; do
-  cp "$WORK_DIR/$name-provenance.json" "$stage/$name-provenance.json"
+# Only include provenance files that the build actually produces. The camera
+# compatibility audit currently emits camera-compatibility.json (not a
+# *-provenance.json file); missing required records still fail packaging.
+for name in vintf camera-portrait odm face-hidl virtual-vibration wifi; do
+  source="$WORK_DIR/$name-provenance.json"
+  [[ -s "$source" ]] || { echo "Missing required provenance: $source" >&2; exit 1; }
+  cp "$source" "$stage/$name-provenance.json"
 done
+camera_record="$WORK_DIR/camera-compatibility.json"
+[[ -s "$camera_record" ]] || { echo "Missing required camera audit: $camera_record" >&2; exit 1; }
+cp "$camera_record" "$stage/camera-compatibility.json"
 printf 'ota-type=BLOCK\npre-device=%s\npost-timestamp=%s\n' \
   "$TARGET_CODENAME" "$(date +%s)" > "$stage/META-INF/com/android/metadata"
 printf 'device=%s\nversion=%s\nlayout=physical-ext4\n' \
