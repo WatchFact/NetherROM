@@ -1,0 +1,70 @@
+name: Simulate actual S10+ signed ROM ZIP offline
+on:
+  push:
+    branches: [port/artisan-aether-s10-clean-20261021]
+    paths:
+      - '.github/workflows/s10-real-package-sim.yml'
+      - 'audit/s10_real_zip.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulate:
+    name: Replay signed OTA to disposable ext4 images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install audit tools and free space for real 6 GiB package
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/hostedtoolcache /usr/local/share/powershell /usr/share/swift || true
+          sudo apt-get update -qq
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y p7zip-full python3-brotli e2fsprogs
+          /usr/bin/python3 -c 'import brotli; print("Brotli Python ready")'
+          df -h .
+      - name: Download published S10+ ROM from GitHub (not from user)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rom/parts" "$RUNNER_TEMP/rom/unpacked"
+          gh release download netherrom-4.0.2-beyond2lte-ultra-20261023 \
+            --dir "$RUNNER_TEMP/rom/parts" \
+            --pattern '*.7z.*' --pattern '*SHA256.txt' --clobber
+          (
+            cd "$RUNNER_TEMP/rom/parts"
+            sha256sum -c 7Z-PARTS-SHA256.txt
+          )
+          df -h .
+      - name: Extract real signed ROM ZIP and verify its SHA-256
+        shell: bash
+        run: |
+          set -euo pipefail
+          7z x -y "$RUNNER_TEMP/rom/parts/NetherROM_4.0.2_beyond2lte_ULTRA.7z.001" "-o$RUNNER_TEMP/rom/unpacked"
+          ROM=$(find "$RUNNER_TEMP/rom/unpacked" -type f -name '*.zip' -print -quit)
+          test -n "$ROM"
+          EXPECTED=$(awk 'NF {print $1; exit}' "$RUNNER_TEMP/rom/parts/ROM-SHA256.txt")
+          ACTUAL=$(sha256sum "$ROM" | awk '{print $1}')
+          test "$EXPECTED" = "$ACTUAL" || { echo "Signed ROM ZIP SHA-256 mismatch!" >&2; exit 1; }
+          echo "ROM=$ROM" >> "$GITHUB_ENV"
+          echo "Signed ROM ZIP matched release checksum."
+          df -h .
+      - name: Replay each signed OTA partition and fsck disposable images
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 audit/s10_real_zip.py "$ROM" package-audit-report.json
+      - name: Upload findings without ROM data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s10-real-zip-simulation-report
+          path: package-audit-report.json
+          if-no-files-found: ignore
+          retention-days: 30
