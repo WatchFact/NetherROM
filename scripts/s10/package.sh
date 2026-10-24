@@ -36,8 +36,42 @@ path.write_text(json.dumps(info) + '\n')
 PY
 }
 
+# Reject impossible images before consuming runner disk or RAM. Do not delete
+# firmware/hardware payloads merely to make an oversized ROM appear to fit.
+python3 - "$WORK_DIR" <<'PY'
+import os, shutil, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+limits = {'system': 7340032000, 'vendor': 1572864000,
+          'product': 1572864000, 'odm': 4194304}
+for name, limit in limits.items():
+    tree = root / name
+    if not tree.is_dir():
+        raise SystemExit(f'Missing required partition tree: {tree}')
+    total = sum(p.stat().st_size for p in tree.rglob('*') if p.is_file() and not p.is_symlink())
+    # Filesystem metadata, inode tables and alignment need additional room.
+    reserve = max(64 * 1024 * 1024, total // 20) if name != 'odm' else 0
+    if name != 'odm' and total + reserve > limit:
+        raise SystemExit(
+            f'Partition {name} cannot fit: files={total:,} bytes, '
+            f'estimated overhead={reserve:,}, physical limit={limit:,}. '
+            'Reduce nonessential ROM contents before packaging; never enlarge '
+            'the target partition or silently omit required hardware files.')
+    print(f'{name}: {total:,} bytes of files; partition budget {limit:,}', flush=True)
+usage = shutil.disk_usage(os.environ.get('OUT_DIR', str(root)))
+print(f'Packaging free disk: {usage.free:,} bytes', flush=True)
+if usage.free < 3 * 1024**3:
+    raise SystemExit('Less than 3 GiB free before packaging; free build intermediates first.')
+PY
+
 for part in system vendor product odm; do
   options=()
+  if [[ "$part" != odm ]]; then
+    case "$part" in
+      system) options=(--partition-size 7340032000) ;;
+      vendor|product) options=(--partition-size 1572864000) ;;
+    esac
+  fi
   if [[ "$part" == odm ]]; then
     [[ "$TARGET_ODM_PARTITION_SIZE" == 4194304 ]]
     options=(--partition-size 4194304)
