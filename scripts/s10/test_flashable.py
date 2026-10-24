@@ -66,5 +66,49 @@ class FlashableTests(unittest.TestCase):
             self.assertFalse((folder / 's10-preflight.sh').exists())
 
 
+class OptionalTrimTests(unittest.TestCase):
+    def test_measured_optional_trim_preserves_hardware_and_unlisted_apps(self):
+        from trim_optional import OPTIONAL, PROTECTED, trim
+        with tempfile.TemporaryDirectory() as td:
+            work = Path(td)
+            system = work / 'system'
+            for name in PROTECTED:
+                dest = system / name
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(b'protected-hardware')
+            for name in OPTIONAL[:3]:
+                dest = system / name / 'payload.apk'
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(b'optional-payload')
+            kept = system / 'system/priv-app/SamsungAccount/SamsungAccount.apk'
+            kept.parent.mkdir(parents=True, exist_ok=True)
+            kept.write_bytes(b'keep-me')
+            report = trim(work)
+            self.assertEqual(report['removed_bytes'], 3 * len(b'optional-payload'))
+            self.assertEqual(len(report['removed']), 3)
+            self.assertTrue(kept.is_file())
+            for name in PROTECTED:
+                self.assertEqual((system / name).read_bytes(), b'protected-hardware')
+            for name in OPTIONAL[:3]:
+                self.assertFalse((system / name).exists())
+            self.assertEqual(json.loads((work / 'optional-trim-provenance.json').read_text()), report)
+            self.assertEqual(trim(work)['removed_bytes'], 0)
+
+    def test_symlink_optional_target_rejected_before_any_removal(self):
+        from trim_optional import OPTIONAL, trim
+        with tempfile.TemporaryDirectory() as td:
+            work = Path(td)
+            system = work / 'system'
+            first = system / OPTIONAL[0]
+            first.mkdir(parents=True)
+            (first / 'keep').write_text('untouched')
+            second = system / OPTIONAL[1]
+            second.parent.mkdir(parents=True, exist_ok=True)
+            second.symlink_to(first, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, 'Unexpected optional payload type'):
+                trim(work)
+            self.assertEqual((first / 'keep').read_text(), 'untouched')
+
+
 if __name__ == '__main__':
     unittest.main()
