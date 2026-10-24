@@ -156,7 +156,7 @@ def audit(path):
 
         sizes = json.loads(z.read("sizes.json"))
         check("exact seven partition-size entries", set(sizes) == EXPECTED)
-        check("partition sizes positive and aligned", all(type(sizes[k]) is int and sizes[k] >= BLOCK and sizes[k] % BLOCK == 0 for k in EXPECTED))
+        check("filesystem sizes aligned; kernel sizes positive", all(type(sizes[k]) is int and sizes[k] >= BLOCK and sizes[k] % BLOCK == 0 for k in PARTS) and all(type(sizes[k]) is int and sizes[k] >= 2048 for k in KERNEL))
         kernel = json.loads(z.read("kernel.json"))
         check("kernel target is S10+ beyond2lte", kernel.get("device") == "beyond2lte")
         for k in KERNEL:

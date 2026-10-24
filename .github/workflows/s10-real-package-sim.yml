@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: s10-actual-package-dryrun
+  cancel-in-progress: true
+
 jobs:
   simulate:
     name: Replay signed OTA to disposable ext4 images
@@ -17,6 +21,8 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
+      - name: Validate remote audit source before downloading ROM
+        run: python3 -m py_compile audit/s10_real_zip.py
       - name: Install audit tools and free space for real 6 GiB package
         shell: bash
         run: |
