@@ -38,6 +38,7 @@ PY
 
 # Reject impossible images before consuming runner disk or RAM. Do not delete
 # firmware/hardware payloads merely to make an oversized ROM appear to fit.
+# Keep the size report in CI logs so a failed build identifies what to trim.
 python3 - "$WORK_DIR" <<'PY'
 import os, shutil, sys
 from pathlib import Path
